@@ -1,4 +1,4 @@
-# U is for Uncomplicated
+# U-tool
 
 [![AppVeyor CI](https://ci.appveyor.com/api/projects/status/2vv83afj3dxqibi5?svg=true)](https://ci.appveyor.com/project/Zubax/u)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=UAVCAN_u&metric=alert_status)](https://sonarcloud.io/dashboard?id=UAVCAN_u)
@@ -10,9 +10,12 @@
 **`u`** is a simple cross-platform command-line interface (CLI) tool for diagnostics and debugging of
 [UAVCAN](https://uavcan.org) networks.
 By virtue of being based on [PyUAVCAN](https://github.com/UAVCAN/pyuavcan),
-`u` supports all UAVCAN transports (UDP, serial, CAN, ...)
+the U-tool supports all UAVCAN transports (UDP, serial, CAN, ...)
 and is compatible with all major features of the protocol.
 It is designed to be usable with GNU/Linux, Windows, and macOS.
 
-Read the docs by executing **`u --help`**.
-If you have questions, bring them over to [forum.uavcan.org](https://forum.uavcan.org/).
+Install via PIP: **`pip install u`**.
+
+Read the docs: **`u --help`**.
+
+Get answers at [forum.uavcan.org](https://forum.uavcan.org/).

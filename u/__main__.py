@@ -2,6 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
-import u
+if __name__ == "__main__":
+    from u import main
 
-u.main()
+    main(auto_envvar_prefix="U")

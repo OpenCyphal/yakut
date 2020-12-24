@@ -4,20 +4,44 @@
 
 import os
 import sys
+import typing
 import logging
 import click
 import u
 
 
 _logger = logging.getLogger(__name__.replace("__", ""))
-_LOG_FORMAT = "%(asctime)s %(process)06d %(levelname)-5.5s %(name)-20s: %(message)s"
+_LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-5.5s %(name)s: %(message)s"
 logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will be overridden later.
 
 
 @click.group()
 @click.version_option(version=u.__version__)
 @click.option("--verbose", "-v", count=True, help="Show verbose log messages. Specify twice for extra verbosity.")
-def main(verbose: int) -> None:
+@click.option(
+    "--path",
+    "-P",
+    multiple=True,
+    type=click.Path(resolve_path=True),
+    help=f"""
+In order to use compiled DSDL namespaces,
+the directories that contain the compilation outputs need to be specified using this option before invoking the U-tool.
+The current working directory does not need to be specified explicitly.
+
+An alternative way to specify the DSDL look-up directories is to use the environment variable U_PATH,
+where multiple entries can be listed like in the standard PATH variable.
+
+Examples:
+
+\b
+    u  --path ../public_regulated_data_types  --path ~/my_namespaces  pub ...
+
+\b
+    export U_PATH="../public_regulated_data_types:~/my_namespaces"
+    u pub ...
+""",
+)
+def main(verbose: int, path: typing.Tuple[str, ...]) -> None:
     """
     \b
          __   __   _______   __   __   _______   _______   __   __
@@ -28,7 +52,7 @@ def main(verbose: int) -> None:
             |      |            |         |      |         |
         ----o------o------------o---------o------o---------o-------
 
-    The U-tool -- a cross-platform command-line utility for diagnostics and management of UAVCAN networks.
+    U-tool is a cross-platform command-line utility for diagnostics and management of UAVCAN networks.
     It is designed for use either directly by humans or from automation scripts.
 
     The U-tool is built on top of PyUAVCAN -- a Python library implementing the UAVCAN stack
@@ -39,10 +63,9 @@ def main(verbose: int) -> None:
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
 
-    # It is a common use case when the user generates DSDL packages in the current directory and then runs the CLI
-    # tool in it. Do not require the user to manually export PYTHONPATH=. by extending it with the CWD automatically.
-    sys.path.append(os.getcwd())
-    _logger.debug("sys.path: %r", sys.path)
+    for p in (os.getcwd(), *path):
+        _logger.debug("New path item: %s", p)
+        sys.path.append(str(p))
 
 
 subcommand = main.command

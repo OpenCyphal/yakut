@@ -6,4 +6,4 @@ import sys
 import pyuavcan.util
 
 # pyuavcan.util.import_submodules(sys.modules[__name__])
-from . import doc  # FIXME this is tentative, uncomment the above when all commands are implemented.
+from . import doc, compile  # FIXME this is tentative, uncomment the above when all commands are implemented.

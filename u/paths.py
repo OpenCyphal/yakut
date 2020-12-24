@@ -46,6 +46,6 @@ OUTPUT_TRANSFER_ID_MAP_MAX_AGE = 60.0  # [second]
 This is not a path but a related parameter so it's kept here. Files older that this are not used.
 """
 
-DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URL = (
+DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI = (
     "https://github.com/UAVCAN/public_regulated_data_types/archive/master.zip"
 )

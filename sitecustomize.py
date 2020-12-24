@@ -6,7 +6,7 @@ import os
 import sys
 import pathlib
 
-OWN_PATH = pathlib.Path(__file__).absolute()
+OWN_PATH = pathlib.Path(__file__).resolve()
 
 
 def detect_debugger() -> bool:

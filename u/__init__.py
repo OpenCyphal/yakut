@@ -1,10 +1,15 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2020 UAVCAN Consortium
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
-from ._main import main as main
+import pathlib
 
-# noinspection PyCompatibility
-from . import commands as commands
+__version__ = (pathlib.Path(__file__).parent / "VERSION").read_text().strip()
+__version_info__ = tuple(map(int, __version__.split(".")[:3]))
+__author__ = "UAVCAN Consortium"
+__email__ = "consortium@uavcan.org"
+__copyright__ = f"Copyright (c) 2020 {__author__} <{__email__}>"
+__license__ = "MIT"
 
-from .commands import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URL as DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URL
+from .main import main as main, subcommand as subcommand
+from . import cmd as cmd

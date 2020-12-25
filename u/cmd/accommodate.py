@@ -8,49 +8,39 @@ import random
 import asyncio
 import logging
 import contextlib
+import click
 import pyuavcan
+import u
 
 
 _logger = logging.getLogger(__name__)
 
 
-'''
-class PickNodeIDCommand(Command):
-    @property
-    def names(self) -> typing.Sequence[str]:
-        return ["pick-node-id", "pick-nid"]
+@u.subcommand()
+@click.pass_obj
+def accommodate(obj: u.Purser):
+    """
+    Automatically find a node-ID value that is not used by any other node that is currently online.
 
-    @property
-    def help(self) -> str:
-        return """
-Automatically find a node-ID value that is not used by any other node that is currently online. This is a simpler
-alternative to plug-and-play node-ID allocation logic defined in Specification. Unlike the solution presented there,
-this alternative is non-deterministic and collision-prone; it is fundamentally unsafe and it should not be used in
-production. Instead, it is intended for use in R&D and testing applications, either directly by humans or from
-automation scripts. The operating principle is extremely simple and can be viewed as a simplification of the node-ID
-claiming procedure defined in J1939: listen to Heartbeat messages for a short while, build the list of node-ID values
-that are currently in use, and then randomly pick a node-ID from the unused ones. The listening duration is determined
-heuristically at run time; for most use cases it is unlikely to exceed three seconds.
-""".strip()
+    This is a simpler alternative to plug-and-play node-ID allocation logic defined in Specification.
+    Unlike the solution presented there, this alternative is less deterministic and less robust;
+    it is fundamentally unsafe and it should not be used in production.
+    Instead, it is intended for use in R&D and testing applications,
+    either directly by humans or from automation scripts.
 
-    @property
-    def examples(self) -> typing.Optional[str]:
-        return None
+    The operating principle is extremely simple and can be viewed as a simplification of the
+    node-ID claiming procedure defined in J1939:
+    listen to Heartbeat messages for a short while,
+    build the list of node-ID values that are currently in use,
+    and then randomly pick a node-ID from the unused ones.
+    The listening duration is determined heuristically at run time;
+    for most use cases it is unlikely to exceed three seconds.
+    """
+    tr = obj.get_transport()
+    if tr is None:
+        raise click.MissingParameter("Cannot pick a node-ID because no transport is configured")
 
-    @property
-    def subsystem_factories(self) -> typing.Sequence[SubsystemFactory]:
-        return [
-            _subsystems.transport.TransportFactory(),
-        ]
-
-    def register_arguments(self, parser: argparse.ArgumentParser) -> None:
-        del parser
-
-    def execute(self, args: argparse.Namespace, subsystems: typing.Sequence[object]) -> int:
-        (transport,) = subsystems
-        assert isinstance(transport, pyuavcan.transport.Transport)
-        return asyncio.get_event_loop().run_until_complete(_run(transport=transport))
-'''
+    return asyncio.get_event_loop().run_until_complete(_run(tr))
 
 
 async def _run(transport: pyuavcan.transport.Transport) -> int:
@@ -61,7 +51,7 @@ async def _run(transport: pyuavcan.transport.Transport) -> int:
         return 2
 
     node_id_set_cardinality = transport.protocol_parameters.max_nodes
-    if node_id_set_cardinality >= 2 ** 32:
+    if node_id_set_cardinality > 2 ** 24:
         # Special case: for very large sets just pick a random number. Very large sets are only possible with test
         # transports such as loopback so it's acceptable. If necessary, later we could develop a more robust solution.
         print(random.randint(0, node_id_set_cardinality - 1))

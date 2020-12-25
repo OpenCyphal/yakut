@@ -17,17 +17,16 @@ _LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-5.5s %(name)s: %(message)s
 logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will be overridden later.
 
 
-class ResourceProvider:
+class Purser:
     def __init__(self, transport_factory: TransportFactory, formatter_factory: FormatterFactory) -> None:
         self._f_transport = transport_factory
         self._f_formatter = formatter_factory
-        self._transport_constructed = False
+        self._transport: typing.Optional[Transport] = None
 
-    def make_transport(self) -> Transport:
-        # The single-use restriction may be lifted later?
-        assert not self._transport_constructed, "Internal logic error: transport cannot be constructed more than once"
-        self._transport_constructed = True
-        return self._f_transport()
+    def get_transport(self) -> Transport:
+        if self._transport is None:
+            self._transport = self._f_transport()
+        return self._transport
 
     def make_formatter(self) -> Formatter:
         return self._f_formatter()
@@ -95,14 +94,14 @@ def main(
         _logger.debug("New path item: %s", p)
         sys.path.append(str(p))
 
-    ctx.obj = ResourceProvider(
+    ctx.obj = Purser(
         transport_factory=transport_factory,
         formatter_factory=formatter_factory,
     )
 
     if u_self_test:
         print("formatter:", ctx.obj.make_formatter())
-        print("transport:", ctx.obj.make_transport())
+        print("transport:", ctx.obj.get_transport())
         sys.exit(0)
 
 

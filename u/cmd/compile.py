@@ -21,7 +21,7 @@ _NAME = "compile"
 _logger = logging.getLogger(__name__)
 
 
-def make_usage_suggestion_text(root_namespace_name: str) -> str:
+def make_usage_suggestion(root_namespace_name: str) -> str:
     """
     When a command is unable to find a compiled DSDL package, this helper can be used to construct a
     human-friendly suggestion on how to resolve the problem.
@@ -37,7 +37,7 @@ def make_usage_suggestion_text(root_namespace_name: str) -> str:
 @u.subcommand(
     name=_NAME,
     help=f"""
-Compile DSDL root namespaces.
+Compile DSDL namespaces.
 This needs to be done before using any data types with pub/sub/call and other commands.
 
 The command accepts a list of sources where each element is either a local path

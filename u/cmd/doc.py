@@ -16,6 +16,7 @@ _logger = logging.getLogger(__name__)
 def doc(name: str) -> None:
     """
     Show transport usage documentation from PyUAVCAN.
+    Transports whose dependencies are not installed will not be shown.
 
     If the argument NAME is provided, the documentation will be shown only for entities whose name contains
     the specified string (case-insensitive), like "udp".
@@ -49,8 +50,10 @@ def doc(name: str) -> None:
                         ]
                     )
                 )
-
-    click.echo_via_pager(texts)
+    if texts:
+        click.echo_via_pager(texts)
+    else:
+        click.secho(f"There are no entries that match {name!r}", err=True, fg="red")
 
 
 def _handle_import_error(name: str, ex: ImportError) -> None:

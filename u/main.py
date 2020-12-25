@@ -8,6 +8,8 @@ import typing
 import logging
 import click
 import u
+from u.param.transport import transport_factory_option, TransportFactory, Transport
+from u.param.formatter import formatter_factory_option, FormatterFactory, Formatter
 
 
 _logger = logging.getLogger(__name__.replace("__", ""))
@@ -15,7 +17,27 @@ _LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-5.5s %(name)s: %(message)s
 logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will be overridden later.
 
 
-@click.group()
+class ResourceProvider:
+    def __init__(self, transport_factory: TransportFactory, formatter_factory: FormatterFactory) -> None:
+        self._f_transport = transport_factory
+        self._f_formatter = formatter_factory
+        self._transport_constructed = False
+
+    def make_transport(self) -> Transport:
+        # The single-use restriction may be lifted later?
+        assert not self._transport_constructed, "Internal logic error: transport cannot be constructed more than once"
+        self._transport_constructed = True
+        return self._f_transport()
+
+    def make_formatter(self) -> Formatter:
+        return self._f_formatter()
+
+
+@click.group(
+    context_settings={
+        "max_content_width": click.get_terminal_size()[0],
+    }
+)
 @click.version_option(version=u.__version__)
 @click.option("--verbose", "-v", count=True, help="Show verbose log messages. Specify twice for extra verbosity.")
 @click.option(
@@ -41,7 +63,18 @@ Examples:
     u pub ...
 """,
 )
-def main(verbose: int, path: typing.Tuple[str, ...]) -> None:
+@click.option("--u-self-test", hidden=True, is_flag=True)
+@formatter_factory_option()
+@transport_factory_option()
+@click.pass_context
+def main(
+    ctx: click.Context,
+    verbose: int,
+    path: typing.Tuple[str, ...],
+    formatter_factory: FormatterFactory,
+    transport_factory: TransportFactory,
+    u_self_test: bool,
+) -> None:
     """
     \b
          __   __   _______   __   __   _______   _______   __   __
@@ -54,11 +87,6 @@ def main(verbose: int, path: typing.Tuple[str, ...]) -> None:
 
     U-tool is a cross-platform command-line utility for diagnostics and management of UAVCAN networks.
     It is designed for use either directly by humans or from automation scripts.
-
-    The U-tool is built on top of PyUAVCAN -- a Python library implementing the UAVCAN stack
-    for high-level operating systems (GNU/Linux, Windows, macOS)
-    supporting different transport protocols (UAVCAN/UDP, UAVCAN/CAN, etc).
-
     Ask questions at https://forum.uavcan.org
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
@@ -66,6 +94,16 @@ def main(verbose: int, path: typing.Tuple[str, ...]) -> None:
     for p in (os.getcwd(), *path):
         _logger.debug("New path item: %s", p)
         sys.path.append(str(p))
+
+    ctx.obj = ResourceProvider(
+        transport_factory=transport_factory,
+        formatter_factory=formatter_factory,
+    )
+
+    if u_self_test:
+        print("formatter:", ctx.obj.make_formatter())
+        print("transport:", ctx.obj.make_transport())
+        sys.exit(0)
 
 
 subcommand = main.command

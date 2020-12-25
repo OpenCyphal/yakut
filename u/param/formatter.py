@@ -8,29 +8,22 @@ import click
 
 
 Formatter = typing.Callable[[typing.Dict[int, typing.Dict[str, typing.Any]]], str]
+FormatterFactory = typing.Callable[[], Formatter]
 
 
-def formatter_option() -> typing.Callable[[...], None]:
-    def validate(ctx: click.Context, param: object, value: str) -> Formatter:
-        _ = ctx
-        _ = param
+def formatter_factory_option() -> typing.Callable[[...], typing.Any]:
+    def validate(ctx: click.Context, param: object, value: str) -> FormatterFactory:
+        _ = ctx, param
         try:
-            return _FORMATTERS[value.upper()]()
+            return _FORMATTERS[value.upper()]
         except LookupError:
             raise click.BadParameter(f"Invalid format name: {value!r}")
 
     choices = list(_FORMATTERS.keys())
     default = choices[0]
-
-    return click.option(
-        "--format",
-        "-F",
-        "formatter",
-        type=click.Choice(choices, case_sensitive=False),
-        callback=validate,
-        default=default,
-        help=f"""
+    doc = f"""
 The format of data printed into stdout.
+This option is only relevant for commands that generate structured outputs, like pub or call; other commands ignore it.
 
 The final representation of the output data is constructed from an intermediate "builtin-based" representation,
 which is a simplified form that is stripped of the detailed DSDL type information, like JSON.
@@ -44,12 +37,20 @@ TSV is intended for use with third-party software
 such as computer algebra systems or spreadsheet processors.
 
 The default is {default}.
-""",
+"""
+    return click.option(
+        "--format",
+        "-F",
+        "formatter_factory",
+        type=click.Choice(choices, case_sensitive=False),
+        callback=validate,
+        default=default,
+        help=doc,
     )
 
 
 def _make_yaml_formatter() -> Formatter:
-    from .yaml import YAMLDumper
+    from u.yaml import YAMLDumper
 
     dumper = YAMLDumper(explicit_start=True)
     return lambda data: dumper.dumps(data)

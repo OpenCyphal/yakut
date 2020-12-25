@@ -7,13 +7,14 @@ import typing
 import random
 import asyncio
 import logging
-import argparse
 import contextlib
 import pyuavcan
-from . import _subsystems
-from ._base import Command, SubsystemFactory
 
 
+_logger = logging.getLogger(__name__)
+
+
+'''
 class PickNodeIDCommand(Command):
     @property
     def names(self) -> typing.Sequence[str]:
@@ -49,9 +50,7 @@ heuristically at run time; for most use cases it is unlikely to exceed three sec
         (transport,) = subsystems
         assert isinstance(transport, pyuavcan.transport.Transport)
         return asyncio.get_event_loop().run_until_complete(_run(transport=transport))
-
-
-_logger = logging.getLogger(__name__)
+'''
 
 
 async def _run(transport: pyuavcan.transport.Transport) -> int:

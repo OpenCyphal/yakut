@@ -3,60 +3,54 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
-import enum
 import typing
-import logging
-import argparse
-from .._yaml import YAMLDumper  # Reaching to an upper-level module like this is not great, do something about it.
-from .._argparse_helpers import make_enum_action
-from ._base import SubsystemFactory
+import click
 
 
 Formatter = typing.Callable[[typing.Dict[int, typing.Dict[str, typing.Any]]], str]
 
-_logger = logging.getLogger(__name__)
 
+def formatter_option() -> typing.Callable[[...], None]:
+    def validate(ctx: click.Context, param: object, value: str) -> Formatter:
+        _ = ctx
+        _ = param
+        try:
+            return _FORMATTERS[value.upper()]()
+        except LookupError:
+            raise click.BadParameter(f"Invalid format name: {value!r}")
 
-class FormatterFactory(SubsystemFactory):
-    def register_arguments(self, parser: argparse.ArgumentParser) -> None:
-        # noinspection PyTypeChecker
-        parser.add_argument(
-            "--format",
-            "-F",
-            default=next(iter(_Format)),
-            action=make_enum_action(_Format),
-            help="""
-The format of the data printed into stdout. The final representation is constructed from an intermediate
-"builtin-based" representation, which is a simplified form that is stripped of the detailed DSDL type information,
-like JSON. For the background info please read the PyUAVCAN documentation on builtin-based representations.
+    choices = list(_FORMATTERS.keys())
+    default = choices[0]
 
-YAML is the default option as it is easy to process for humans and other machines alike. Each YAML-formatted object
-is separated from its siblings by an explicit document start marker: "---".
+    return click.option(
+        "--format",
+        "-F",
+        "formatter",
+        type=click.Choice(choices, case_sensitive=False),
+        callback=validate,
+        default=default,
+        help=f"""
+The format of data printed into stdout.
 
-JSON output is optimized for machine parsing, strictly one object per line.
+The final representation of the output data is constructed from an intermediate "builtin-based" representation,
+which is a simplified form that is stripped of the detailed DSDL type information, like JSON.
+For more info please read the PyUAVCAN documentation on builtin-based representations.
 
-TSV (tab separated values) output is intended for use with third-party software such as computer algebra systems or
-spreadsheet processors.
+YAML separates objects with `---`.
 
-Default: %(default)s
-""".strip(),
-        )
+JSON and TSV (tab separated values) keep exactly one object per line.
 
-    def construct_subsystem(self, args: argparse.Namespace) -> Formatter:
-        return {
-            _Format.YAML: _make_yaml_formatter,
-            _Format.JSON: _make_json_formatter,
-            _Format.TSV: _make_tsv_formatter,
-        }[args.format]()
+TSV is intended for use with third-party software
+such as computer algebra systems or spreadsheet processors.
 
-
-class _Format(enum.Enum):
-    YAML = enum.auto()
-    JSON = enum.auto()
-    TSV = enum.auto()
+The default is {default}.
+""",
+    )
 
 
 def _make_yaml_formatter() -> Formatter:
+    from .yaml import YAMLDumper
+
     dumper = YAMLDumper(explicit_start=True)
     return lambda data: dumper.dumps(data)
 
@@ -81,6 +75,13 @@ def _make_tsv_formatter() -> Formatter:
     raise NotImplementedError("Sorry, the TSV formatter is not yet implemented")
 
 
+_FORMATTERS = {
+    "YAML": _make_yaml_formatter,
+    "JSON": _make_json_formatter,
+    "TSV": _make_tsv_formatter,
+}
+
+
 def _unittest_formatter() -> None:
     obj = {
         2345: {
@@ -94,7 +95,7 @@ def _unittest_formatter() -> None:
         }
     }
     assert (
-        FormatterFactory().construct_subsystem(argparse.Namespace(format=_Format.YAML))(obj)
+        _FORMATTERS["YAML"]()(obj)
         == """---
 2345:
   abc:
@@ -104,7 +105,4 @@ def _unittest_formatter() -> None:
   ghi: 789
 """
     )
-    assert (
-        FormatterFactory().construct_subsystem(argparse.Namespace(format=_Format.JSON))(obj)
-        == '{"2345":{"abc":{"def":[123,456]},"ghi":789}}'
-    )
+    assert _FORMATTERS["JSON"]()(obj) == '{"2345":{"abc":{"def":[123,456]},"ghi":789}}'

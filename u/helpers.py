@@ -8,6 +8,12 @@ import click
 
 
 class EnumParam(click.Choice):
+    """
+    A parameter that allows the user to select one of the enum options.
+    The selection is case-insensitive and abbreviations are supported out of the box:
+    F, foo, and FOO_BAR are all considered equivalent as long as there are no ambiguities.
+    """
+
     def __init__(self, enum: enum.EnumMeta) -> None:
         self._enum = enum
         super().__init__(list(enum.__members__), case_sensitive=False)

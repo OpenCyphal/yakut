@@ -15,7 +15,7 @@ from u.yaml import YAMLLoader
 from u.helpers import EnumParam
 
 
-_MIN_SEND_TIMEOUT = 0.05
+_MIN_SEND_TIMEOUT = 0.1
 """
 With a slow garbage-collected language like Python, having a smaller timeout does not make practical sense.
 This may be made configurable later.
@@ -57,11 +57,7 @@ def _validate_message_spec(
     help=f"""
 Message publication period.
 All messages are published synchronously, so the period setting applies to all specified subjects.
-The send timeout for all publishers will equal the publication period as long as it is not less than
-{_MIN_SEND_TIMEOUT} seconds.
-
-The period of heartbeat publication is saturated by Heartbeat.MAX_PUBLICATION_PERIOD.
-Anonymous nodes do not publish heartbeat.
+The send timeout equals the period as long as it is not less than {_MIN_SEND_TIMEOUT} seconds.
 """,
 )
 @click.option(
@@ -139,8 +135,6 @@ def publish(
     node = purser.get_node("publish", allow_anonymous=True)
     assert isinstance(node, pyuavcan.application.Node)
     with contextlib.closing(node):
-        node.heartbeat_publisher.priority = priority
-        node.heartbeat_publisher.period = min(float(heartbeat_publisher.Heartbeat.MAX_PUBLICATION_PERIOD), period)
         publications = [
             Publication(
                 subject_spec=subj,
@@ -158,9 +152,9 @@ def publish(
                 send_timeout,
                 count,
                 priority,
-                "\n".join(map(str, publications)),
+                "\n".join(map(str, publications)) or "<nothing>",
             )
-        try:
+        try:  # Even if the publication set is empty, we still have to publish the heartbeat.
             _run(node=node, count=count, period=period, publications=publications)
         finally:
             if _logger.isEnabledFor(logging.INFO):

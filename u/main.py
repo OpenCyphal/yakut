@@ -81,7 +81,6 @@ _ENV_VAR_PATH = "U_PATH"
     "-P",
     multiple=True,
     type=click.Path(resolve_path=True),
-    envvar=_ENV_VAR_PATH,
     help=f"""
 In order to use compiled DSDL namespaces,
 the directories that contain compilation outputs need to be specified using this option before invoking the U-tool.
@@ -128,7 +127,7 @@ def main(
     It is designed for use either directly by humans or from automation scripts.
     Ask questions at https://forum.uavcan.org
 
-    Many parameters can be provided via environment variables prefixed with `U_`.
+    Any option can be provided via environment variable prefixed with `U_`.
     For example, option `--foo-bar`, if not provided as a command-line argument, will be read from `U_FOO_BAR`.
 
     Any command can be abbreviated arbitrarily as long as the resulting abridged name is not ambiguous.

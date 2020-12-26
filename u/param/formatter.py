@@ -40,6 +40,7 @@ such as computer algebra systems or spreadsheet processors.
         "--format",
         "-F",
         "formatter_factory",
+        envvar="U_FORMAT",
         type=click.Choice(choices, case_sensitive=False),
         callback=validate,
         default=default,

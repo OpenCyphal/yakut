@@ -13,13 +13,11 @@ import pathlib
 import dataclasses
 import click
 import pyuavcan
-from pyuavcan.transport import Transport, OutputSessionSpecifier
+from pyuavcan.transport import Transport, OutputSessionSpecifier, Priority
 from pyuavcan.presentation import OutgoingTransferIDCounter
 from u.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
+from u.helpers import EnumParam
 
-
-_ENV_VAR_HEARTBEAT_VSSC = "U_HEARTBEAT_VSSC"
-_ENV_VAR_NODE_INFO_FIELDS = "U_NODE_INFO_FIELDS"
 
 _logger = logging.getLogger(__name__)
 
@@ -31,7 +29,10 @@ class NodeFactory:
     """
 
     heartbeat_vssc: typing.Optional[int] = None
-    node_info_fields: typing.Dict[str, typing.Any] = dataclasses.field(
+    heartbeat_period: typing.Optional[float] = None
+    heartbeat_priority: typing.Optional[Priority] = None
+
+    node_info: typing.Dict[str, typing.Any] = dataclasses.field(
         default_factory=lambda: {
             "protocol_version": {
                 "major": pyuavcan.UAVCAN_SPECIFICATION_VERSION[0],
@@ -62,7 +63,7 @@ class NodeFactory:
             raise click.UsageError(compile.make_usage_suggestion(ex.name))
 
         try:
-            node_info = pyuavcan.dsdl.update_from_builtin(application.NodeInfo(), self.node_info_fields)
+            node_info = pyuavcan.dsdl.update_from_builtin(application.NodeInfo(), self.node_info)
         except (ValueError, TypeError) as ex:
             raise click.UsageError(f"Node info fields are not valid: {ex}") from ex
         if len(node_info.name) == 0:
@@ -73,14 +74,23 @@ class NodeFactory:
         node = application.Node(presentation, info=node_info)
         try:
             # Configure the heartbeat publisher.
-            if self.heartbeat_vssc is not None:
-                try:
+            try:
+                if self.heartbeat_period is not None:
+                    node.heartbeat_publisher.period = self.heartbeat_period
+                if self.heartbeat_priority is not None:
+                    node.heartbeat_publisher.priority = self.heartbeat_priority
+                if self.heartbeat_vssc is not None:
                     node.heartbeat_publisher.vendor_specific_status_code = self.heartbeat_vssc
-                except ValueError:
-                    raise click.UsageError(f"Invalid vendor-specific status code: {self.heartbeat_vssc}")
-            else:
-                node.heartbeat_publisher.vendor_specific_status_code = os.getpid() % 100
-            _logger.debug("Node heartbeat: %r", node.heartbeat_publisher.make_message())
+                else:
+                    node.heartbeat_publisher.vendor_specific_status_code = os.getpid() % 100
+            except ValueError as ex:
+                raise click.UsageError(f"Invalid heartbeat parameters: {ex}") from ex
+            _logger.debug(
+                "Node heartbeat: %s, period: %s, priority: %s",
+                node.heartbeat_publisher.make_message(),
+                node.heartbeat_publisher.period,
+                node.heartbeat_publisher.priority,
+            )
 
             # Check the node-ID configuration.
             if not allow_anonymous and node.presentation.transport.local_node_id is None:
@@ -121,6 +131,18 @@ def node_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[
         if value is not None:
             factory.heartbeat_vssc = int(value)
 
+    def validate_heartbeat_period(ctx: click.Context, param: click.Parameter, value: typing.Optional[str]) -> None:
+        _ = ctx, param
+        if value is not None:
+            factory.heartbeat_period = float(value)
+
+    def validate_heartbeat_priority(
+        ctx: click.Context, param: click.Parameter, value: typing.Optional[Priority]
+    ) -> None:
+        _ = ctx, param
+        if value is not None:
+            factory.heartbeat_priority = value
+
     def validate(ctx: click.Context, param: click.Parameter, value: str) -> NodeFactory:
         from u.yaml import YAMLLoader
 
@@ -128,38 +150,48 @@ def node_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[
         if not isinstance(fields, dict):
             raise click.BadParameter(f"Expected a dict, got {type(fields).__name__}", ctx=ctx, param=param)
 
-        factory.node_info_fields.update(fields)
+        factory.node_info.update(fields)
         return factory
 
     f = click.option(
         "--heartbeat-vssc",
         "--vssc",
-        envvar=_ENV_VAR_HEARTBEAT_VSSC,
         type=int,
         expose_value=False,
         callback=validate_heartbeat_vssc,
         help=f"""
-Specify the vendor-specific status code (VSSC) of the local node.
-This option will have no effect if the local node is anonymous.
-Another way to specify this option is via environment variable {_ENV_VAR_HEARTBEAT_VSSC}.
-The default is (PID % 100) of the current process.
+The vendor-specific status code (VSSC) of the local node. The default is (PID % 100) of the current process.
 """,
     )(f)
     f = click.option(
-        "--node-info-fields",
+        "--heartbeat-period",
+        type=float,
+        metavar="SECONDS",
+        callback=validate_heartbeat_period,
+        expose_value=False,
+        help=f"Heartbeat publication interval.",
+    )(f)
+    f = click.option(
+        "--heartbeat-priority",
+        type=EnumParam(Priority),
+        callback=validate_heartbeat_priority,
+        expose_value=False,
+        help=f"Heartbeat publication priority.",
+    )(f)
+    f = click.option(
+        "--node-info",
         "node_factory",
+        envvar="U_NODE_INFO",
         default="{}",
         metavar="YAML",
-        envvar=_ENV_VAR_NODE_INFO_FIELDS,
         type=str,
         callback=validate,
         help=f"""
-Allows overriding the default values of the uavcan.node.GetInfo response returned by the node.
-Another way to specify this option is via environment variable {_ENV_VAR_NODE_INFO_FIELDS}.
+Override the default values of the uavcan.node.GetInfo response returned by the local node.
 The defaults are (the default node name depends on the subcommand):
 
 \b
-{factory.node_info_fields}
+{factory.node_info}
 """,
     )(f)
     return f

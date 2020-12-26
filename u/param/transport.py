@@ -17,8 +17,6 @@ TransportFactory = typing.Callable[[], typing.Optional[Transport]]
 The result is None if no transport configuration was provided when invoking the command.
 """
 
-_ENV_VAR = "U_TRANSPORT"
-
 _logger = logging.getLogger(__name__)
 
 
@@ -42,7 +40,6 @@ def transport_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Call
     doc = f"""
 Specify the UAVCAN network interface to use.
 This option is only relevant for commands that access the network, like pub/sub/call/etc.; other commands ignore it.
-Another way to specify this option is via environment variable {_ENV_VAR}.
 
 The value is a (Python) expression that yields a transport instance or a sequence thereof upon evaluation.
 In the latter case, the multiple transports will be joined under the same redundant transport instance,
@@ -76,11 +73,11 @@ Files that are more than {OUTPUT_TRANSFER_ID_MAP_MAX_AGE} seconds old are not us
         "--transport",
         "-i",
         "transport_factory",
+        envvar="U_TRANSPORT",
         type=str,
         metavar="EXPRESSION",
         callback=validate,
         help=doc,
-        envvar=_ENV_VAR,
     )(f)
     return f
 

@@ -10,6 +10,7 @@ import click
 import u
 from u.param.transport import transport_factory_option, TransportFactory, Transport
 from u.param.formatter import formatter_factory_option, FormatterFactory, Formatter
+from u.param.node import node_factory_option, NodeFactory
 
 
 _logger = logging.getLogger(__name__.replace("__", ""))
@@ -18,10 +19,21 @@ logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will 
 
 
 class Purser:
-    def __init__(self, transport_factory: TransportFactory, formatter_factory: FormatterFactory) -> None:
-        self._f_transport = transport_factory
+    def __init__(
+        self,
+        formatter_factory: FormatterFactory,
+        transport_factory: TransportFactory,
+        node_factory: NodeFactory,
+    ) -> None:
         self._f_formatter = formatter_factory
+        self._f_transport = transport_factory
+        self._f_node = node_factory
+
         self._transport: typing.Optional[Transport] = None
+        self._node: typing.Optional[object] = None
+
+    def make_formatter(self) -> Formatter:
+        return self._f_formatter()
 
     def get_transport(self) -> Transport:
         if self._transport is None:
@@ -30,8 +42,11 @@ class Purser:
             return self._transport
         click.get_current_context().fail("Transport not configured")
 
-    def make_formatter(self) -> Formatter:
-        return self._f_formatter()
+    def get_node(self, name_suffix: str, allow_anonymous: bool) -> object:
+        if self._node is None:
+            tr = self.get_transport()
+            self._node = self._f_node(tr, name_suffix=name_suffix, allow_anonymous=allow_anonymous)
+        return self._node
 
 
 pass_purser = click.make_pass_decorator(Purser)
@@ -69,7 +84,7 @@ _ENV_VAR_PATH = "U_PATH"
     envvar=_ENV_VAR_PATH,
     help=f"""
 In order to use compiled DSDL namespaces,
-the directories that contain the compilation outputs need to be specified using this option before invoking the U-tool.
+the directories that contain compilation outputs need to be specified using this option before invoking the U-tool.
 The current working directory does not need to be specified explicitly.
 
 An alternative way to specify the DSDL look-up directories is to use the environment variable {_ENV_VAR_PATH},
@@ -86,8 +101,9 @@ Examples:
 """,
 )
 @click.option("--u-self-test", hidden=True, is_flag=True)
-@formatter_factory_option()
-@transport_factory_option()
+@formatter_factory_option
+@transport_factory_option
+@node_factory_option
 @click.pass_context
 def main(
     ctx: click.Context,
@@ -95,6 +111,7 @@ def main(
     path: typing.Tuple[str, ...],
     formatter_factory: FormatterFactory,
     transport_factory: TransportFactory,
+    node_factory: NodeFactory,
     u_self_test: bool,
 ) -> None:
     """
@@ -124,13 +141,15 @@ def main(
         sys.path.append(str(p))
 
     ctx.obj = Purser(
-        transport_factory=transport_factory,
         formatter_factory=formatter_factory,
+        transport_factory=transport_factory,
+        node_factory=node_factory,
     )
 
     if u_self_test:
         print("formatter:", ctx.obj.make_formatter())
         print("transport:", ctx.obj.get_transport())
+        print("node:", ctx.obj.get_node("my_name_suffix", allow_anonymous=True))
         sys.exit(0)
 
 

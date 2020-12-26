@@ -17,12 +17,12 @@ TransportFactory = typing.Callable[[], typing.Optional[Transport]]
 The result is None if no transport configuration was provided when invoking the command.
 """
 
-_logger = logging.getLogger(__name__)
-
 _ENV_VAR = "U_TRANSPORT"
 
+_logger = logging.getLogger(__name__)
 
-def transport_factory_option() -> typing.Callable[[...], typing.Any]:
+
+def transport_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
     def validate(ctx: click.Context, param: object, value: typing.Optional[str]) -> TransportFactory:
         _ = ctx, param
         _logger.debug("Transport expression: %r", value)
@@ -72,7 +72,7 @@ On this computer, the path is `{OUTPUT_TRANSFER_ID_MAP_DIR}`.
 The map files can be removed to reset all transfer-ID counters to zero.
 Files that are more than {OUTPUT_TRANSFER_ID_MAP_MAX_AGE} seconds old are not used.
 """
-    return click.option(
+    f = click.option(
         "--transport",
         "-i",
         "transport_factory",
@@ -81,7 +81,8 @@ Files that are more than {OUTPUT_TRANSFER_ID_MAP_MAX_AGE} seconds old are not us
         callback=validate,
         help=doc,
         envvar=_ENV_VAR,
-    )
+    )(f)
+    return f
 
 
 def _construct_transport(expression: str) -> Transport:

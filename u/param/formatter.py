@@ -11,7 +11,7 @@ Formatter = typing.Callable[[typing.Dict[int, typing.Dict[str, typing.Any]]], st
 FormatterFactory = typing.Callable[[], Formatter]
 
 
-def formatter_factory_option() -> typing.Callable[[...], typing.Any]:
+def formatter_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
     def validate(ctx: click.Context, param: object, value: str) -> FormatterFactory:
         _ = ctx, param
         try:
@@ -36,7 +36,7 @@ JSON and TSV (tab separated values) keep exactly one object per line.
 TSV is intended for use with third-party software
 such as computer algebra systems or spreadsheet processors.
 """
-    return click.option(
+    f = click.option(
         "--format",
         "-F",
         "formatter_factory",
@@ -45,7 +45,8 @@ such as computer algebra systems or spreadsheet processors.
         default=default,
         show_default=True,
         help=doc,
-    )
+    )(f)
+    return f
 
 
 def _make_yaml_formatter() -> Formatter:

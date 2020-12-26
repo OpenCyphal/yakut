@@ -6,11 +6,4 @@ import sys
 import pyuavcan.util
 
 # BY CONVENTION, the COMMAND and the MODULE it is defined in should be NAMED IDENTICALLY.
-# pyuavcan.util.import_submodules(sys.modules[__name__])
-from . import (
-    documentation,
-    compile,
-    accommodate,
-    publish,
-    subscribe,
-)  # FIXME this is tentative, uncomment the above when all commands are implemented.
+pyuavcan.util.import_submodules(sys.modules[__name__])

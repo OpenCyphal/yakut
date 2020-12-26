@@ -116,7 +116,6 @@ def publish(
     """
     try:
         import pyuavcan.application
-        from pyuavcan.application import heartbeat_publisher
     except ImportError as ex:
         from u.cmd import compile
 
@@ -155,7 +154,7 @@ def publish(
                 "\n".join(map(str, publications)) or "<nothing>",
             )
         try:  # Even if the publication set is empty, we still have to publish the heartbeat.
-            _run(node=node, count=count, period=period, publications=publications)
+            _run(node, count=count, period=period, publications=publications)
         finally:
             if _logger.isEnabledFor(logging.INFO):
                 _logger.info("%s", node.presentation.transport.sample_statistics())

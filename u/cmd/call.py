@@ -4,16 +4,15 @@
 
 import sys
 import typing
-import asyncio
 import decimal
 import logging
-import argparse
 import contextlib
+import click
 import pyuavcan
-from . import _util, _subsystems
-from ._argparse_helpers import make_enum_action
-from ._yaml import YAMLLoader
-from ._base import Command, SubsystemFactory
+import u
+from u.helpers import EnumParam
+from u.param.formatter import Formatter
+from u.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
 
 
 _S = typing.TypeVar("_S", bound=pyuavcan.dsdl.ServiceObject)
@@ -22,133 +21,128 @@ _S = typing.TypeVar("_S", bound=pyuavcan.dsdl.ServiceObject)
 _logger = logging.getLogger(__name__)
 
 
-class CallCommand(Command):
-    @property
-    def names(self) -> typing.Sequence[str]:
-        return ["call"]
+def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: str) -> typing.Dict[str, typing.Any]:
+    from u.yaml import YAMLLoader
 
-    @property
-    def help(self) -> str:
-        return """
-Invoke a service using a specified request object and print the response. The local node will also publish heartbeat
-and respond to GetInfo.
+    try:
+        fields = YAMLLoader().load(value)
+    except Exception as ex:
+        raise click.BadParameter(f"Could not parse the request object fields: {ex}", ctx=ctx, param=param)
+    if not isinstance(fields, dict):
+        raise click.BadParameter(f"Expected a dict, got {type(fields).__name__}", ctx=ctx, param=param)
+    return fields
 
-Each emitted output unit is a key-value mapping of one element where the key is the service-ID and the value is the
-received response object. The output format is configurable.
-""".strip()
 
-    @property
-    def examples(self) -> typing.Optional[str]:
-        return """
-pyuavcan call 42 uavcan.node.GetInfo.1.0 '{}'
-""".strip()
+@u.subcommand()
+@click.argument("server_node_id", metavar="SERVER_NODE_ID", type=int, required=True)
+@click.argument("service", metavar="SERVICE", type=str, required=True)
+@click.argument("request_fields", metavar="FIELDS", type=str, callback=_validate_request_fields, default="{}")
+@click.option(
+    "--timeout",
+    "-T",
+    type=float,
+    default=pyuavcan.presentation.DEFAULT_SERVICE_REQUEST_TIMEOUT,
+    show_default=True,
+    metavar="SECONDS",
+    help=f"Request timeout; how long to wait for the response before giving up.",
+)
+@click.option(
+    "--priority",
+    "-P",
+    default=pyuavcan.presentation.DEFAULT_PRIORITY,
+    type=EnumParam(pyuavcan.transport.Priority),
+    help=f"Priority of the request transfer. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]",
+)
+@click.option(
+    "--with-metadata/--no-metadata",
+    "+M/-M",
+    default=False,
+    show_default=True,
+    help="When enabled, the response object is prepended with an extra field named `_metadata_`.",
+)
+@u.pass_purser
+def call(
+    purser: u.Purser,
+    server_node_id: int,
+    service: str,
+    request_fields: typing.Dict[str, typing.Any],
+    timeout: float,
+    priority: pyuavcan.transport.Priority,
+    with_metadata: bool,
+) -> None:
+    """
+    Invoke an RPC-service using the specified request object and print the response.
+    While waiting for the response, the local node will also publish heartbeat and respond to GetInfo.
 
-    @property
-    def subsystem_factories(self) -> typing.Sequence[SubsystemFactory]:
-        return [
-            _subsystems.node.NodeFactory(node_name_suffix=self.names[0], allow_anonymous=False),
-            _subsystems.formatter.FormatterFactory(),
-        ]
+    The first positional argument is the server node-ID.
+    The second is the pair of service-ID (which can be omitted if a fixed one is defined for the type)
+    and the data type name of the form:
 
-    def register_arguments(self, parser: argparse.ArgumentParser) -> None:
-        parser.add_argument(
-            "server_node_id",
-            metavar="SERVER_NODE_ID",
-            type=int,
-            help=f"""
-The node ID of the server that the request will be sent to. Valid values range from zero (inclusive) to a
-transport-specific upper limit.
-""".strip(),
-        )
-        parser.add_argument(
-            "service_spec",
-            metavar="[SERVICE_ID.]FULL_SERVICE_TYPE_NAME.MAJOR.MINOR",
-            help="""
-The full service type name with version and optional service-ID. The service-ID can be omitted if a fixed one is
-defined for the data type.
+    \b
+        [SERVICE_ID.]FULL_SERVICE_TYPE_NAME.MAJOR.MINOR
 
-Forward or backward slashes can be used instead of "."; version numbers can be also separated using underscores.
+    In the data type name, forward or backward slashes can be used instead of ".";
+    version numbers can be also separated using underscores.
+    This is done to allow the user to rely on filesystem autocompletion when typing the command.
 
-Examples:
-    123.uavcan.node.ExecuteCommand.1.1 (using service-ID 123)
-    uavcan/node/ExecuteCommand_1_1 (using the fixed service-ID 435, non-canonical notation)
-""".strip(),
-        )
-        parser.add_argument(
-            "field_spec",
-            metavar="YAML_FIELDS",
-            type=YAMLLoader().load,
-            help="""
-The YAML (or JSON, which is a subset of YAML)-formatted contents of the request object. Missing fields will be left
-at their default values. Use empty dict as "{}" to construct a default-initialized request object. For more info about
-the YAML representation, read the PyUAVCAN documentation on builtin-based representations.
-""".strip(),
-        )
-        parser.add_argument(
-            "--timeout",
-            "-T",
-            metavar="REAL",
-            type=float,
-            default=pyuavcan.presentation.DEFAULT_SERVICE_REQUEST_TIMEOUT,
-            help=f"""
-Request timeout; i.e., how long to wait for the response before giving up.
-Default: %(default)s
-""".strip(),
-        )
-        parser.add_argument(
-            "--priority",
-            default=pyuavcan.presentation.DEFAULT_PRIORITY,
-            action=make_enum_action(pyuavcan.transport.Priority),
-            help="""
-Priority of the request transfer. Applies to the heartbeat as well.
-Default: %(default)s
-""".strip(),
-        )
-        parser.add_argument(
-            "--with-metadata",
-            "-M",
-            action="store_true",
-            help="""
-Emit metadata together with the response. The metadata fields will be contained under the key "_metadata_".
-""".strip(),
-        )
+    The third positional argument specifies the values of the request object fields in YAML format
+    (or JSON, which is a subset of YAML).
+    Missing fields will be left at their default values.
+    If omitted, this argument defaults to an empty object: `{}`.
+    For more info about the format see PyUAVCAN documentation on builtin-based representations.
 
-    def execute(self, args: argparse.Namespace, subsystems: typing.Sequence[object]) -> int:
+    The output will be printed as a key-value mapping of one element where the key is the service-ID
+    and the value is the received response object.
+
+    Examples:
+
+    \b
+        u call 42 uavcan.node.GetInfo.1.0 +M -T3 -Pe
+        u call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+    """
+    try:
         import pyuavcan.application
+    except ImportError as ex:
+        from u.cmd import compile
 
-        node, formatter = subsystems
-        assert isinstance(node, pyuavcan.application.Node)
-        assert callable(formatter)
+        raise click.UsageError(compile.make_usage_suggestion(ex.name))
 
-        with contextlib.closing(node):
-            node.heartbeat_publisher.priority = args.priority
+    _logger.debug(
+        "server_node_id=%s, service=%r, request_fields=%r, timeout=%.6f, priority=%s, with_metadata=%s",
+        server_node_id,
+        service,
+        request_fields,
+        timeout,
+        priority,
+        with_metadata,
+    )
+    assert isinstance(request_fields, dict)
 
-            # Construct the request object.
-            service_id, dtype = _util.construct_port_id_and_type(args.service_spec)
-            if not issubclass(dtype, pyuavcan.dsdl.ServiceObject):
-                raise ValueError(f"Expected a service type; got this: {dtype.__name__}")
+    service_id, dtype = construct_port_id_and_type(service)
+    if not issubclass(dtype, pyuavcan.dsdl.ServiceObject):
+        raise TypeError(f"Expected a service type; got {dtype.__name__}")
 
-            request = pyuavcan.dsdl.update_from_builtin(dtype.Request(), args.field_spec)
-            _logger.info("Request object: %r", request)
+    request = pyuavcan.dsdl.update_from_builtin(dtype.Request(), request_fields)
+    _logger.info("Request object: %r", request)
 
-            # Initialize the client instance.
-            client = node.presentation.make_client(dtype, service_id, args.server_node_id)
-            client.response_timeout = args.timeout
-            client.priority = args.priority
-
-            # Ready to do the job now.
-            node.start()
-            return asyncio.get_event_loop().run_until_complete(
-                _run(client=client, request=request, formatter=formatter, with_metadata=args.with_metadata)
-            )
+    formatter = purser.make_formatter()
+    node = purser.get_node("call", allow_anonymous=False)
+    assert isinstance(node, pyuavcan.application.Node) and callable(formatter)
+    with contextlib.closing(node):
+        client = node.presentation.make_client(dtype, service_id, server_node_id)
+        client.response_timeout = timeout
+        client.priority = priority
+        node.start()
+        _run(client, request, formatter, with_metadata=with_metadata)
 
 
+@u.asynchronous
 async def _run(
     client: pyuavcan.presentation.Client[_S],
     request: pyuavcan.dsdl.CompositeObject,
-    formatter: _subsystems.formatter.Formatter,
+    formatter: Formatter,
     with_metadata: bool,
-) -> int:
+) -> None:
     request_ts_transport: typing.Optional[pyuavcan.transport.Timestamp] = None
 
     def on_transfer_feedback(fb: pyuavcan.transport.Feedback) -> None:
@@ -160,73 +154,41 @@ async def _run(
     request_ts_application = pyuavcan.transport.Timestamp.now()
     result = await client.call(request)
     response_ts_application = pyuavcan.transport.Timestamp.now()
-
-    # Print the results.
     if result is None:
-        print(f"The request has timed out after {client.response_timeout:0.1f} seconds", file=sys.stderr)
-        return 1
-    else:
-        if not request_ts_transport:  # pragma: no cover
-            request_ts_transport = request_ts_application
-            _logger.error(
-                "The transport implementation is misbehaving: feedback was never emitted; "
-                "falling back to software timestamping. "
-                "Please submit a bug report. Involved instances: client=%r, result=%r",
-                client,
-                result,
-            )
-
-        response, transfer = result
-
-        transport_duration = transfer.timestamp.monotonic - request_ts_transport.monotonic
-        application_duration = response_ts_application.monotonic - request_ts_application.monotonic
-        _logger.info(
-            "Request duration [second]: "
-            "transport layer: %.6f, application layer: %.6f, application layer overhead: %.6f",
-            transport_duration,
-            application_duration,
-            application_duration - transport_duration,
+        click.secho(f"The request has timed out after {client.response_timeout:0.1f} seconds", err=True, fg="red")
+        sys.exit(1)
+    if not request_ts_transport:  # pragma: no cover
+        request_ts_transport = request_ts_application
+        _logger.warning(
+            "The transport implementation is misbehaving: feedback was never emitted; "
+            "falling back to software timestamping. "
+            "Please submit a bug report. Involved instances: client=%r, result=%r",
+            client,
+            result,
         )
+    response, transfer = result
+    transport_duration = transfer.timestamp.monotonic - request_ts_transport.monotonic
+    application_duration = response_ts_application.monotonic - request_ts_application.monotonic
+    _logger.info(
+        "Request duration [second]: "
+        "transport layer: %.6f, application layer: %.6f, application layer overhead: %.6f",
+        transport_duration,
+        application_duration,
+        application_duration - transport_duration,
+    )
 
-        _print_result(
-            service_id=client.port_id,
-            response=response,
-            transfer=transfer,
-            formatter=formatter,
-            request_transfer_ts=request_ts_transport,
-            app_layer_duration=application_duration,
-            with_metadata=with_metadata,
-        )
-    return 0
-
-
-def _print_result(
-    service_id: int,
-    response: pyuavcan.dsdl.CompositeObject,
-    transfer: pyuavcan.transport.TransferFrom,
-    formatter: _subsystems.formatter.Formatter,
-    request_transfer_ts: pyuavcan.transport.Timestamp,
-    app_layer_duration: decimal.Decimal,
-    with_metadata: bool,
-) -> None:
     bi: typing.Dict[str, typing.Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
     if with_metadata:
-        rtt_qnt = decimal.Decimal("0.000001")
+        qnt = decimal.Decimal("0.000001")
         bi.update(
-            _util.convert_transfer_metadata_to_builtin(
+            convert_transfer_metadata_to_builtin(
                 transfer,
                 roundtrip_time={
-                    "transport_layer": (transfer.timestamp.monotonic - request_transfer_ts.monotonic).quantize(rtt_qnt),
-                    "application_layer": app_layer_duration.quantize(rtt_qnt),
+                    "transport_layer": (transfer.timestamp.monotonic - request_ts_transport.monotonic).quantize(qnt),
+                    "application_layer": application_duration.quantize(qnt),
                 },
             )
         )
     bi.update(pyuavcan.dsdl.to_builtin(response))
 
-    print(
-        formatter(
-            {
-                service_id: bi,
-            }
-        )
-    )
+    print(formatter({client.port_id: bi}))

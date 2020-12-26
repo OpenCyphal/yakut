@@ -86,9 +86,6 @@ In order to use compiled DSDL namespaces,
 the directories that contain compilation outputs need to be specified using this option before invoking the U-tool.
 The current working directory does not need to be specified explicitly.
 
-An alternative way to specify the DSDL look-up directories is to use the environment variable {_ENV_VAR_PATH},
-where multiple entries can be listed like in the standard PATH variable.
-
 Examples:
 
 \b
@@ -127,7 +124,7 @@ def main(
     It is designed for use either directly by humans or from automation scripts.
     Ask questions at https://forum.uavcan.org
 
-    Any option can be provided via environment variable prefixed with `U_`.
+    Any long option can be provided via environment variable prefixed with `U_`.
     For example, option `--foo-bar`, if not provided as a command-line argument, will be read from `U_FOO_BAR`.
 
     Any command can be abbreviated arbitrarily as long as the resulting abridged name is not ambiguous.

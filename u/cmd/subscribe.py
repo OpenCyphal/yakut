@@ -2,14 +2,16 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
+import sys
 import typing
-import asyncio
 import logging
-import argparse
 import contextlib
+import click
 import pyuavcan
-from . import _util, _subsystems
-from ._base import Command, SubsystemFactory
+from pyuavcan.presentation import Presentation, Subscriber
+import u
+from u.param.formatter import Formatter
+from u.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
 
 
 _M = typing.TypeVar("_M", bound=pyuavcan.dsdl.CompositeObject)
@@ -18,134 +20,105 @@ _M = typing.TypeVar("_M", bound=pyuavcan.dsdl.CompositeObject)
 _logger = logging.getLogger(__name__)
 
 
-class SubscribeCommand(Command):
-    @property
-    def names(self) -> typing.Sequence[str]:
-        return ["subscribe", "sub"]
-
-    @property
-    def help(self) -> str:
-        return """
-Subscribe to the specified subject, receive and print messages into stdout. This command does not instantiate a local
-node; the bus is accessed directly at the presentation layer, so many instances can be cheaply executed concurrently
-to subscribe to multiple message streams.
-
-Each emitted output unit is a key-value mapping where the number of elements equals the number of subjects the command
-is asked to subscribe to; the keys are subject-IDs and values are the received message objects. The output format is
-configurable.
-""".strip()
-
-    @property
-    def examples(self) -> typing.Optional[str]:
-        return f"""
-pyuavcan sub uavcan.node.Heartbeat.1.0
-""".strip()
-
-    @property
-    def subsystem_factories(self) -> typing.Sequence[SubsystemFactory]:
-        return [
-            _subsystems.transport.TransportFactory(),
-            _subsystems.formatter.FormatterFactory(),
-        ]
-
-    def register_arguments(self, parser: argparse.ArgumentParser) -> None:
-        parser.add_argument(
-            "subject_spec",
-            metavar="[SUBJECT_ID.]FULL_MESSAGE_TYPE_NAME.MAJOR.MINOR",
-            nargs="+",
-            help="""
-A set of full message type names with version and optional subject-ID for each. The subject-ID can be omitted if a
-fixed one is defined for the data type. If multiple subjects are selected, a synchronizing subscription will be used,
-reporting received messages in synchronous groups.
-
-Forward or backward slashes can be used instead of "."; version numbers can be also separated using underscores.
-
-Examples:
-    1234.uavcan.node.Heartbeat.1.0 (using subject-ID 1234)
-    uavcan/node/Heartbeat_1_0 (using the fixed subject-ID 7509, non-canonical notation)
-""".strip(),
-        )
-        parser.add_argument(
-            "--with-metadata",
-            "-M",
-            action="store_true",
-            help="""
-Emit metadata together with each message. The metadata fields will be contained under the key "_metadata_".
-""".strip(),
-        )
-        parser.add_argument(
-            "--count",
-            "-C",
-            type=int,
-            metavar="NATURAL",
-            help="""
+@u.subcommand()
+@click.argument("subject", type=str, nargs=-1)
+@click.option(
+    "--with-metadata/--no-metadata",
+    "+M/-M",
+    default=True,
+    show_default=True,
+    help="When enabled, each message object is prepended with an extra field named `_metadata_`.",
+)
+@click.option(
+    "--count",
+    "-N",
+    type=int,
+    metavar="CARDINAL",
+    help=f"""
 Exit automatically after this many messages (or synchronous message groups) have been received. No limit by default.
-""".strip(),
-        )
+""",
+)
+@u.pass_purser
+def subscribe(
+    purser: u.Purser,
+    subject: typing.Tuple[str, ...],
+    with_metadata: bool,
+    count: typing.Optional[int],
+) -> None:
+    """
+    Subscribe to specified subjects and print messages into stdout.
+    This command does not instantiate a local node and does not disturb the network in any way,
+    so many instances can be cheaply executed concurrently.
+    It is recommended to use anonymous transport (i.e., without a node-ID).
 
-    def execute(self, args: argparse.Namespace, subsystems: typing.Sequence[object]) -> int:
-        transport, formatter = subsystems
-        assert isinstance(transport, pyuavcan.transport.Transport)
-        assert callable(formatter)
+    The arguments are a list of message data type names prepended with the subject-ID;
+    the subject-ID may be omitted if the data type defines a fixed one:
 
-        subject_specs = [_util.construct_port_id_and_type(ds) for ds in args.subject_spec]
+    \b
+        [SUBJECT_ID.]TYPE_NAME.MAJOR.MINOR
 
-        _logger.debug(
-            f"Starting the subscriber with transport={transport}, subject_specs={subject_specs}, "
-            f"formatter={formatter}, with_metadata={args.with_metadata}"
-        )
+    If multiple subjects are specified, a synchronous subscription will be used.
+    It is useful for subscribing to a group of coupled subjects like lockstep sensor feeds,
+    but it will not work for subjects that are temporally unrelated or published at different rates.
 
-        with contextlib.closing(pyuavcan.presentation.Presentation(transport)) as presentation:
-            subscriber = self._make_subscriber(args, presentation)  # type: ignore
-            try:
-                asyncio.get_event_loop().run_until_complete(
-                    _run(
-                        subscriber=subscriber,
-                        formatter=formatter,
-                        with_metadata=args.with_metadata,
-                        count=int(args.count) if args.count is not None else (2 ** 64),
-                    )
-                )
-            except KeyboardInterrupt:
-                pass
+    Each object emitted into stdout is a key-value mapping where the number of elements equals the number
+    of subjects the command is asked to subscribe to;
+    the keys are subject-IDs and values are the received message objects.
 
+    In data type names forward or backward slashes can be used instead of ".";
+    version numbers can be also separated using underscores.
+    This is done to allow the user to rely on filesystem autocompletion when typing the command.
+
+    Examples:
+
+    \b
+        u sub 33.uavcan.si.unit.angle.Scalar.1.0 --no-metadata
+    """
+    _logger.debug("subject=%r, with_metadata=%r, count=%r", subject, with_metadata, count)
+    if not subject:
+        _logger.info("Nothing to do because no subjects are specified")
+        return
+    if count is not None and count <= 0:
+        _logger.info("Nothing to do because count=%s", count)
+        return
+
+    count = count if count is not None else sys.maxsize
+    formatter = purser.make_formatter()
+
+    transport = purser.get_transport()
+    if transport.local_node_id is not None:
+        _logger.info("It is recommended to use an anonymous transport with this command.")
+
+    with contextlib.closing(Presentation(transport)) as presentation:
+        subscriber = _make_subscriber(subject, presentation)
+        try:
+            _run(subscriber, formatter, with_metadata=with_metadata, count=count)
+        finally:
             if _logger.isEnabledFor(logging.INFO):
                 _logger.info("%s", presentation.transport.sample_statistics())
                 _logger.info("%s", subscriber.sample_statistics())
 
-        return 0
 
-    @staticmethod
-    def _make_subscriber(
-        args: argparse.Namespace, presentation: pyuavcan.presentation.Presentation
-    ) -> pyuavcan.presentation.Subscriber[_M]:
-        # TODO: the return type will probably have to be changed when multi-subject subscription is supported.
-        subject_specs = [_util.construct_port_id_and_type(ds) for ds in args.subject_spec]
-        if len(subject_specs) < 1:
-            raise ValueError("Nothing to do: no subjects specified")
-        elif len(subject_specs) == 1:
-            subject_id, dtype = subject_specs[0]
-            return presentation.make_subscriber(dtype, subject_id)  # type: ignore
-        else:
-            raise NotImplementedError(
-                "Multi-subject subscription is not yet implemented, sorry! "
-                "See https://github.com/UAVCAN/pyuavcan/issues/65"
-            )
+def _make_subscriber(subjects: typing.Sequence[str], presentation: Presentation) -> Subscriber[_M]:
+    group = [construct_port_id_and_type(ds) for ds in subjects]
+    assert len(group) > 0
+    if len(group) == 1:
+        ((subject_id, dtype),) = group
+        return presentation.make_subscriber(dtype, subject_id)  # type: ignore
+    raise NotImplementedError(
+        "Multi-subject subscription is not yet implemented. See https://github.com/UAVCAN/pyuavcan/issues/65"
+    )
 
 
-async def _run(
-    subscriber: pyuavcan.presentation.Subscriber[_M],
-    formatter: _subsystems.formatter.Formatter,
-    with_metadata: bool,
-    count: int,
-) -> None:
+@u.asynchronous
+async def _run(subscriber: Subscriber[_M], formatter: Formatter, with_metadata: bool, count: int) -> None:
     async for msg, transfer in subscriber:
         assert isinstance(transfer, pyuavcan.transport.TransferFrom)
         outer: typing.Dict[int, typing.Dict[str, typing.Any]] = {}
 
         bi: typing.Dict[str, typing.Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
         if with_metadata:
-            bi.update(_util.convert_transfer_metadata_to_builtin(transfer))
+            bi.update(convert_transfer_metadata_to_builtin(transfer))
         bi.update(pyuavcan.dsdl.to_builtin(msg))
         outer[subscriber.port_id] = bi
 

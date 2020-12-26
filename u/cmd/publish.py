@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
+import math
 import typing
 import asyncio
 import logging
@@ -13,6 +14,12 @@ import u
 from u.yaml import YAMLLoader
 from u.helpers import EnumParam
 
+
+_MIN_SEND_TIMEOUT = 0.05
+"""
+With a slow garbage-collected language like Python, having a smaller timeout does not make practical sense.
+This may be made configurable later.
+"""
 
 _logger = logging.getLogger(__name__)
 
@@ -37,7 +44,7 @@ def _validate_message_spec(
     "message",
     type=str,
     callback=_validate_message_spec,
-    metavar="[SUBJECT.]TYPENAME YAML [[SUBJECT.]TYPENAME YAML]...",
+    metavar="SUBJECT FIELDS [SUBJECT FIELDS]...",
     nargs=-1,
 )
 @click.option(
@@ -50,7 +57,8 @@ def _validate_message_spec(
     help=f"""
 Message publication period.
 All messages are published synchronously, so the period setting applies to all specified subjects.
-The send timeout for all publishers will equal the publication period.
+The send timeout for all publishers will equal the publication period as long as it is not less than
+{_MIN_SEND_TIMEOUT} seconds.
 
 The period of heartbeat publication is saturated by Heartbeat.MAX_PUBLICATION_PERIOD.
 Anonymous nodes do not publish heartbeat.
@@ -63,18 +71,14 @@ Anonymous nodes do not publish heartbeat.
     default=1,
     show_default=True,
     metavar="CARDINAL",
-    help=f"""
-Number of synchronous publication cycles before exiting normally.
-""",
+    help=f"Number of publication cycles before exiting normally.",
 )
 @click.option(
     "--priority",
     "-P",
     default=pyuavcan.presentation.DEFAULT_PRIORITY,
     type=EnumParam(pyuavcan.transport.Priority),
-    help=f"""
-Priority of published message transfers. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]
-""",
+    help=f"Priority of published message transfers. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]",
 )
 @u.pass_purser
 def publish(
@@ -85,10 +89,10 @@ def publish(
     priority: pyuavcan.transport.Priority,
 ) -> None:
     """
-    Publish messages on the specified subject(s).
+    Publish messages on the specified subjects.
     The local node will also publish heartbeat and respond to GetInfo, unless it is configured to be anonymous.
 
-    The command accepts a variable-length list of space-separated pairs like:
+    The command accepts a list of space-separated pairs like:
 
     \b
         [SUBJECT_ID.]TYPE_NAME.MAJOR.MINOR  YAML_FIELDS
@@ -111,7 +115,7 @@ def publish(
     Examples:
 
     \b
-        u pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T.1 -P hi
+        u pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
         u pub 33.uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
     """
     try:
@@ -125,39 +129,37 @@ def publish(
     _logger.debug("period=%s, count=%s, priority=%s, message=%s", period, count, priority, message)
     assert all((isinstance(a, str) and isinstance(b, str)) for a, b in message)
     assert isinstance(period, float) and isinstance(count, int) and isinstance(priority, pyuavcan.transport.Priority)
-    if period < 1e-9:
+    if period < 1e-9 or not math.isfinite(period):
         raise click.BadParameter("Period shall be a positive real number of seconds")
-    if count < 0:
-        raise click.BadParameter("Count shall be a non-negative cardinal")
-    if count == 0:
-        _logger.info("Nothing to do.")
+    if count <= 0:
+        _logger.info("Nothing to do because count=%s", count)
         return
 
+    send_timeout = max(_MIN_SEND_TIMEOUT, period)
     node = purser.get_node("publish", allow_anonymous=True)
     assert isinstance(node, pyuavcan.application.Node)
     with contextlib.closing(node):
         node.heartbeat_publisher.priority = priority
         node.heartbeat_publisher.period = min(float(heartbeat_publisher.Heartbeat.MAX_PUBLICATION_PERIOD), period)
-
         publications = [
             Publication(
                 subject_spec=subj,
                 field_spec=fields,
                 presentation=node.presentation,
                 priority=priority,
-                send_timeout=period,
+                send_timeout=send_timeout,
             )
             for subj, fields in message
         ]
         if _logger.isEnabledFor(logging.INFO):
             _logger.info(
-                "Ready to start publishing the following messages with period %.3fs, count %d, at %s:\n%s",
+                "Ready to start publishing with period %.3fs, send timeout %.3fs, count %d, at %s:\n%s",
                 period,
+                send_timeout,
                 count,
                 priority,
                 "\n".join(map(str, publications)),
             )
-
         try:
             _run(node=node, count=count, period=period, publications=publications)
         finally:
@@ -182,17 +184,13 @@ async def _run(node: object, count: int, period: float, publications: typing.Seq
         assert len(out) == len(publications)
         assert all(isinstance(x, bool) for x in out)
         if not all(out):
-            log_elements = "\n\t".join(f"#{idx}: {publications[idx]}" for idx, res in enumerate(out) if not res)
-            _logger.error("The following publications have timed out:\n\t" + log_elements)
+            timed_out = [publications[idx] for idx, res in enumerate(out) if not res]
+            _logger.error("The following publications have timed out:\n" + "\n".join(map(str, timed_out)))
 
         sleep_until += period
-        _logger.info(
-            "Publication cycle %d of %d completed; sleeping for %.3f seconds",
-            c + 1,
-            count,
-            sleep_until - asyncio.get_event_loop().time(),
-        )
-        await asyncio.sleep(sleep_until - asyncio.get_event_loop().time())
+        sleep_duration = sleep_until - asyncio.get_event_loop().time()
+        _logger.info("Published group %6d of %6d; sleeping for %.3f seconds", c + 1, count, sleep_duration)
+        await asyncio.sleep(sleep_duration)
 
 
 class Publication:

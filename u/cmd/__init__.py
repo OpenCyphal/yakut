@@ -12,4 +12,5 @@ from . import (
     compile,
     accommodate,
     publish,
+    subscribe,
 )  # FIXME this is tentative, uncomment the above when all commands are implemented.

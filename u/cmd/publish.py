@@ -6,144 +6,161 @@ from __future__ import annotations
 import typing
 import asyncio
 import logging
-import argparse
 import contextlib
+import click
 import pyuavcan
-from . import _util, _subsystems
-from ._argparse_helpers import make_enum_action
-from ._yaml import YAMLLoader
-from ._base import Command, SubsystemFactory
+import u
+from u.yaml import YAMLLoader
+from u.helpers import EnumParam
 
 
 _logger = logging.getLogger(__name__)
 
 
-class PublishCommand(Command):
-    @property
-    def names(self) -> typing.Sequence[str]:
-        return ["publish", "pub"]
-
-    @property
-    def help(self) -> str:
-        return """
-Publish messages of the specified subject with the fixed contents. The local node will also publish heartbeat and
-respond to GetInfo, unless it is configured to be anonymous.
-""".strip()
-
-    @property
-    def examples(self) -> typing.Optional[str]:
-        return """
-pyuavcan pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!"}'
-""".strip()
-
-    @property
-    def subsystem_factories(self) -> typing.Sequence[SubsystemFactory]:
-        return [
-            _subsystems.node.NodeFactory(node_name_suffix=self.names[0], allow_anonymous=True),
-        ]
-
-    def register_arguments(self, parser: argparse.ArgumentParser) -> None:
-        parser.add_argument(
-            "subject_spec",
-            metavar="[SUBJECT_ID.]FULL_MESSAGE_TYPE_NAME.MAJOR.MINOR YAML_FIELDS",
-            nargs="*",
-            help="""
-The full message type name with version and optional subject-ID, followed by the YAML (or JSON, which is a subset of
-YAML)-formatted contents of the message (separated by whitespace). Missing fields will be left at their default values.
-Use empty dict as "{}" to construct a default-initialized message. For more info about the YAML representation, read
-the PyUAVCAN documentation on builtin-based representations.
-
-The subject-ID can be omitted if a fixed one is defined for the data type.
-
-The number of such pairs can be arbitrary; all defined messages will be published synchronously. If no such pairs are
-specified, nothing will be published, unless the local node is not anonymous. Per the specification, a non-anonymous
-node must publish heartbeat; this requirement is respected. Additionally, the recommended standard service
-uavcan.node.GetInfo is served.
-
-Forward or backward slashes can be used instead of "."; version numbers can be also separated using underscores.
-
-Examples:
-    1234.uavcan.diagnostic.Record.1.1 '{"text": "Hello world!"}'
-    uavcan/diagnostic/Record_1_1 '{"text": "Hello world!"}'
-""".strip(),
+def _validate_message_spec(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: typing.Tuple[str, ...],
+) -> typing.List[typing.Tuple[str, str]]:
+    if len(value) % 2 != 0:
+        raise click.BadParameter(
+            f"Message specifier shall have an even number of paired arguments (found {len(value)} arguments)",
+            ctx=ctx,
+            param=param,
         )
-        parser.add_argument(
-            "--period",
-            "-P",
-            type=float,
-            default=1.0,
-            metavar="SECONDS",
-            help="""
-Message publication period. All messages are published synchronously, so the period setting applies to all specified
-subjects. Besides, the period of heartbeat is defined as min((--period), MAX_PUBLICATION_PERIOD); i.e., unless this
-value exceeds the maximum period defined for heartbeat by the specification, it is used for heartbeat as well. Note
-that anonymous nodes do not publish heartbeat.
+    # noinspection PyTypeChecker
+    return [value[i : i + 2] for i in range(0, len(value), 2)]
 
+
+@u.subcommand()
+@click.argument(
+    "message",
+    type=str,
+    callback=_validate_message_spec,
+    metavar="[SUBJECT.]TYPENAME YAML [[SUBJECT.]TYPENAME YAML]...",
+    nargs=-1,
+)
+@click.option(
+    "--period",
+    "-T",
+    type=float,
+    default=1.0,
+    show_default=True,
+    metavar="SECONDS",
+    help=f"""
+Message publication period.
+All messages are published synchronously, so the period setting applies to all specified subjects.
 The send timeout for all publishers will equal the publication period.
 
-Default: %(default)s
-""".strip(),
-        )
-        parser.add_argument(
-            "--count",
-            "-C",
-            type=int,
-            default=1,
-            metavar="NATURAL",
-            help="""
-Number of synchronous publication cycles before exiting normally. The duration therefore equals (--period) * (--count).
-Default: %(default)s
-""".strip(),
-        )
-        parser.add_argument(
-            "--priority",
-            default=pyuavcan.presentation.DEFAULT_PRIORITY,
-            action=make_enum_action(pyuavcan.transport.Priority),
-            help="""
-Priority of published message transfers. Applies to the heartbeat as well.
-Default: %(default)s
-""".strip(),
-        )
+The period of heartbeat publication is saturated by Heartbeat.MAX_PUBLICATION_PERIOD.
+Anonymous nodes do not publish heartbeat.
+""",
+)
+@click.option(
+    "--count",
+    "-N",
+    type=int,
+    default=1,
+    show_default=True,
+    metavar="CARDINAL",
+    help=f"""
+Number of synchronous publication cycles before exiting normally.
+""",
+)
+@click.option(
+    "--priority",
+    "-P",
+    default=pyuavcan.presentation.DEFAULT_PRIORITY,
+    type=EnumParam(pyuavcan.transport.Priority),
+    help=f"""
+Priority of published message transfers. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]
+""",
+)
+@u.pass_purser
+def publish(
+    purser: u.Purser,
+    message: typing.Sequence[typing.Tuple[str, str]],
+    period: float,
+    count: int,
+    priority: pyuavcan.transport.Priority,
+) -> None:
+    """
+    Publish messages on the specified subject(s).
+    The local node will also publish heartbeat and respond to GetInfo, unless it is configured to be anonymous.
 
-    def execute(self, args: argparse.Namespace, subsystems: typing.Sequence[object]) -> int:
+    The command accepts a variable-length list of space-separated pairs like:
+
+    \b
+        [SUBJECT_ID.]TYPE_NAME.MAJOR.MINOR  YAML_FIELDS
+
+    The first element is a name like `uavcan.node.Heartbeat.1.0` prepended by the subject-ID.
+    The subject-ID may be omitted if a fixed one is defined for the data type.
+
+    The second element specifies the values of the message fields in YAML format (or JSON, which is a subset of YAML).
+    Missing fields will be left at their default values;
+    therefore, to publish a default-initialized message, the field specifier should be an empty dict: `{}`.
+    For more info about the format see PyUAVCAN documentation on builtin-based representations.
+
+    The number of such pairs can be arbitrary; all defined messages will be published synchronously.
+    If no such pairs are specified, only the heartbeat will be published, unless the local node is anonymous.
+
+    Forward or backward slashes can be used instead of ".";
+    version numbers can be also separated using underscores.
+    This is done to allow the user to rely on filesystem autocompletion when typing the command.
+
+    Examples:
+
+    \b
+        u pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T.1 -P hi
+        u pub 33.uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
+    """
+    try:
         import pyuavcan.application
-        import pyuavcan.application.heartbeat_publisher
+        from pyuavcan.application import heartbeat_publisher
+    except ImportError as ex:
+        from u.cmd import compile
 
-        (node,) = subsystems
-        assert isinstance(node, pyuavcan.application.Node)
+        raise click.UsageError(compile.make_usage_suggestion(ex.name))
 
-        with contextlib.closing(node):
-            node.heartbeat_publisher.priority = args.priority
-            node.heartbeat_publisher.period = min(
-                pyuavcan.application.heartbeat_publisher.Heartbeat.MAX_PUBLICATION_PERIOD, args.period
+    _logger.debug("period=%s, count=%s, priority=%s, message=%s", period, count, priority, message)
+    assert all((isinstance(a, str) and isinstance(b, str)) for a, b in message)
+    assert isinstance(period, float) and isinstance(count, int) and isinstance(priority, pyuavcan.transport.Priority)
+    if period < 1e-9:
+        raise click.BadParameter("Period shall be a positive real number of seconds")
+    if count < 0:
+        raise click.BadParameter("Count shall be a non-negative cardinal")
+    if count == 0:
+        _logger.info("Nothing to do.")
+        return
+
+    node = purser.get_node("publish", allow_anonymous=True)
+    assert isinstance(node, pyuavcan.application.Node)
+    with contextlib.closing(node):
+        node.heartbeat_publisher.priority = priority
+        node.heartbeat_publisher.period = min(float(heartbeat_publisher.Heartbeat.MAX_PUBLICATION_PERIOD), period)
+
+        publications = [
+            Publication(
+                subject_spec=subj,
+                field_spec=fields,
+                presentation=node.presentation,
+                priority=priority,
+                send_timeout=period,
+            )
+            for subj, fields in message
+        ]
+        if _logger.isEnabledFor(logging.INFO):
+            _logger.info(
+                "Ready to start publishing the following messages with period %.3fs, count %d, at %s:\n%s",
+                period,
+                count,
+                priority,
+                "\n".join(map(str, publications)),
             )
 
-            raw_ss = args.subject_spec
-            if len(raw_ss) % 2 != 0:
-                raise ValueError(
-                    "Mismatching arguments: each subject specifier must be matched with its field specifier, like: "
-                    "subject-a field-a [subject-b field-b] [...]"
-                )
-            publications: typing.List[Publication] = []
-            for subject_spec, field_spec in (raw_ss[i : i + 2] for i in range(0, len(raw_ss), 2)):
-                publications.append(
-                    Publication(
-                        subject_spec=subject_spec,
-                        field_spec=field_spec,
-                        presentation=node.presentation,
-                        priority=args.priority,
-                        send_timeout=args.period,
-                    )
-                )
-            _logger.info("Publication set: %r", publications)
-
-            try:
-                asyncio.get_event_loop().run_until_complete(
-                    self._run(node=node, count=int(args.count), period=float(args.period), publications=publications)
-                )
-            except KeyboardInterrupt:
-                pass
-
+        try:
+            _run(node=node, count=count, period=period, publications=publications)
+        finally:
             if _logger.isEnabledFor(logging.INFO):
                 _logger.info("%s", node.presentation.transport.sample_statistics())
                 for s in node.presentation.transport.output_sessions:
@@ -151,32 +168,31 @@ Default: %(default)s
                     if isinstance(ds, pyuavcan.transport.MessageDataSpecifier):
                         _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
 
-        return 0
 
-    @staticmethod
-    async def _run(node: object, count: int, period: float, publications: typing.Sequence[Publication]) -> None:
-        import pyuavcan.application
+@u.asynchronous
+async def _run(node: object, count: int, period: float, publications: typing.Sequence[Publication]) -> None:
+    import pyuavcan.application
 
-        assert isinstance(node, pyuavcan.application.Node)
-        node.start()
+    assert isinstance(node, pyuavcan.application.Node)
+    node.start()
 
-        sleep_until = asyncio.get_event_loop().time()
-        for c in range(count):
-            out = await asyncio.gather(*[p.publish() for p in publications])
-            assert len(out) == len(publications)
-            assert all(isinstance(x, bool) for x in out)
-            if not all(out):
-                log_elements = "\n\t".join(f"#{idx}: {publications[idx]}" for idx, res in enumerate(out) if not res)
-                _logger.error("The following publications have timed out:\n\t" + log_elements)
+    sleep_until = asyncio.get_event_loop().time()
+    for c in range(count):
+        out = await asyncio.gather(*[p.publish() for p in publications])
+        assert len(out) == len(publications)
+        assert all(isinstance(x, bool) for x in out)
+        if not all(out):
+            log_elements = "\n\t".join(f"#{idx}: {publications[idx]}" for idx, res in enumerate(out) if not res)
+            _logger.error("The following publications have timed out:\n\t" + log_elements)
 
-            sleep_until += period
-            _logger.info(
-                "Publication cycle %d of %d completed; sleeping for %.3f seconds",
-                c + 1,
-                count,
-                sleep_until - asyncio.get_event_loop().time(),
-            )
-            await asyncio.sleep(sleep_until - asyncio.get_event_loop().time())
+        sleep_until += period
+        _logger.info(
+            "Publication cycle %d of %d completed; sleeping for %.3f seconds",
+            c + 1,
+            count,
+            sleep_until - asyncio.get_event_loop().time(),
+        )
+        await asyncio.sleep(sleep_until - asyncio.get_event_loop().time())
 
 
 class Publication:
@@ -190,7 +206,9 @@ class Publication:
         priority: pyuavcan.transport.Priority,
         send_timeout: float,
     ):
-        subject_id, dtype = _util.construct_port_id_and_type(subject_spec)
+        from u.util import construct_port_id_and_type
+
+        subject_id, dtype = construct_port_id_and_type(subject_spec)
         content = self._YAML_LOADER.load(field_spec)
 
         self._message = pyuavcan.dsdl.update_from_builtin(dtype(), content)
@@ -202,4 +220,4 @@ class Publication:
         return await self._publisher.publish(self._message)
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({self._message}, {self._publisher})"
+        return pyuavcan.util.repr_attributes(self, self._message, self._publisher)

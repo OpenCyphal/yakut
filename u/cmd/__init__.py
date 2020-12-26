@@ -11,4 +11,5 @@ from . import (
     documentation,
     compile,
     accommodate,
+    publish,
 )  # FIXME this is tentative, uncomment the above when all commands are implemented.

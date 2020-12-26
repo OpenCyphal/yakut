@@ -65,7 +65,8 @@ class NodeFactory:
             node_info = pyuavcan.dsdl.update_from_builtin(application.NodeInfo(), self.node_info_fields)
         except (ValueError, TypeError) as ex:
             raise click.UsageError(f"Node info fields are not valid: {ex}") from ex
-        node_info.name = node_info.name or f"org.uavcan.pyuavcan.cli.{name_suffix}"
+        if len(node_info.name) == 0:
+            node_info.name = f"org.uavcan.u.{name_suffix}"
         _logger.debug("Node info: %r", node_info)
 
         presentation = pyuavcan.presentation.Presentation(transport)
@@ -115,9 +116,10 @@ class NodeFactory:
 def node_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
     factory = NodeFactory()
 
-    def validate_heartbeat_vssc(ctx: click.Context, param: click.Parameter, value: str) -> None:
+    def validate_heartbeat_vssc(ctx: click.Context, param: click.Parameter, value: typing.Optional[str]) -> None:
         _ = ctx, param
-        factory.heartbeat_vssc = int(value)
+        if value is not None:
+            factory.heartbeat_vssc = int(value)
 
     def validate(ctx: click.Context, param: click.Parameter, value: str) -> NodeFactory:
         from u.yaml import YAMLLoader

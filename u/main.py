@@ -14,7 +14,7 @@ from u.param.node import node_factory_option, NodeFactory
 
 
 _logger = logging.getLogger(__name__.replace("__", ""))
-_LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-5.5s %(name)s: %(message)s"
+_LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-3.3s %(name)s: %(message)s"
 logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will be overridden later.
 
 

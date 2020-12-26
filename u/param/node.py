@@ -18,7 +18,7 @@ from pyuavcan.presentation import OutgoingTransferIDCounter
 from u.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
 
 
-_ENV_VAR_HEARTBEAT_FIELDS = "U_HEARTBEAT_FIELDS"
+_ENV_VAR_HEARTBEAT_VSSC = "U_HEARTBEAT_VSSC"
 _ENV_VAR_NODE_INFO_FIELDS = "U_NODE_INFO_FIELDS"
 
 _logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class NodeFactory:
     Constructs a node instance. The instance must be start()ed by the caller afterwards.
     """
 
-    heartbeat_fields: typing.Dict[str, typing.Any] = dataclasses.field(default_factory=dict)
+    heartbeat_vssc: typing.Optional[int] = None
     node_info_fields: typing.Dict[str, typing.Any] = dataclasses.field(
         default_factory=lambda: {
             "protocol_version": {
@@ -72,16 +72,14 @@ class NodeFactory:
         node = application.Node(presentation, info=node_info)
         try:
             # Configure the heartbeat publisher.
-            if self.heartbeat_fields.pop("uptime", None) is not None:
-                _logger.warning("Specifying uptime has no effect because it will be overridden")
-            node.heartbeat_publisher.health = self.heartbeat_fields.pop("health", heartbeat_publisher.Health.NOMINAL)
-            node.heartbeat_publisher.mode = self.heartbeat_fields.pop("mode", heartbeat_publisher.Mode.OPERATIONAL)
-            node.heartbeat_publisher.vendor_specific_status_code = self.heartbeat_fields.pop(
-                "vendor_specific_status_code", os.getpid() % 100
-            )
+            if self.heartbeat_vssc is not None:
+                try:
+                    node.heartbeat_publisher.vendor_specific_status_code = self.heartbeat_vssc
+                except ValueError:
+                    raise click.UsageError(f"Invalid vendor-specific status code: {self.heartbeat_vssc}")
+            else:
+                node.heartbeat_publisher.vendor_specific_status_code = os.getpid() % 100
             _logger.debug("Node heartbeat: %r", node.heartbeat_publisher.make_message())
-            if self.heartbeat_fields:
-                raise click.UsageError(f"Unrecognized heartbeat fields: {self.heartbeat_fields}")
 
             # Check the node-ID configuration.
             if not allow_anonymous and node.presentation.transport.local_node_id is None:
@@ -117,38 +115,32 @@ class NodeFactory:
 def node_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
     factory = NodeFactory()
 
-    def parse_fields(ctx: click.Context, param: click.Parameter, value: str) -> typing.Dict[str, typing.Any]:
+    def validate_heartbeat_vssc(ctx: click.Context, param: click.Parameter, value: str) -> None:
+        _ = ctx, param
+        factory.heartbeat_vssc = int(value)
+
+    def validate(ctx: click.Context, param: click.Parameter, value: str) -> NodeFactory:
         from u.yaml import YAMLLoader
 
         fields = YAMLLoader().load(value)
         if not isinstance(fields, dict):
             raise click.BadParameter(f"Expected a dict, got {type(fields).__name__}", ctx=ctx, param=param)
-        return fields
 
-    def validate_heartbeat_fields(ctx: click.Context, param: click.Parameter, value: str) -> None:
-        factory.heartbeat_fields.update(parse_fields(ctx, param, value))
-
-    def validate(ctx: click.Context, param: click.Parameter, value: str) -> NodeFactory:
-        factory.node_info_fields.update(parse_fields(ctx, param, value))
+        factory.node_info_fields.update(fields)
         return factory
 
     f = click.option(
-        "--heartbeat-fields",
-        default="{}",
-        metavar="YAML",
-        envvar=_ENV_VAR_HEARTBEAT_FIELDS,
-        type=str,
+        "--heartbeat-vssc",
+        "--vssc",
+        envvar=_ENV_VAR_HEARTBEAT_VSSC,
+        type=int,
         expose_value=False,
-        callback=validate_heartbeat_fields,
+        callback=validate_heartbeat_vssc,
         help=f"""
-Value of uavcan.node.Heartbeat published by the node.
-The uptime will be overridden so specifying it here will have no effect.
-Option has no effect if the node is anonymous (i.e., without a local node-ID).
-Another way to specify this option is via environment variable {_ENV_VAR_HEARTBEAT_FIELDS}.
-
-See also PyUAVCAN documentation on builtin-based representations.
-
-The defaults are: mode operational, health nominal, vendor-specific status code equals (PID % 100) of the command.
+Specify the vendor-specific status code (VSSC) of the local node.
+This option will have no effect if the local node is anonymous.
+Another way to specify this option is via environment variable {_ENV_VAR_HEARTBEAT_VSSC}.
+The default is (PID % 100) of the current process.
 """,
     )(f)
     f = click.option(

@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 
 @u.subcommand()
 @click.argument("name", default="")
-def doc(name: str) -> None:
+def documentation(name: str) -> None:
     """
     Show transport usage documentation from PyUAVCAN.
     Transports whose dependencies are not installed will not be shown.

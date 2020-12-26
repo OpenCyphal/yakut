@@ -11,5 +11,6 @@ __email__ = "consortium@uavcan.org"
 __copyright__ = f"Copyright (c) 2020 {__author__} <{__email__}>"
 __license__ = "MIT"
 
-from .main import main as main, subcommand as subcommand, Purser as Purser
+from .main import main as main, subcommand as subcommand, Purser as Purser, pass_purser as pass_purser
+from .main import asynchronous as asynchronous
 from . import cmd as cmd

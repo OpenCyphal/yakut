@@ -19,7 +19,7 @@ The result is None if no transport configuration was provided when invoking the 
 
 _logger = logging.getLogger(__name__)
 
-_ENV_VAR_NAME = "U_TRANSPORT"
+_ENV_VAR = "U_TRANSPORT"
 
 
 def transport_factory_option() -> typing.Callable[[...], typing.Any]:
@@ -42,14 +42,14 @@ def transport_factory_option() -> typing.Callable[[...], typing.Any]:
     doc = f"""
 Specify the UAVCAN network interface to use.
 This option is only relevant for commands that access the network, like pub/sub/call/etc.; other commands ignore it.
+Another way to specify this option is via environment variable {_ENV_VAR}.
 
 The value is a (Python) expression that yields a transport instance or a sequence thereof upon evaluation.
 In the latter case, the multiple transports will be joined under the same redundant transport instance,
 which may be heterogeneous (e.g., UDP+Serial).
-If the option is not provided,
-the transport configuration will be picked up from the environment variable {_ENV_VAR_NAME},
-whose syntax and semantics are otherwise identical.
-If neither are provided and the command expects a valid transport configuration, an error will result.
+
+The node-ID for the local node is to be configured here as well, because per the UAVCAN architecture,
+this is a transport-layer property.
 
 To see supported transports and how they should be initialized, run `u doc`.
 Also, read the PyUAVCAN documentation at https://pyuavcan.readthedocs.io.
@@ -59,15 +59,12 @@ because its contents are wildcard-imported for convenience.
 Further, when specifying a transport class, the suffix `Transport` may be omitted;
 e.g., `UDPTransport` and `UDP` are equivalent.
 
-Examples showcasing loopback, CAN, heterogeneous UDP+Serial:
+Examples showcasing loopback, CAN, and heterogeneous UDP+Serial:
 
 \b
     Loopback(None)
     CAN(can.media.socketcan.SocketCANMedia('vcan0',64),42)
     UDP('127.42.0.123',anonymous=True),Serial("/dev/ttyUSB0",None)
-
-Observe that the node-ID for the local node is to be configured here as well, because per the UAVCAN architecture,
-this is a transport-layer property.
 
 To avoid issues caused by resetting the transfer-ID counters between invocations,
 the tool stores the output transfer-ID map on disk keyed by the node-ID.
@@ -80,9 +77,10 @@ Files that are more than {OUTPUT_TRANSFER_ID_MAP_MAX_AGE} seconds old are not us
         "-i",
         "transport_factory",
         type=str,
-        metavar="EXPRESSION[,EXPRESSION...]",
+        metavar="EXPRESSION",
         callback=validate,
         help=doc,
+        envvar=_ENV_VAR,
     )
 
 

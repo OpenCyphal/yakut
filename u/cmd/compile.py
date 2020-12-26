@@ -26,12 +26,7 @@ def make_usage_suggestion(root_namespace_name: str) -> str:
     When a command is unable to find a compiled DSDL package, this helper can be used to construct a
     human-friendly suggestion on how to resolve the problem.
     """
-    prefix = f"{pathlib.Path(sys.argv[0]).name} {_NAME}"
-    return (
-        f'Run "{prefix} DSDL_ROOT_NAMESPACE_PATH_OR_URI" '
-        f"to generate the missing Python package from the DSDL namespace {root_namespace_name!r}. "
-        f'Run "{prefix} --help" for full usage manual.'
-    )
+    return f"Run `u {_NAME} <path>/{root_namespace_name}` to compile DSDL namespace {root_namespace_name!r}"
 
 
 @u.subcommand(

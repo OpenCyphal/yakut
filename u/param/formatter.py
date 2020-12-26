@@ -35,8 +35,6 @@ JSON and TSV (tab separated values) keep exactly one object per line.
 
 TSV is intended for use with third-party software
 such as computer algebra systems or spreadsheet processors.
-
-The default is {default}.
 """
     return click.option(
         "--format",
@@ -45,6 +43,7 @@ The default is {default}.
         type=click.Choice(choices, case_sensitive=False),
         callback=validate,
         default=default,
+        show_default=True,
         help=doc,
     )
 

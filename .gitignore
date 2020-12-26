@@ -50,3 +50,8 @@ coverage.xml
 # MS stuff
 *.code-workspace
 .vscode
+
+# Generated namespaces
+/uavcan/
+/reg/
+/sirius_cyber_corp/

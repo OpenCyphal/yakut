@@ -5,4 +5,4 @@
 if __name__ == "__main__":
     from u import main
 
-    main(auto_envvar_prefix="U")
+    main()

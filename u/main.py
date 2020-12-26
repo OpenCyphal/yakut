@@ -26,16 +26,38 @@ class Purser:
     def get_transport(self) -> Transport:
         if self._transport is None:
             self._transport = self._f_transport()
-        return self._transport
+        if self._transport is not None:
+            return self._transport
+        click.get_current_context().fail("Transport not configured")
 
     def make_formatter(self) -> Formatter:
         return self._f_formatter()
 
 
-@click.group(
+pass_purser = click.make_pass_decorator(Purser)
+
+
+class AbbreviatedGroup(click.Group):
+    def get_command(self, ctx: click.Context, cmd_name: str) -> typing.Optional[click.Command]:
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+        matches = [x for x in self.list_commands(ctx) if x.startswith(cmd_name)]
+        if not matches:
+            return None
+        elif len(matches) == 1:
+            return click.Group.get_command(self, ctx, matches[0])
+        ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
+
+
+_ENV_VAR_PATH = "U_PATH"
+
+
+@click.command(
+    cls=AbbreviatedGroup,
     context_settings={
         "max_content_width": click.get_terminal_size()[0],
-    }
+    },
 )
 @click.version_option(version=u.__version__)
 @click.option("--verbose", "-v", count=True, help="Show verbose log messages. Specify twice for extra verbosity.")
@@ -44,12 +66,13 @@ class Purser:
     "-P",
     multiple=True,
     type=click.Path(resolve_path=True),
+    envvar=_ENV_VAR_PATH,
     help=f"""
 In order to use compiled DSDL namespaces,
 the directories that contain the compilation outputs need to be specified using this option before invoking the U-tool.
 The current working directory does not need to be specified explicitly.
 
-An alternative way to specify the DSDL look-up directories is to use the environment variable U_PATH,
+An alternative way to specify the DSDL look-up directories is to use the environment variable {_ENV_VAR_PATH},
 where multiple entries can be listed like in the standard PATH variable.
 
 Examples:
@@ -58,7 +81,7 @@ Examples:
     u  --path ../public_regulated_data_types  --path ~/my_namespaces  pub ...
 
 \b
-    export U_PATH="../public_regulated_data_types:~/my_namespaces"
+    export {_ENV_VAR_PATH}="../public_regulated_data_types:~/my_namespaces"
     u pub ...
 """,
 )
@@ -87,6 +110,12 @@ def main(
     U-tool is a cross-platform command-line utility for diagnostics and management of UAVCAN networks.
     It is designed for use either directly by humans or from automation scripts.
     Ask questions at https://forum.uavcan.org
+
+    Many parameters can be provided via environment variables prefixed with `U_`.
+    For example, option `--foo-bar`, if not provided as a command-line argument, will be read from `U_FOO_BAR`.
+
+    Any command can be abbreviated arbitrarily as long as the resulting abridged name is not ambiguous.
+    For example, `publish`, `publ` and `pub` are all valid and equivalent.
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
 
@@ -106,6 +135,17 @@ def main(
 
 
 subcommand = main.command
+
+
+def asynchronous(f: typing.Callable[..., typing.Awaitable[typing.Any]]) -> typing.Callable[..., typing.Any]:
+    import asyncio
+    from functools import update_wrapper
+
+    def proxy(*args, **kwargs):
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(f(*args, **kwargs))
+
+    return update_wrapper(proxy, f)
 
 
 def _configure_logging(verbosity_level: int) -> None:

@@ -46,7 +46,7 @@ def execute(
     return stdout
 
 
-def execute_u(
+def execute_cli(
     *args: str,
     timeout: typing.Optional[float] = None,
     environment_variables: typing.Optional[typing.Dict[str, str]] = None,
@@ -109,7 +109,7 @@ class Subprocess:
         )
 
     @staticmethod
-    def u(*args: str, environment_variables: typing.Optional[typing.Dict[str, str]] = None) -> Subprocess:
+    def cli(*args: str, environment_variables: typing.Optional[typing.Dict[str, str]] = None) -> Subprocess:
         """
         A convenience factory for running the CLI tool.
         """

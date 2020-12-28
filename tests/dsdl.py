@@ -29,9 +29,9 @@ def regulated_dsdl() -> None:
     try:
         import uavcan
     except ImportError:
-        from tests.subprocess import execute_u
+        from tests.subprocess import execute_cli
         from u.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
 
         args = ["compile", DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI, "--output", output_dir]
-        execute_u(*args, timeout=90.0)
+        execute_cli(*args, timeout=90.0)
         importlib.invalidate_caches()

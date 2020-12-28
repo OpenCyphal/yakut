@@ -41,7 +41,8 @@ def _make_transport_factories() -> typing.Iterable[TransportFactory]:
             can_transmit=True,
         )
 
-        # Redundant CAN via SocketCAN
+        # Redundant CAN via SocketCAN.
+        # In anonymous mode, transfers with >32 bytes will fail for two of the three transports. This is intentional.
         yield lambda nid: TransportConfig(
             expression=(
                 ",".join(

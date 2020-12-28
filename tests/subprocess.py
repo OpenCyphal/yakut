@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
+import os
 import sys
 import shutil
 import typing
@@ -36,6 +37,7 @@ def execute(
     cmd = _make_process_args(*args)
     _logger.info("Executing process with timeout=%s: %s", timeout if timeout is not None else "inf", cmd)
     env = _get_env()
+    _logger.debug("Environment: %s", env)
     if environment_variables:
         env.update(environment_variables)
     # Can't use shell=True with timeout; see https://stackoverflow.com/questions/36952245/subprocess-timeout-failure
@@ -91,6 +93,9 @@ class Subprocess:
         else:
             creationflags = 0
 
+        env = _get_env(environment_variables)
+        _logger.debug("Environment: %s", env)
+
         # Buffering must be DISABLED, otherwise we can't read data on Windows after the process is interrupted.
         # For some reason stdout is not flushed at exit there.
         self._inferior = subprocess.Popen(
@@ -98,7 +103,7 @@ class Subprocess:
             stdout=subprocess.PIPE,
             stderr=sys.stderr,
             encoding="utf8",
-            env=_get_env(environment_variables),
+            env=env,
             creationflags=creationflags,
             bufsize=0,
         )
@@ -143,11 +148,21 @@ class Subprocess:
 
 
 def _get_env(environment_variables: typing.Optional[typing.Dict[str, str]] = None) -> typing.Dict[str, str]:
+    from tests import DEPS_DIR
+
+    copy_keys = {
+        "PATH",
+        "SYSTEMROOT",
+    }
+    env = {k: v for k, v in os.environ.items() if k in copy_keys}
     # Buffering must be DISABLED, otherwise we can't read data on Windows after the process is interrupted.
     # For some reason stdout is not flushed at exit there.
-    env = {
-        "PYTHONUNBUFFERED": "1",
-    }
+    env.update(
+        {
+            "PYTHONUNBUFFERED": "1",
+            "PYTHONPATH": str(DEPS_DIR),  # This is to load sitecustomize.py, which enables coverage.
+        }
+    )
     env.update(environment_variables or {})
     return env
 

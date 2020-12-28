@@ -1,4 +1,4 @@
-# Copyright (c) 2020 UAVCAN Consortium
+# Copyright (c) 2019 UAVCAN Consortium
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
@@ -6,7 +6,9 @@ import os
 import sys
 import pathlib
 
-OWN_PATH = pathlib.Path(__file__).resolve()
+ROOT_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
+SETUP_CFG = ROOT_DIR / "setup.cfg"
+assert SETUP_CFG.is_file()
 
 
 def detect_debugger() -> bool:
@@ -21,15 +23,13 @@ def setup_coverage() -> None:
     try:
         import coverage  # The module may be missing during early stage setup, no need to abort everything.
     except ImportError as ex:
-        print("COVERAGE NOT CONFIGURED:", ex, file=sys.stderr)
+        pass
     else:
         # Coverage configuration; see https://coverage.readthedocs.io/en/coverage-4.2/subprocess.html
-        os.environ["COVERAGE_PROCESS_START"] = str(OWN_PATH.parent / "setup.cfg")
+        os.environ["COVERAGE_PROCESS_START"] = str(SETUP_CFG)
         coverage.process_startup()
+        print(f"Tracking coverage of {sys.argv}", file=sys.stderr)
 
 
-if detect_debugger():
-    print("Debugger detected, coverage will not be tracked to avoid interference.")
-else:
-    print(f"Tracking coverage of {sys.argv[0]} with {OWN_PATH}", file=sys.stderr)
+if not detect_debugger():
     setup_coverage()

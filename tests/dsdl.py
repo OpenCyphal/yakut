@@ -6,16 +6,19 @@ import sys
 import pathlib
 import importlib
 import pytest
+from . import TEST_DIR, ROOT_DIR
 
 
-# Please maintain these carefully if you're changing the project's directory structure.
-TEST_DIR = pathlib.Path(__file__).parent
-ROOT_DIR = TEST_DIR.parent
+CUSTOM_DATA_TYPES_DIR = TEST_DIR / "custom_data_types"
+
 OUTPUT_DIR = ROOT_DIR / pathlib.Path(".dsdl_generated")
+"""
+The output directory needs to be added to U_PATH in order to use the compiled namespaces.
+"""
 
 
 @pytest.fixture(scope="session")  # type: ignore
-def regulated_dsdl() -> pathlib.Path:
+def regulated_dsdl() -> None:
     """
     Ensures that the regulated DSDL namespaces are compiled and importable.
     To force recompilation, remove the output directory.
@@ -31,9 +34,4 @@ def regulated_dsdl() -> pathlib.Path:
 
         args = ["compile", DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI, "--output", output_dir]
         execute_u(*args, timeout=90.0)
-
         importlib.invalidate_caches()
-        # noinspection PyUnresolvedReferences
-        import uavcan
-
-    return pathlib.Path(uavcan.__file__).parent.parent

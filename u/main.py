@@ -96,7 +96,6 @@ Examples:
     u pub ...
 """,
 )
-@click.option("--u-self-test", hidden=True, is_flag=True)
 @formatter_factory_option
 @transport_factory_option
 @node_factory_option
@@ -108,7 +107,6 @@ def main(
     formatter_factory: FormatterFactory,
     transport_factory: TransportFactory,
     node_factory: NodeFactory,
-    u_self_test: bool,
 ) -> None:
     """
     \b
@@ -141,12 +139,6 @@ def main(
         transport_factory=transport_factory,
         node_factory=node_factory,
     )
-
-    if u_self_test:
-        print("formatter:", ctx.obj.make_formatter())
-        print("transport:", ctx.obj.get_transport())
-        print("node:", ctx.obj.get_node("my_name_suffix", allow_anonymous=True))
-        sys.exit(0)
 
 
 subcommand = main.command

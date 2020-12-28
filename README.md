@@ -29,6 +29,8 @@ Check for new versions every now and then: **`pip install -U u`**
 
 ## Use
 
+### Compile DSDL
+
 Suppose we have our custom DSDL namespace that we want to use.
 First, it needs to be *compiled*:
 
@@ -54,6 +56,22 @@ In general, any option can be supplied either as a command-line argument or as a
 prefixed with `U_`.
 For instance, `--foo-bar` and `U_FOO_BAR` are interchangeable, but the former takes precedence.
 
+A question one is likely to ask here is:
+*Why don't you ship precompiled regulated namespaces together with the tool?*
+Indeed, that would be really trivial to do, but we avoid that on purpose to emphasize our commitment to
+supporting vendor-specific DSDL at the same level with the standard DSDL.
+In the past we used to treat the standard namespace differently,
+which caused our users to acquire misconceptions about the purpose of DSDL.
+Specifically, there have been forks of the regulated namespace repository extended with vendor-specific types,
+which is unacceptable and is harmful to the ecosystem.
+
+Having to manually compile the regulated namespaces is not an issue because it is just a single command to run.
+You may opt to keeping the namespaces you commonly use somewhere in a dedicated directory like `~/.uavcan/`
+and add `export U_PATH=~/.uavcan/` in your `.bashrc` (or whatever shell you are using) so that you don't have to
+manually specify the path when invoking the U-tool.
+
+### Pub/sub and RPC
+
 Commands that access the network need to know how to do so.
 This is configured using the option `--transport`/`U_TRANSPORT`.
 Assuming that we use the UDP transport on the local loopback interface,
@@ -68,6 +86,11 @@ export U_TRANSPORT='UDP("127.0.0.1",anonymous=True)'
 # PowerShell
 $env:U_TRANSPORT="UDP('127.0.0.1',anonymous=True)"
 ```
+
+Hint: if you use a particular transport configuration often,
+consider exporting `U_TRANSPORT` in your `.bashrc` (or whatever shell you are using).
+If you need to use a different transport configuration temporarily,
+you can override it using `--transport` because the command-line option takes precedence over the environment variable.
 
 You are probably wondering what transports are available and how to use them.
 For that, run `u doc --help`.

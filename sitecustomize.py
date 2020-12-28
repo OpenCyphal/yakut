@@ -24,8 +24,6 @@ def setup_coverage() -> None:
         print("COVERAGE NOT CONFIGURED:", ex, file=sys.stderr)
     else:
         # Coverage configuration; see https://coverage.readthedocs.io/en/coverage-4.2/subprocess.html
-        # This is kind of a big gun because it makes us track coverage of everything we run, even doc generation,
-        # but it's acceptable.
         os.environ["COVERAGE_PROCESS_START"] = str(OWN_PATH.parent / "setup.cfg")
         coverage.process_startup()
 

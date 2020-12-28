@@ -2,6 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
+import sys
 import typing
 import logging
 import click
@@ -54,6 +55,7 @@ def documentation(name: str) -> None:
         click.echo_via_pager(texts)
     else:
         click.secho(f"There are no entries that match {name!r}", err=True, fg="red")
+        sys.exit(1)
 
 
 def _handle_import_error(name: str, ex: ImportError) -> None:

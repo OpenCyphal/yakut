@@ -141,7 +141,7 @@ class Subprocess:
         """
         A convenience factory for running the CLI tool.
         """
-        return Subprocess("python", "-mu", *args, environment_variables=environment_variables)
+        return Subprocess("python", "-m", "yakut", *args, environment_variables=environment_variables)
 
     def wait(
         self, timeout: float, interrupt: typing.Optional[bool] = False, log: bool = True

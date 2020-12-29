@@ -29,7 +29,7 @@ def transport_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Call
             result: typing.Optional[Transport] = None
             if value:
                 try:
-                    result = _construct_transport(value)
+                    result = construct_transport(value)
                 except Exception as ex:
                     raise click.BadParameter(f"Could not initialize transport {value!r}: {ex!r}") from ex
             _logger.info("Expression %r yields %r", value, result)
@@ -82,7 +82,7 @@ Files that are more than {OUTPUT_TRANSFER_ID_MAP_MAX_AGE} seconds old are not us
     return f
 
 
-def _construct_transport(expression: str) -> Transport:
+def construct_transport(expression: str) -> Transport:
     context = _make_evaluation_context()
     trs = _evaluate_transport_expr(expression, context)
     _logger.debug("Transport expression evaluation result: %r", trs)

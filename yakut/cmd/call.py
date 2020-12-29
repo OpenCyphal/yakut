@@ -21,15 +21,13 @@ _S = typing.TypeVar("_S", bound=pyuavcan.dsdl.ServiceObject)
 _logger = logging.getLogger(__name__)
 
 
-def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: str) -> typing.Dict[str, typing.Any]:
+def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: str) -> typing.Any:
     from yakut.yaml import YAMLLoader
 
     try:
         fields = YAMLLoader().load(value)
     except Exception as ex:
         raise click.BadParameter(f"Could not parse the request object fields: {ex}", ctx=ctx, param=param)
-    if not isinstance(fields, dict):
-        raise click.BadParameter(f"Expected a dict, got {type(fields).__name__}", ctx=ctx, param=param)
     return fields
 
 
@@ -65,7 +63,7 @@ def call(
     purser: yakut.Purser,
     server_node_id: int,
     service: str,
-    request_fields: typing.Dict[str, typing.Any],
+    request_fields: typing.Any,
     timeout: float,
     priority: pyuavcan.transport.Priority,
     with_metadata: bool,
@@ -116,7 +114,6 @@ def call(
         priority,
         with_metadata,
     )
-    assert isinstance(request_fields, dict)
 
     service_id, dtype = construct_port_id_and_type(service)
     if not issubclass(dtype, pyuavcan.dsdl.ServiceObject):

@@ -15,6 +15,7 @@ import click
 import pyuavcan
 from pyuavcan.transport import Transport, OutputSessionSpecifier, Priority
 from pyuavcan.presentation import OutgoingTransferIDCounter
+import yakut
 from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
 from yakut.helpers import EnumParam
 
@@ -39,8 +40,8 @@ class NodeFactory:
                 "minor": pyuavcan.UAVCAN_SPECIFICATION_VERSION[1],
             },
             "software_version": {
-                "major": pyuavcan.__version_info__[0],
-                "minor": pyuavcan.__version_info__[1],
+                "major": yakut.__version_info__[0],
+                "minor": yakut.__version_info__[1],
             },
         }
     )

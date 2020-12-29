@@ -5,8 +5,11 @@
 from __future__ import annotations
 import time
 import json
+import yaml
 import typing
 import pytest
+import pyuavcan
+import yakut
 from tests.subprocess import execute_cli, Subprocess
 from tests.dsdl import compiled_dsdl, OUTPUT_DIR
 from tests.transport import TRANSPORT_FACTORIES, TransportFactory
@@ -50,10 +53,12 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
 
     time.sleep(1.0)  # Time to let the background processes finish initialization
 
-    execute_cli(
+    proc_pub = Subprocess.cli(
         "-v",
         "--heartbeat-vssc=54",
         "--heartbeat-priority=high",
+        "--node-info",
+        "{software_image_crc: [0xdeadbeef]}",
         f"--transport={transport_factory(51).expression}",  # Takes precedence over the environment variable.
         "pub",
         "4321.uavcan.diagnostic.Record.1.1",
@@ -63,14 +68,38 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "555.uavcan.si.sample.temperature.Scalar.1.0",
         "{kelvin: 123.456}",
         "--count=3",
-        "--period=0.1",
+        "--period=1.5",
         "--priority=slow",
         environment_variables=env,
-        timeout=10.0,
     )
 
+    # Request GetInfo from the publisher we just launched.
+    _, stdout, _ = execute_cli(
+        f"--transport={transport_factory(52).expression}",
+        f"--path={OUTPUT_DIR}",
+        "call",
+        "51",
+        "uavcan.node.GetInfo.1.0",
+        "--no-metadata",
+        "--timeout=3",
+        timeout=5.0,
+    )
+    parsed = yaml.load(stdout, Loader=yaml.FullLoader)
+    assert parsed[430]["protocol_version"] == {
+        "major": pyuavcan.UAVCAN_SPECIFICATION_VERSION[0],
+        "minor": pyuavcan.UAVCAN_SPECIFICATION_VERSION[1],
+    }
+    assert parsed[430]["software_version"] == {
+        "major": yakut.__version_info__[0],
+        "minor": yakut.__version_info__[1],
+    }
+    assert parsed[430]["software_image_crc"] == [0xDEADBEEF]
+    assert parsed[430]["name"] == "org.uavcan.yakut.publish"
+
+    proc_pub.wait(5.0)
     time.sleep(1.0)  # Time to sync up
 
+    # Parse the output from the subscribers and validate it.
     out_sub_heartbeat = proc_sub_heartbeat.wait(1.0, interrupt=True)[1].splitlines()
     out_sub_diagnostic = proc_sub_diagnostic.wait(1.0, interrupt=True)[1].splitlines()
     out_sub_temperature = proc_sub_temperature.wait(1.0, interrupt=True)[1].splitlines()
@@ -83,13 +112,20 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     print("diagnostics:", *diagnostics, sep="\n\t")
     print("temperatures:", *temperatures, sep="\n\t")
 
-    assert 1 <= len(heartbeats) <= 2
+    assert 1 <= len(heartbeats) <= 9
     for m in heartbeats:
-        assert "high" in m["7509"]["_metadata_"]["priority"].lower()
-        assert m["7509"]["_metadata_"]["transfer_id"] >= 0
-        assert m["7509"]["_metadata_"]["source_node_id"] == 51
-        assert m["7509"]["uptime"] in (0, 1)
-        assert m["7509"]["vendor_specific_status_code"] == 54
+        src_nid = m["7509"]["_metadata_"]["source_node_id"]
+        if src_nid == 51:  # The publisher
+            assert "high" in m["7509"]["_metadata_"]["priority"].lower()
+            assert m["7509"]["_metadata_"]["transfer_id"] >= 0
+            assert m["7509"]["uptime"] in range(10)
+            assert m["7509"]["vendor_specific_status_code"] == 54
+        elif src_nid == 52:  # The caller (GetInfo)
+            assert "nominal" in m["7509"]["_metadata_"]["priority"].lower()
+            assert m["7509"]["_metadata_"]["transfer_id"] >= 0
+            assert m["7509"]["uptime"] in range(4)
+        else:
+            assert False
 
     assert len(diagnostics) == 3
     for m in diagnostics:

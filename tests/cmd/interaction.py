@@ -50,7 +50,6 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "--no-metadata",
         environment_variables=env,
     )
-
     time.sleep(1.0)  # Time to let the background processes finish initialization
 
     proc_pub = Subprocess.cli(
@@ -72,6 +71,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "--priority=slow",
         environment_variables=env,
     )
+    time.sleep(1.0)  # Time to let the publisher boot up properly.
 
     # Request GetInfo from the publisher we just launched.
     _, stdout, _ = execute_cli(
@@ -81,8 +81,8 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "51",
         "uavcan.node.GetInfo.1.0",
         "--no-metadata",
-        "--timeout=3",
-        timeout=5.0,
+        "--timeout=2",
+        timeout=3.0,
     )
     parsed = yaml.load(stdout, Loader=yaml.FullLoader)
     assert parsed[430]["protocol_version"] == {
@@ -96,7 +96,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     assert parsed[430]["software_image_crc"] == [0xDEADBEEF]
     assert parsed[430]["name"] == "org.uavcan.yakut.publish"
 
-    proc_pub.wait(5.0)
+    proc_pub.wait(6.0)
     time.sleep(1.0)  # Time to sync up
 
     # Parse the output from the subscribers and validate it.

@@ -75,10 +75,6 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, regulated_dsd
     out_sub_diagnostic = proc_sub_diagnostic.wait(1.0, interrupt=True)[1].splitlines()
     out_sub_temperature = proc_sub_temperature.wait(1.0, interrupt=True)[1].splitlines()
 
-    print("out_sub_heartbeat:", *out_sub_heartbeat, sep="\n\t")
-    print("out_sub_diagnostic:", *out_sub_diagnostic, sep="\n\t")
-    print("proc_sub_temperature:", *out_sub_temperature, sep="\n\t")
-
     heartbeats = list(map(json.loads, out_sub_heartbeat))
     diagnostics = list(map(json.loads, out_sub_diagnostic))
     temperatures = list(map(json.loads, out_sub_temperature))
@@ -189,4 +185,4 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, regulat
             "--period=2",
             environment_variables=env,
         )
-        assert 0 < proc.wait(timeout=8)[0]
+        assert 0 < proc.wait(timeout=8, log=False)[0]

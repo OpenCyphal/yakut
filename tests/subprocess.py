@@ -101,7 +101,7 @@ class Subprocess:
         self._inferior = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
-            stderr=sys.stderr,
+            stderr=subprocess.PIPE,
             encoding="utf8",
             env=env,
             creationflags=creationflags,
@@ -115,12 +115,19 @@ class Subprocess:
         """
         return Subprocess("python", "-mu", *args, environment_variables=environment_variables)
 
-    def wait(self, timeout: float, interrupt: typing.Optional[bool] = False) -> typing.Tuple[int, str]:
+    def wait(
+        self, timeout: float, interrupt: typing.Optional[bool] = False, log: bool = True
+    ) -> typing.Tuple[int, str, str]:
         if interrupt and self._inferior.poll() is None:
             self.interrupt()
-        stdout = self._inferior.communicate(timeout=timeout)[0]
+
+        stdout, stderr = self._inferior.communicate(timeout=timeout)
+        if log:
+            _logger.debug("PID %d stdout:\n%s", self.pid, stdout)
+            _logger.debug("PID %d stderr:\n%s", self.pid, stderr)
+
         exit_code = int(self._inferior.returncode)
-        return exit_code, stdout
+        return exit_code, stdout, stderr
 
     def kill(self) -> None:
         self._inferior.kill()

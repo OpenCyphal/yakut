@@ -8,13 +8,13 @@ import json
 import typing
 import pytest
 from tests.subprocess import execute_cli, Subprocess
-from tests.dsdl import regulated_dsdl, OUTPUT_DIR
+from tests.dsdl import compiled_dsdl, OUTPUT_DIR
 from tests.transport import TRANSPORT_FACTORIES, TransportFactory
 
 
 @pytest.mark.parametrize("transport_factory", TRANSPORT_FACTORIES)  # type: ignore
-def _unittest_pub_sub_regular(transport_factory: TransportFactory, regulated_dsdl: typing.Any) -> None:
-    _ = regulated_dsdl
+def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    _ = compiled_dsdl
     env = {
         "U_TRANSPORT": transport_factory(None).expression,
         "U_PATH": str(OUTPUT_DIR),
@@ -107,8 +107,8 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, regulated_dsd
 
 
 @pytest.mark.parametrize("transport_factory", TRANSPORT_FACTORIES)  # type: ignore
-def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, regulated_dsdl: typing.Any) -> None:
-    _ = regulated_dsdl
+def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    _ = compiled_dsdl
     env = {
         "U_TRANSPORT": transport_factory(None).expression,
         "U_PATH": str(OUTPUT_DIR),

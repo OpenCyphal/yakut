@@ -18,7 +18,7 @@ The output directory needs to be added to U_PATH in order to use the compiled na
 
 
 @pytest.fixture(scope="session")  # type: ignore
-def regulated_dsdl() -> None:
+def compiled_dsdl() -> None:
     """
     Ensures that the regulated DSDL namespaces are compiled and importable.
     To force recompilation, remove the output directory.
@@ -28,10 +28,24 @@ def regulated_dsdl() -> None:
         sys.path.insert(0, output_dir)
     try:
         import uavcan
+        import sirius_cyber_corp
     except ImportError:
         from tests.subprocess import execute_cli
         from u.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
 
-        args = ["compile", DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI, "--output", output_dir]
+        sirius_cyber_corp_dir = str(CUSTOM_DATA_TYPES_DIR / "sirius_cyber_corp")
+
+        args = [
+            "compile",
+            DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI,
+            "--lookup",
+            sirius_cyber_corp_dir,
+            "-O",
+            output_dir,
+        ]
         execute_cli(*args, timeout=90.0)
+
+        args = ["compile", sirius_cyber_corp_dir, "--output", output_dir]
+        execute_cli(*args, timeout=90.0)
+
         importlib.invalidate_caches()

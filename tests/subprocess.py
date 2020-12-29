@@ -19,7 +19,8 @@ def execute(
     *args: str,
     timeout: typing.Optional[float] = None,
     environment_variables: typing.Optional[typing.Dict[str, str]] = None,
-) -> str:
+    log: bool = True,
+) -> typing.Tuple[str, str]:
     r"""
     This is a wrapper over :func:`subprocess.check_output`.
 
@@ -27,7 +28,8 @@ def execute(
     :param timeout: Give up waiting if the command could not be completed in this much time and raise TimeoutExpired.
         No limit by default.
     :param environment_variables: appends or overrides environment variables for the process.
-    :return: stdout of the command.
+    :param log: Log stdout/stderr upon completion.
+    :return: (stdout, stderr) of the command.
 
     >>> execute('ping', '127.0.0.1', timeout=0.1)
     Traceback (most recent call last):
@@ -41,20 +43,33 @@ def execute(
     if environment_variables:
         env.update(environment_variables)
     # Can't use shell=True with timeout; see https://stackoverflow.com/questions/36952245/subprocess-timeout-failure
-    stdout = subprocess.check_output(cmd, stderr=sys.stderr, timeout=timeout, encoding="utf8", env=env)
-    assert isinstance(stdout, str)
-    return stdout
+    out = subprocess.run(
+        cmd,
+        timeout=timeout,
+        encoding="utf8",
+        env=env,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    stdout, stderr = out.stdout, out.stderr
+    if log:
+        _logger.debug("%s stdout:\n%s", cmd, stdout)
+        _logger.debug("%s stderr:\n%s", cmd, stderr)
+    assert isinstance(stdout, str) and isinstance(stderr, str)
+    return stdout, stderr
 
 
 def execute_cli(
     *args: str,
     timeout: typing.Optional[float] = None,
     environment_variables: typing.Optional[typing.Dict[str, str]] = None,
-) -> str:
+    log: bool = True,
+) -> typing.Tuple[str, str]:
     """
     A wrapper over :func:`execute` that runs the CLI tool with the specified arguments.
     """
-    return execute("python", "-mu", *args, timeout=timeout, environment_variables=environment_variables)
+    return execute("python", "-mu", *args, timeout=timeout, environment_variables=environment_variables, log=log)
 
 
 class Subprocess:

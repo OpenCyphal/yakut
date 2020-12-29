@@ -1,7 +1,6 @@
 # Development guide
 
-This document is intended for library developers only.
-If you just want to use the library, you don't need to read it.
+This document is intended for developers only.
 
 ## Testing
 
@@ -32,6 +31,6 @@ The tool is versioned by following `Semantic Versioning <https://semver.org>`_.
 
 For all commits pushed to master, the CI/CD pipeline automatically uploads a new release to PyPI
 and pushes a new tag upstream.
-It is therefore necessary to ensure that the library version (see ``u/VERSION``) is bumped whenever
+It is therefore necessary to ensure that the library version (see ``yakut/VERSION``) is bumped whenever
 a new commit is merged into master;
 otherwise, the automation will fail with an explicit tag conflict error instead of deploying the release.

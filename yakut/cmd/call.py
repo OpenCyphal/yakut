@@ -9,10 +9,10 @@ import logging
 import contextlib
 import click
 import pyuavcan
-import u
-from u.helpers import EnumParam
-from u.param.formatter import Formatter
-from u.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
+import yakut
+from yakut.helpers import EnumParam
+from yakut.param.formatter import Formatter
+from yakut.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
 
 
 _S = typing.TypeVar("_S", bound=pyuavcan.dsdl.ServiceObject)
@@ -22,7 +22,7 @@ _logger = logging.getLogger(__name__)
 
 
 def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: str) -> typing.Dict[str, typing.Any]:
-    from u.yaml import YAMLLoader
+    from yakut.yaml import YAMLLoader
 
     try:
         fields = YAMLLoader().load(value)
@@ -33,7 +33,7 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
     return fields
 
 
-@u.subcommand()
+@yakut.subcommand()
 @click.argument("server_node_id", metavar="SERVER_NODE_ID", type=int, required=True)
 @click.argument("service", metavar="SERVICE", type=str, required=True)
 @click.argument("request_fields", metavar="FIELDS", type=str, callback=_validate_request_fields, default="{}")
@@ -60,9 +60,9 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
     show_default=True,
     help="When enabled, the response object is prepended with an extra field named `_metadata_`.",
 )
-@u.pass_purser
+@yakut.pass_purser
 def call(
-    purser: u.Purser,
+    purser: yakut.Purser,
     server_node_id: int,
     service: str,
     request_fields: typing.Dict[str, typing.Any],
@@ -97,13 +97,13 @@ def call(
     Examples:
 
     \b
-        u call 42 uavcan.node.GetInfo.1.0 +M -T3 -Pe
-        u call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+        yakut call 42 uavcan.node.GetInfo.1.0 +M -T3 -Pe
+        yakut call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
     """
     try:
         import pyuavcan.application
     except ImportError as ex:
-        from u.cmd import compile
+        from yakut.cmd import compile
 
         raise click.UsageError(compile.make_usage_suggestion(ex.name))
 
@@ -136,7 +136,7 @@ def call(
         _run(client, request, formatter, with_metadata=with_metadata)
 
 
-@u.asynchronous
+@yakut.asynchronous
 async def _run(
     client: pyuavcan.presentation.Client[_S],
     request: pyuavcan.dsdl.CompositeObject,

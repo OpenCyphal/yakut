@@ -9,16 +9,16 @@ import logging
 import contextlib
 import click
 import pyuavcan
-import u
+import yakut
 
 
 _logger = logging.getLogger(__name__)
 
 
-@u.subcommand()
-@u.pass_purser
-@u.asynchronous
-async def accommodate(purser: u.Purser) -> None:
+@yakut.subcommand()
+@yakut.pass_purser
+@yakut.asynchronous
+async def accommodate(purser: yakut.Purser) -> None:
     """
     Automatically find a node-ID value that is not used by any other node that is currently online.
 
@@ -36,7 +36,7 @@ async def accommodate(purser: u.Purser) -> None:
     The listening duration is determined heuristically at run time;
     for most use cases it is unlikely to exceed three seconds.
     """
-    from u.cmd import compile
+    from yakut.cmd import compile
 
     try:
         import uavcan.node

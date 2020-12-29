@@ -16,8 +16,8 @@ from tests.transport import TRANSPORT_FACTORIES, TransportFactory
 def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
-        "U_TRANSPORT": transport_factory(None).expression,
-        "U_PATH": str(OUTPUT_DIR),
+        "YAKUT_TRANSPORT": transport_factory(None).expression,
+        "YAKUT_PATH": str(OUTPUT_DIR),
     }
     proc_sub_heartbeat = Subprocess.cli(
         "--format=json",
@@ -110,8 +110,8 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
 def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
-        "U_TRANSPORT": transport_factory(None).expression,
-        "U_PATH": str(OUTPUT_DIR),
+        "YAKUT_TRANSPORT": transport_factory(None).expression,
+        "YAKUT_PATH": str(OUTPUT_DIR),
     }
     proc_sub_heartbeat = Subprocess.cli(
         "-v",

@@ -4,11 +4,11 @@
 
 import pathlib
 import click
-import u
+import yakut
 
 
-VERSION_AGNOSTIC_DATA_DIR = pathlib.Path(click.get_app_dir("u"))
-VERSION_SPECIFIC_DATA_DIR = VERSION_AGNOSTIC_DATA_DIR / ("v" + ".".join(map(str, u.__version_info__[:2])))
+VERSION_AGNOSTIC_DATA_DIR = pathlib.Path(click.get_app_dir("yakut"))
+VERSION_SPECIFIC_DATA_DIR = VERSION_AGNOSTIC_DATA_DIR / ("v" + ".".join(map(str, yakut.__version_info__[:2])))
 
 OUTPUT_TRANSFER_ID_MAP_DIR = VERSION_SPECIFIC_DATA_DIR / "output-transfer-id-maps"
 

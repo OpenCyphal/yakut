@@ -40,7 +40,7 @@ such as computer algebra systems or spreadsheet processors.
         "--format",
         "-F",
         "formatter_factory",
-        envvar="U_FORMAT",
+        envvar="YAKUT_FORMAT",
         type=click.Choice(choices, case_sensitive=False),
         callback=validate,
         default=default,
@@ -51,7 +51,7 @@ such as computer algebra systems or spreadsheet processors.
 
 
 def _make_yaml_formatter() -> Formatter:
-    from u.yaml import YAMLDumper
+    from yakut.yaml import YAMLDumper
 
     dumper = YAMLDumper(explicit_start=True)
     return lambda data: dumper.dumps(data)

@@ -9,9 +9,9 @@ import contextlib
 import click
 import pyuavcan
 from pyuavcan.presentation import Presentation, Subscriber
-import u
-from u.param.formatter import Formatter
-from u.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
+import yakut
+from yakut.param.formatter import Formatter
+from yakut.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
 
 
 _M = typing.TypeVar("_M", bound=pyuavcan.dsdl.CompositeObject)
@@ -20,7 +20,7 @@ _M = typing.TypeVar("_M", bound=pyuavcan.dsdl.CompositeObject)
 _logger = logging.getLogger(__name__)
 
 
-@u.subcommand()
+@yakut.subcommand()
 @click.argument("subject", type=str, nargs=-1)
 @click.option(
     "--with-metadata/--no-metadata",
@@ -38,9 +38,9 @@ _logger = logging.getLogger(__name__)
 Exit automatically after this many messages (or synchronous message groups) have been received. No limit by default.
 """,
 )
-@u.pass_purser
+@yakut.pass_purser
 def subscribe(
-    purser: u.Purser,
+    purser: yakut.Purser,
     subject: typing.Tuple[str, ...],
     with_metadata: bool,
     count: typing.Optional[int],
@@ -72,7 +72,7 @@ def subscribe(
     Examples:
 
     \b
-        u sub 33.uavcan.si.unit.angle.Scalar.1.0 --no-metadata
+        yakut sub 33.uavcan.si.unit.angle.Scalar.1.0 --no-metadata
     """
     _logger.debug("subject=%r, with_metadata=%r, count=%r", subject, with_metadata, count)
     if not subject:
@@ -110,7 +110,7 @@ def _make_subscriber(subjects: typing.Sequence[str], presentation: Presentation)
     )
 
 
-@u.asynchronous
+@yakut.asynchronous
 async def _run(subscriber: Subscriber[_M], formatter: Formatter, with_metadata: bool, count: int) -> None:
     async for msg, transfer in subscriber:
         assert isinstance(transfer, pyuavcan.transport.TransferFrom)

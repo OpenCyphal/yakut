@@ -6,13 +6,13 @@ import sys
 import typing
 import logging
 import click
-import u
+import yakut
 
 
 _logger = logging.getLogger(__name__)
 
 
-@u.subcommand()
+@yakut.subcommand()
 @click.argument("name", default="")
 def documentation(name: str) -> None:
     """

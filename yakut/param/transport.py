@@ -9,7 +9,7 @@ import logging
 import pyuavcan
 from pyuavcan.transport import Transport as Transport
 import click
-from u.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
+from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
 
 
 TransportFactory = typing.Callable[[], typing.Optional[Transport]]
@@ -48,7 +48,7 @@ which may be heterogeneous (e.g., UDP+Serial).
 The node-ID for the local node is to be configured here as well, because per the UAVCAN architecture,
 this is a transport-layer property.
 
-To see supported transports and how they should be initialized, run `u doc`.
+To see supported transports and how they should be initialized, run `yakut doc`.
 Also, read the PyUAVCAN documentation at https://pyuavcan.readthedocs.io.
 
 The transport expression does not need to explicitly reference the `pyuavcan.transport` module
@@ -73,7 +73,7 @@ Files that are more than {OUTPUT_TRANSFER_ID_MAP_MAX_AGE} seconds old are not us
         "--transport",
         "-i",
         "transport_factory",
-        envvar="U_TRANSPORT",
+        envvar="YAKUT_TRANSPORT",
         type=str,
         metavar="EXPRESSION",
         callback=validate,

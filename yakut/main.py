@@ -7,10 +7,10 @@ import sys
 import typing
 import logging
 import click
-import u
-from u.param.transport import transport_factory_option, TransportFactory, Transport
-from u.param.formatter import formatter_factory_option, FormatterFactory, Formatter
-from u.param.node import node_factory_option, NodeFactory
+import yakut
+from yakut.param.transport import transport_factory_option, TransportFactory, Transport
+from yakut.param.formatter import formatter_factory_option, FormatterFactory, Formatter
+from yakut.param.node import node_factory_option, NodeFactory
 
 
 _logger = logging.getLogger(__name__.replace("__", ""))
@@ -65,7 +65,7 @@ class AbbreviatedGroup(click.Group):
         ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
 
 
-_ENV_VAR_PATH = "U_PATH"
+_ENV_VAR_PATH = "YAKUT_PATH"
 
 
 @click.command(
@@ -74,7 +74,7 @@ _ENV_VAR_PATH = "U_PATH"
         "max_content_width": click.get_terminal_size()[0],
     },
 )
-@click.version_option(version=u.__version__)
+@click.version_option(version=yakut.__version__)
 @click.option("--verbose", "-v", count=True, help="Show verbose log messages. Specify twice for extra verbosity.")
 @click.option(
     "--path",
@@ -83,17 +83,17 @@ _ENV_VAR_PATH = "U_PATH"
     type=click.Path(resolve_path=True),
     help=f"""
 In order to use compiled DSDL namespaces,
-the directories that contain compilation outputs need to be specified using this option before invoking the U-tool.
+the directories that contain compilation outputs need to be specified using this option.
 The current working directory does not need to be specified explicitly.
 
 Examples:
 
 \b
-    u  --path ../public_regulated_data_types  --path ~/my_namespaces  pub ...
+    yakut  --path ../public_regulated_data_types  --path ~/my_namespaces  pub ...
 
 \b
     export {_ENV_VAR_PATH}="../public_regulated_data_types:~/my_namespaces"
-    u pub ...
+    yakut pub ...
 """,
 )
 @formatter_factory_option
@@ -118,12 +118,12 @@ def main(
             |      |            |         |      |         |
         ----o------o------------o---------o------o---------o-------
 
-    U-tool is a cross-platform command-line utility for diagnostics and management of UAVCAN networks.
+    Yakut is a cross-platform command-line utility for diagnostics and management of UAVCAN networks.
     It is designed for use either directly by humans or from automation scripts.
     Ask questions at https://forum.uavcan.org
 
-    Any long option can be provided via environment variable prefixed with `U_`.
-    For example, option `--foo-bar`, if not provided as a command-line argument, will be read from `U_FOO_BAR`.
+    Any long option can be provided via environment variable prefixed with `YAKUT_`.
+    For example, option `--foo-bar`, if not provided as a command-line argument, will be read from `YAKUT_FOO_BAR`.
 
     Any command can be abbreviated arbitrarily as long as the resulting abridged name is not ambiguous.
     For example, `publish`, `publ` and `pub` are all valid and equivalent.

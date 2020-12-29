@@ -23,7 +23,7 @@ def construct_port_id_and_type(spec: str) -> typing.Tuple[int, typing.Type[pyuav
     the version number separators may also be underscores for convenience.
     Raises ValueError, possibly with suggestions, if such type is non-reachable.
     """
-    from u.cmd.compile import make_usage_suggestion
+    from yakut.cmd.compile import make_usage_suggestion
 
     port_id, full_name, major, minor = _parse_data_spec(spec)
     name_components = full_name.split(_NAME_COMPONENT_SEPARATOR)

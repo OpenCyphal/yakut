@@ -11,8 +11,8 @@ import zipfile
 import tempfile
 import pyuavcan
 import click
-import u
-from u.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
+import yakut
+from yakut.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
 
 
 _NAME = "compile"
@@ -25,10 +25,10 @@ def make_usage_suggestion(root_namespace_name: str) -> str:
     When a command is unable to find a compiled DSDL package, this helper can be used to construct a
     human-friendly suggestion on how to resolve the problem.
     """
-    return f"Run `u {_NAME} <path>/{root_namespace_name}` to compile DSDL namespace {root_namespace_name!r}"
+    return f"Run `yakut {_NAME} <path>/{root_namespace_name}` to compile DSDL namespace {root_namespace_name!r}"
 
 
-@u.subcommand(
+@yakut.subcommand(
     name=_NAME,
     help=f"""
 Compile DSDL namespaces.
@@ -42,7 +42,7 @@ DSDL root namespace directories at the top level.
 If the value is an URI, it must point to an archive containing DSDL root namespace directories at the top level
 (this is convenient for generating packages from namespaces hosted in public repositories, e.g., on GitHub).
 
-See also: top-level option `--path` and related environment variable `U_PATH`.
+See also: top-level option `--path` and related environment variable `YAKUT_PATH`.
 
 Example path: ~/uavcan/public_regulated_data_types/uavcan/
 
@@ -51,7 +51,7 @@ Example URI: {DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI}
 Example command that compiles the root namespace `~/namespace` which depends on the public regulated types:
 
 \b
-    u {_NAME}  ~/namespace  --lookup {DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI}
+    yakut {_NAME}  ~/namespace  --lookup {DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI}
 """,
 )
 @click.argument("source", nargs=-1, required=True, type=str)

@@ -15,8 +15,8 @@ import click
 import pyuavcan
 from pyuavcan.transport import Transport, OutputSessionSpecifier, Priority
 from pyuavcan.presentation import OutgoingTransferIDCounter
-from u.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
-from u.helpers import EnumParam
+from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
+from yakut.helpers import EnumParam
 
 
 _logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class NodeFactory:
             from pyuavcan import application
             from pyuavcan.application import heartbeat_publisher
         except ImportError as ex:
-            from u.cmd import compile
+            from yakut.cmd import compile
 
             raise click.UsageError(compile.make_usage_suggestion(ex.name))
 
@@ -67,7 +67,7 @@ class NodeFactory:
         except (ValueError, TypeError) as ex:
             raise click.UsageError(f"Node info fields are not valid: {ex}") from ex
         if len(node_info.name) == 0:
-            node_info.name = f"org.uavcan.u.{name_suffix}"
+            node_info.name = f"org.uavcan.yakut.{name_suffix}"
         _logger.debug("Node info: %r", node_info)
 
         presentation = pyuavcan.presentation.Presentation(transport)
@@ -144,7 +144,7 @@ def node_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[
             factory.heartbeat_priority = value
 
     def validate(ctx: click.Context, param: click.Parameter, value: str) -> NodeFactory:
-        from u.yaml import YAMLLoader
+        from yakut.yaml import YAMLLoader
 
         fields = YAMLLoader().load(value)
         if not isinstance(fields, dict):
@@ -181,7 +181,7 @@ The vendor-specific status code (VSSC) of the local node. The default is (PID % 
     f = click.option(
         "--node-info",
         "node_factory",
-        envvar="U_NODE_INFO",
+        envvar="YAKUT_NODE_INFO",
         default="{}",
         metavar="YAML",
         type=str,

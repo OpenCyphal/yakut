@@ -4,7 +4,7 @@
 
 import pytest
 from tests.subprocess import execute_cli, CalledProcessError
-import u.cmd
+import yakut.cmd
 
 
 def _unittest_help() -> None:
@@ -12,7 +12,7 @@ def _unittest_help() -> None:
     Just make sure that the help can be displayed without issues.
     """
     execute_cli("--help", timeout=10.0, log=False)
-    for cmd in dir(u.cmd):
+    for cmd in dir(yakut.cmd):
         if not cmd.startswith("_") and cmd not in ("pyuavcan", "sys"):
             execute_cli(cmd, "--help", timeout=3.0, log=False)
 

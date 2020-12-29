@@ -10,9 +10,9 @@ import logging
 import contextlib
 import click
 import pyuavcan
-import u
-from u.yaml import YAMLLoader
-from u.helpers import EnumParam
+import yakut
+from yakut.yaml import YAMLLoader
+from yakut.helpers import EnumParam
 
 
 _MIN_SEND_TIMEOUT = 0.1
@@ -39,7 +39,7 @@ def _validate_message_spec(
     return [value[i : i + 2] for i in range(0, len(value), 2)]
 
 
-@u.subcommand()
+@yakut.subcommand()
 @click.argument(
     "message",
     type=str,
@@ -76,9 +76,9 @@ The send timeout equals the period as long as it is not less than {_MIN_SEND_TIM
     type=EnumParam(pyuavcan.transport.Priority),
     help=f"Priority of published message transfers. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]",
 )
-@u.pass_purser
+@yakut.pass_purser
 def publish(
-    purser: u.Purser,
+    purser: yakut.Purser,
     message: typing.Sequence[typing.Tuple[str, str]],
     period: float,
     count: int,
@@ -111,13 +111,13 @@ def publish(
     Examples:
 
     \b
-        u pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
-        u pub 33.uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
+        yakut pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
+        yakut pub 33.uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
     """
     try:
         import pyuavcan.application
     except ImportError as ex:
-        from u.cmd import compile
+        from yakut.cmd import compile
 
         raise click.UsageError(compile.make_usage_suggestion(ex.name))
 
@@ -164,7 +164,7 @@ def publish(
                         _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
 
 
-@u.asynchronous
+@yakut.asynchronous
 async def _run(node: object, count: int, period: float, publications: typing.Sequence[Publication]) -> None:
     import pyuavcan.application
 
@@ -197,7 +197,7 @@ class Publication:
         priority: pyuavcan.transport.Priority,
         send_timeout: float,
     ):
-        from u.util import construct_port_id_and_type
+        from yakut.util import construct_port_id_and_type
 
         subject_id, dtype = construct_port_id_and_type(subject_spec)
         content = self._YAML_LOADER.load(field_spec)

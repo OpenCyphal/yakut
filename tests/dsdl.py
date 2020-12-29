@@ -13,7 +13,7 @@ CUSTOM_DATA_TYPES_DIR = TEST_DIR / "custom_data_types"
 
 OUTPUT_DIR = ROOT_DIR / pathlib.Path(".dsdl_generated")
 """
-The output directory needs to be added to U_PATH in order to use the compiled namespaces.
+The output directory needs to be added to YAKUT_PATH in order to use the compiled namespaces.
 """
 
 
@@ -31,7 +31,7 @@ def compiled_dsdl() -> None:
         import sirius_cyber_corp
     except ImportError:
         from tests.subprocess import execute_cli
-        from u.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
+        from yakut.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
 
         sirius_cyber_corp_dir = str(CUSTOM_DATA_TYPES_DIR / "sirius_cyber_corp")
 

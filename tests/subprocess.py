@@ -69,7 +69,9 @@ def execute_cli(
     """
     A wrapper over :func:`execute` that runs the CLI tool with the specified arguments.
     """
-    return execute("python", "-mu", *args, timeout=timeout, environment_variables=environment_variables, log=log)
+    return execute(
+        "python", "-m", "yakut", *args, timeout=timeout, environment_variables=environment_variables, log=log
+    )
 
 
 class Subprocess:

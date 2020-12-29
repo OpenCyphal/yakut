@@ -20,7 +20,8 @@ def execute(
     timeout: typing.Optional[float] = None,
     environment_variables: typing.Optional[typing.Dict[str, str]] = None,
     log: bool = True,
-) -> typing.Tuple[str, str]:
+    ensure_success: bool = True,
+) -> typing.Tuple[int, str, str]:
     r"""
     This is a wrapper over :func:`subprocess.check_output`.
 
@@ -29,6 +30,7 @@ def execute(
         No limit by default.
     :param environment_variables: appends or overrides environment variables for the process.
     :param log: Log stdout/stderr upon completion.
+    :param ensure_success: Raise CalledProcessError if the return code is non-zero.
     :return: (stdout, stderr) of the command.
 
     >>> execute('ping', '127.0.0.1', timeout=0.1)
@@ -48,7 +50,6 @@ def execute(
         timeout=timeout,
         encoding="utf8",
         env=env,
-        check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -56,8 +57,10 @@ def execute(
     if log:
         _logger.debug("%s stdout:\n%s", cmd, stdout)
         _logger.debug("%s stderr:\n%s", cmd, stderr)
+    if out.returncode != 0 and ensure_success:
+        raise subprocess.CalledProcessError(out.returncode, cmd, stdout, stderr)
     assert isinstance(stdout, str) and isinstance(stderr, str)
-    return stdout, stderr
+    return out.returncode, stdout, stderr
 
 
 def execute_cli(
@@ -65,12 +68,20 @@ def execute_cli(
     timeout: typing.Optional[float] = None,
     environment_variables: typing.Optional[typing.Dict[str, str]] = None,
     log: bool = True,
-) -> typing.Tuple[str, str]:
+    ensure_success: bool = True,
+) -> typing.Tuple[int, str, str]:
     """
     A wrapper over :func:`execute` that runs the CLI tool with the specified arguments.
     """
     return execute(
-        "python", "-m", "yakut", *args, timeout=timeout, environment_variables=environment_variables, log=log
+        "python",
+        "-m",
+        "yakut",
+        *args,
+        timeout=timeout,
+        environment_variables=environment_variables,
+        log=log,
+        ensure_success=ensure_success,
     )
 
 

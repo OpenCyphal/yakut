@@ -8,7 +8,7 @@ from tests.subprocess import execute_cli, CalledProcessError
 
 def _unittest_doc() -> None:
     assert (
-        len(execute_cli("-vv", "doc", timeout=2.0, log=False)[0].splitlines()) > 10
+        len(execute_cli("-vv", "doc", timeout=2.0, log=False)[1].splitlines()) > 10
     ), "The doc output is suspiciously short"
 
     with pytest.raises(CalledProcessError):

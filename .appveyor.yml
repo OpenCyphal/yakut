@@ -4,14 +4,17 @@ environment:
       job_group: tests
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       PYTHON: 'C:\Python39-x64'  # YAML treats '\\' and "\\" differently.
+      PYTHON_VERSIONS: '3.8 3.9'
     -
       job_group: tests
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-      PYTHON: '3.9'
+      PYTHON:          '3.9'
+      PYTHON_VERSIONS: '3.9'
     -
       job_group: tests
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-      PYTHON: '3.8'
+      PYTHON:          '3.8'
+      PYTHON_VERSIONS: '3.8'
     -
       job_name: deploy
       job_depends_on: tests
@@ -44,7 +47,8 @@ for:
       - python -m pip install --upgrade pip setuptools nox
 
     test_script:
-      - nox --non-interactive --session test lint
+      - nox --non-interactive --session test --pythons $PYTHON_VERSIONS
+      - nox --non-interactive --session lint
 
   -
     matrix:

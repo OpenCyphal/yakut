@@ -5,11 +5,11 @@
 from __future__ import annotations
 import time
 import json
-import yaml
 import typing
 import pytest
 import pyuavcan
 import yakut
+import yakut.yaml
 from tests.subprocess import execute_cli, Subprocess
 from tests.dsdl import compiled_dsdl, OUTPUT_DIR
 from tests.transport import TRANSPORT_FACTORIES, TransportFactory
@@ -84,7 +84,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "--timeout=2",
         timeout=3.0,
     )
-    parsed = yaml.load(stdout, Loader=yaml.FullLoader)
+    parsed = yakut.yaml.YAMLLoader().load(stdout)
     assert parsed[430]["protocol_version"] == {
         "major": pyuavcan.UAVCAN_SPECIFICATION_VERSION[0],
         "minor": pyuavcan.UAVCAN_SPECIFICATION_VERSION[1],

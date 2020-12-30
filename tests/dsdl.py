@@ -11,7 +11,7 @@ from . import TEST_DIR
 
 CUSTOM_DATA_TYPES_DIR = TEST_DIR / "custom_data_types"
 
-OUTPUT_DIR = pathlib.Path.cwd() / pathlib.Path(".dsdl_generated")
+OUTPUT_DIR = pathlib.Path.cwd() / pathlib.Path(".compiled")
 """
 The output directory needs to be added to YAKUT_PATH in order to use the compiled namespaces.
 """

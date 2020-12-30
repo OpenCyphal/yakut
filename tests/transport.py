@@ -24,7 +24,7 @@ The factory takes one argument - the node-ID - which can be None (anonymous).
 """
 
 
-def _generate():
+def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[TransportFactory]]]:
     """
     Sensible transport configurations supported by the CLI to test against.
     Don't forget to extend when adding support for new transports.
@@ -46,13 +46,13 @@ def _generate():
             sudo(f"ip link set     {iface} mtu 72")
             sudo(f"ip link set up  {iface}")
 
-        def vcan():
+        def vcan() -> typing.Iterator[TransportFactory]:
             yield lambda nid: TransportConfig(
                 expression=f"CAN(can.media.socketcan.SocketCANMedia('vcan0',64),local_node_id={nid})",
                 can_transmit=True,
             )
 
-        def vcan_tmr():
+        def vcan_tmr() -> typing.Iterator[TransportFactory]:
             # In anonymous mode, transfers with >8/32 bytes may fail for some transports. This is intentional.
             yield lambda nid: TransportConfig(
                 expression=(
@@ -73,7 +73,7 @@ def _generate():
     def launch_serial_broker() -> Subprocess:
         return Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={serial_broker_port}")
 
-    def serial_tunneled_via_tcp():
+    def serial_tunneled_via_tcp() -> typing.Iterator[TransportFactory]:
         broker = launch_serial_broker()
         yield lambda nid: TransportConfig(
             expression=f"Serial('{serial_endpoint}',local_node_id={nid})",
@@ -82,14 +82,14 @@ def _generate():
         time.sleep(1.0)  # Ensure all clients have disconnected to avoid warnings in the test logs.
         broker.wait(5.0, interrupt=True)
 
-    def udp_loopback():
+    def udp_loopback() -> typing.Iterator[TransportFactory]:
         yield lambda nid: (
             TransportConfig(expression=f"UDP('127.0.0.{nid}')", can_transmit=True)
             if nid is not None
             else TransportConfig(expression="UDP('127.0.0.1',anonymous=True)", can_transmit=False)
         )
 
-    def heterogeneous_udp_serial():
+    def heterogeneous_udp_serial() -> typing.Iterator[TransportFactory]:
         broker = launch_serial_broker()
         yield lambda nid: TransportConfig(
             expression=(

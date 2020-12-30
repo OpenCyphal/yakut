@@ -141,14 +141,14 @@ def main(
     )
 
 
-subcommand = main.command
+subcommand: typing.Callable[..., typing.Callable[..., typing.Any]] = main.command  # type: ignore
 
 
 def asynchronous(f: typing.Callable[..., typing.Awaitable[typing.Any]]) -> typing.Callable[..., typing.Any]:
     import asyncio
     from functools import update_wrapper
 
-    def proxy(*args, **kwargs):
+    def proxy(*args: typing.Any, **kwargs: typing.Any) -> typing.Any:
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(f(*args, **kwargs))
 
@@ -165,7 +165,7 @@ def _configure_logging(verbosity_level: int) -> None:
     logging.root.setLevel(log_level)
 
     try:
-        import coloredlogs
+        import coloredlogs  # type: ignore
 
         # The level spec applies to the handler, not the root logger! This is different from basicConfig().
         coloredlogs.install(level=log_level, fmt=_LOG_FORMAT)

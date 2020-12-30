@@ -111,8 +111,7 @@ class NodeFactory:
                 tid_map = _restore_output_transfer_id_map(path)
                 if tid_map:
                     _logger.debug("Restored output TID map from %s: %r", path, tid_map)
-                    # noinspection PyTypeChecker
-                    presentation.output_transfer_id_map.update(tid_map)  # type: ignore
+                    presentation.output_transfer_id_map.update(tid_map)
                     tid_map_restored = True
             if not tid_map_restored:
                 _logger.debug("Could not restore output TID map from %s", path)

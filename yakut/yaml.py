@@ -23,7 +23,7 @@ class YAMLDumper:
         # We need to use the roundtrip representer to retain ordering of mappings, which is important for usability.
         self._impl = ruamel.yaml.YAML(typ="rt")
         # noinspection PyTypeHints
-        self._impl.explicit_start = explicit_start  # type: ignore
+        self._impl.explicit_start = explicit_start
         self._impl.default_flow_style = False
 
     def dump(self, data: typing.Any, stream: typing.TextIO) -> None:
@@ -57,7 +57,7 @@ def _represent_decimal(self: ruamel.yaml.BaseRepresenter, data: decimal.Decimal)
         s = ".inf" if data > 0 else "-.inf"
     else:
         assert False
-    return self.represent_scalar("tag:yaml.org,2002:float", s)  # type: ignore
+    return self.represent_scalar("tag:yaml.org,2002:float", s)
 
 
 ruamel.yaml.add_representer(decimal.Decimal, _represent_decimal, representer=ruamel.yaml.RoundTripRepresenter)

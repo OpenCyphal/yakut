@@ -62,6 +62,7 @@ def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: ty
     asyncio.get_event_loop().run_until_complete(server.serve_for(handle_request, 3.0))
     result, stdout, _ = proc.wait(5.0)
     assert result == 0
+    assert last_metadata is not None
     assert last_metadata.priority == pyuavcan.transport.Priority.SLOW
     assert last_metadata.client_node_id == 88
 

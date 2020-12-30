@@ -140,8 +140,7 @@ def _make_evaluation_context() -> typing.Dict[str, typing.Any]:
             context[name] = module
 
     # Pre-import transport classes.
-    # Suppressing MyPy false positive: https://github.com/python/mypy/issues/5374
-    for cls in pyuavcan.util.iter_descendants(Transport):  # type: ignore
+    for cls in pyuavcan.util.iter_descendants(Transport):
         if not cls.__name__.startswith("_") and cls is not Transport:
             name = cls.__name__.rpartition(Transport.__name__)[0]
             assert name

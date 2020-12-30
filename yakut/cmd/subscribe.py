@@ -104,7 +104,7 @@ def _make_subscriber(subjects: typing.Sequence[str], presentation: Presentation)
     assert len(group) > 0
     if len(group) == 1:
         ((subject_id, dtype),) = group
-        return presentation.make_subscriber(dtype, subject_id)  # type: ignore
+        return presentation.make_subscriber(dtype, subject_id)
     raise NotImplementedError(
         "Multi-subject subscription is not yet implemented. See https://github.com/UAVCAN/pyuavcan/issues/65"
     )

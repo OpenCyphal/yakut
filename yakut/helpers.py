@@ -18,11 +18,18 @@ class EnumParam(click.Choice):
         self._enum = enum
         super().__init__(list(enum.__members__), case_sensitive=False)
 
-    def convert(self, value: typing.Union[str, enum.Enum], param: click.Parameter, ctx: click.Context) -> typing.Any:
+    def convert(
+        self,
+        value: typing.Union[str, enum.Enum],
+        param: typing.Optional[click.Parameter],
+        ctx: typing.Optional[click.Context],
+    ) -> typing.Any:
         if isinstance(value, enum.Enum):  # This is to support default enum options.
             value = value.name
         assert isinstance(value, str)
-        candidates = [x for x in self._enum if x.name.upper().startswith(value.upper())]
+        candidates: typing.List[enum.Enum] = [  # type: ignore
+            x for x in self._enum if x.name.upper().startswith(value.upper())
+        ]
         if len(candidates) == 0:
             raise click.BadParameter(f"Value {value!r} is not a valid choice for {list(self._enum.__members__)}")
         if len(candidates) > 1:

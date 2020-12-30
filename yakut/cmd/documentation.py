@@ -33,8 +33,7 @@ def documentation(name: str) -> None:
     pyuavcan.util.import_submodules(pyuavcan.transport, error_handler=_handle_import_error)
     transport_base = pyuavcan.transport.Transport
     texts: typing.List[str] = []
-    # Suppressing MyPy false positive: https://github.com/python/mypy/issues/5374
-    for cls in pyuavcan.util.iter_descendants(transport_base):  # type: ignore
+    for cls in pyuavcan.util.iter_descendants(transport_base):
         if not cls.__name__.startswith("_") and cls is not transport_base:
             public_module = cls.__module__.split("._")[0]
             public_name = public_module + "." + cls.__name__

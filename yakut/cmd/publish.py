@@ -35,8 +35,7 @@ def _validate_message_spec(
             ctx=ctx,
             param=param,
         )
-    # noinspection PyTypeChecker
-    return [value[i : i + 2] for i in range(0, len(value), 2)]
+    return [(s, f) for s, f in (value[i : i + 2] for i in range(0, len(value), 2))]
 
 
 @yakut.subcommand()
@@ -208,7 +207,11 @@ class Publication:
         self._publisher.send_timeout = send_timeout
 
     async def publish(self) -> bool:
-        return await self._publisher.publish(self._message)
+        out = await self._publisher.publish(self._message)
+        assert isinstance(out, bool)
+        return out
 
     def __repr__(self) -> str:
-        return pyuavcan.util.repr_attributes(self, self._message, self._publisher)
+        out = pyuavcan.util.repr_attributes(self, self._message, self._publisher)
+        assert isinstance(out, str)
+        return out

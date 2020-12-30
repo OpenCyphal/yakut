@@ -14,14 +14,23 @@ which is used to measure code coverage in subprocesses (which the test suite spa
 
 When running tests on GNU/Linux, ensure that the current user is allowed to use `sudo` without an
 interactive password prompt.
-This is needed for setting up `vcan` interfaces and loading relevant kernel modules.
+This is needed for setting up `vcan` interfaces, loading relevant kernel modules, and setting up packet capture.
 
 ### Using nox
 
-Run the test suite and linters, reuse existing virtualenv, abort on first failure:
+First things first: `pip install nox`
+
+Run the test suite and linters, abort on first failure:
 
 ```bash
-nox -rxs test lint
+nox -xs test lint
+```
+
+Nox is configured to reuse existing virtualenv to accelerate interactive testing.
+If you want to start from scratch, use `clean`:
+
+```bash
+nox -s clean
 ```
 
 See the [Nox docs](https://nox.thea.codes).
@@ -30,8 +39,8 @@ See the [Nox docs](https://nox.thea.codes).
 
 We recommend the [JetBrains PyCharm](https://www.jetbrains.com/pycharm/) IDE for development.
 
-The test suite stores compiled DSDL into a directory named `.dsdl_generated` in the current working directory
-(when using Nox, the current working directory may be under the virtualenv private directory).
+The test suite stores compiled DSDL into `.compiled/` in the current working directory
+(when using Nox, the current working directory may be under a virtualenv private directory).
 Make sure to mark it as a source directory to enable code completion and type analysis in the IDE
 (for PyCharm: right click -> Mark Directory As -> Sources Root).
 Alternatively, you can just compile DSDL manually directly in the project root.

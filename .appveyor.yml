@@ -1,0 +1,72 @@
+environment:
+  matrix:
+    -
+      job_group: tests
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      PYTHON: 'C:\Python39-x64'  # YAML treats '\\' and "\\" differently.
+    -
+      job_group: tests
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+      PYTHON: '3.9'
+    -
+      job_group: tests
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+      PYTHON: '3.8'
+    -
+      job_name: deploy
+      job_depends_on: tests
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+      PYTHON: '3.9'
+
+  GIT_TOKEN:
+    secure: +jQhxLpePj6hdDryfET/XpLo7VL9fhDXVHlwLOPp/nRDYe97TJAfd0XCTuPz1qkT
+  TWINE_USERNAME: __token__
+  TWINE_PASSWORD:
+    secure: +ZVhECKV0ESBrvUGXVd9whoSYHcVs5Gr2toLizARlAIiZitWAZekz4kYpqk0XfXtJidB8ivGTq0bNPdUL1NuTu0qIagKEBDuPKjjdHvCM/22yAZEZCm1oZEqHwnRiNmHqhac4sFBtklyGk0y9zk7J/dJmn183/OmNCwCT20v0346c9ZPf4EM75S190t9ndRR8fYIASuki33DkhQHpuTiaGECPsSGpa5C/6eTEnV7nO4XekasvMwLrtr+J6+7HnImwk3EDaeVb2Pv4R6JzDC3zw==
+
+stack: python %PYTHON%
+build: off
+skip_tags: true
+
+for:
+  -
+    matrix:
+      only:
+        - job_group: tests
+
+    install:
+      - sh: 'export extras_pkg="linux-*-extra-$(uname -r)"'
+      - sh: 'sudo apt-get install -y $extras_pkg ncat'
+
+      - cmd: 'systeminfo & route print & ipconfig /all'
+      - cmd: 'set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%'
+
+      - python -m pip install --upgrade pip setuptools nox
+
+    test_script:
+      - nox --non-interactive --session test lint
+
+  -
+    matrix:
+      only:
+        - job_name: deploy
+    branches:
+      only:
+        - master
+    install:
+      - git submodule update --init --recursive
+      - pip install -r requirements.txt
+    deploy_script:
+      - '[[ "$APPVEYOR_REPO_BRANCH" == "main" ]] && [[ -z "$APPVEYOR_PULL_REQUEST_HEAD_COMMIT" ]] || exit'
+
+      - echo "https://${GIT_TOKEN}:x-oauth-basic@github.com" > ~/.git-credentials
+      - git config --global credential.helper store
+      - git config --global user.email "devnull@uavcan.org"
+      - git config --global user.name  "Release Automation"
+
+      - 'git tag "$(cat yakut/VERSION)"'
+      - 'python setup.py sdist bdist_wheel'
+      - 'python -m twine upload dist/*'
+
+artifacts:
+  - path: '.nox/*/*/*.log'

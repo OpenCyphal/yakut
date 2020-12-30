@@ -50,7 +50,7 @@ See the Black documentation for integration instructions.
 
 ## Releasing
 
-The tool is versioned by following `Semantic Versioning <https://semver.org>`_.
+The tool is versioned by following [Semantic Versioning](https://semver.org).
 
 For all commits pushed to master, the CI/CD pipeline automatically uploads a new release to PyPI
 and pushes a new tag upstream.

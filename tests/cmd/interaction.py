@@ -66,11 +66,11 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "555.uavcan.si.sample.temperature.Scalar.1.0",
         "{kelvin: 123.456}",
         "--count=3",
-        "--period=1.5",
+        "--period=2",
         "--priority=slow",
         environment_variables=env,
     )
-    time.sleep(1.0)  # Time to let the publisher boot up properly.
+    time.sleep(2.0)  # Time to let the publisher boot up properly.
 
     # Request GetInfo from the publisher we just launched.
     _, stdout, _ = execute_cli(
@@ -80,8 +80,8 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "51",
         "uavcan.node.GetInfo.1.0",
         "--no-metadata",
-        "--timeout=2",
-        timeout=3.0,
+        "--timeout=5",
+        timeout=10.0,
     )
     parsed = yakut.yaml.YAMLLoader().load(stdout)
     assert parsed[430]["protocol_version"] == {
@@ -95,7 +95,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     assert parsed[430]["software_image_crc"] == [0xDEADBEEF]
     assert parsed[430]["name"] == "org.uavcan.yakut.publish"
 
-    proc_pub.wait(6.0)
+    proc_pub.wait(10.0)
     time.sleep(1.0)  # Time to sync up
 
     # Parse the output from the subscribers and validate it.
@@ -111,7 +111,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     print("diagnostics:", *diagnostics, sep="\n\t")
     print("temperatures:", *temperatures, sep="\n\t")
 
-    assert 1 <= len(heartbeats) <= 9
+    assert 1 <= len(heartbeats) <= 20
     for m in heartbeats:
         src_nid = m["7509"]["_metadata_"]["source_node_id"]
         if src_nid == 51:  # The publisher

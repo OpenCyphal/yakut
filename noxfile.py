@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 import os
+import shutil
 import pathlib
 import nox
 
@@ -12,6 +13,25 @@ PYTHONS = ["3.8", "3.9"]
 ROOT_DIR = pathlib.Path(__file__).resolve().parent
 DEPS_DIR = ROOT_DIR / "tests" / "deps"
 assert DEPS_DIR.is_dir(), "Invalid configuration"
+
+
+@nox.session(python=False)
+def clean(session):
+    wildcards = [
+        "dist",
+        "build",
+        "htmlcov",
+        ".coverage*",
+        ".*cache",
+        ".*generated",
+        "*.egg-info",
+        "*.log",
+        "*.tmp",
+    ]
+    for w in wildcards:
+        for f in pathlib.Path.cwd().glob(w):
+            session.log(f"Removing: {f}")
+            shutil.rmtree(f, ignore_errors=True)
 
 
 @nox.session(python=PYTHONS)
@@ -41,3 +61,5 @@ def test(session):
     session.run("coverage", "report", f"--fail-under={fail_under}")
     if session.interactive:
         session.run("coverage", "html")
+        report_file = pathlib.Path.cwd().resolve() / "htmlcov" / "index.html"
+        session.log(f"COVERAGE REPORT: file://{report_file}")

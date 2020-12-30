@@ -38,9 +38,9 @@ for:
       - sh: 'export extras_pkg="linux-*-extra-$(uname -r)"'
       - sh: 'sudo apt-get install -y $extras_pkg ncat'
 
-      - cmd: 'systeminfo & route print & ipconfig /all'
       - cmd: 'set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%'
 
+      - git submodule update --init --recursive
       - python -m pip install --upgrade pip setuptools nox
 
     test_script:
@@ -52,10 +52,9 @@ for:
         - job_name: deploy
     branches:
       only:
-        - master
+        - main
     install:
       - git submodule update --init --recursive
-      - pip install -r requirements.txt
     deploy_script:
       - '[[ "$APPVEYOR_REPO_BRANCH" == "main" ]] && [[ -z "$APPVEYOR_PULL_REQUEST_HEAD_COMMIT" ]] || exit'
 

@@ -11,16 +11,20 @@ preferably at the end of the same Python module.
 
 The directory `tests/deps` contains various test dependencies, including `sitecustomize.py`,
 which is used to automatically enable code coverage measurement.
-Therefore, when running tests, ensure that the deps directory is in your `PYTHONPATH`.
+
+When running tests on GNU/Linux, ensure that the current user is allowed to use `sudo` without an
+interactive password prompt.
+This is needed for setting up `vcan` interfaces and loading relevant kernel modules.
 
 ## Tools
 
 We recommend the [JetBrains PyCharm](https://www.jetbrains.com/pycharm/) IDE for development.
 
-The test suite stores generated DSDL packages into a directory named ``.dsdl_generated``
-under the project root directory.
+The test suite stores compiled DSDL into a directory named `.dsdl_generated` in the current working directory
+(when using Nox, the current working directory may be under the virtualenv private directory).
 Make sure to mark it as a source directory to enable code completion and type analysis in the IDE
 (for PyCharm: right click -> Mark Directory As -> Sources Root).
+Alternatively, you can just compile DSDL manually directly in the project root.
 
 Configure the IDE to run Black on save.
 See the Black documentation for integration instructions.

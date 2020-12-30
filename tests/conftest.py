@@ -3,3 +3,4 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from .dsdl import compiled_dsdl as compiled_dsdl
+from .transport import transport_factory as transport_factory

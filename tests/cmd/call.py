@@ -9,12 +9,11 @@ import typing
 import pyuavcan
 import pytest
 from tests.subprocess import Subprocess, execute_cli
-from tests.dsdl import compiled_dsdl, OUTPUT_DIR
-from tests.transport import TRANSPORT_FACTORIES, TransportFactory
+from tests.dsdl import OUTPUT_DIR
+from tests.transport import TransportFactory
 from yakut.param.transport import construct_transport
 
 
-@pytest.mark.parametrize("transport_factory", TRANSPORT_FACTORIES)  # type: ignore
 def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
@@ -65,6 +64,9 @@ def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: ty
     assert result == 0
     assert last_metadata.priority == pyuavcan.transport.Priority.SLOW
     assert last_metadata.client_node_id == 88
+
+    # Finalize to avoid warnings in the output.
+    server_presentation.close()
 
     # Parse the output and validate it.
     parsed = json.loads(stdout)

@@ -4,13 +4,11 @@
 
 from __future__ import annotations
 import typing
-import pytest
 from tests.subprocess import Subprocess, execute_cli
-from tests.dsdl import compiled_dsdl, OUTPUT_DIR
-from tests.transport import TRANSPORT_FACTORIES, TransportFactory
+from tests.dsdl import OUTPUT_DIR
+from tests.transport import TransportFactory
 
 
-@pytest.mark.parametrize("transport_factory", TRANSPORT_FACTORIES)  # type: ignore
 def _unittest_accommodate_swarm(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     # We spawn a lot of processes here, which might strain the test system a little, so beware. I've tested it

@@ -43,9 +43,9 @@ def compiled_dsdl() -> None:
             "-O",
             output_dir,
         ]
-        execute_cli(*args, timeout=90.0)
+        execute_cli(*args, timeout=300.0)
 
         args = ["compile", sirius_cyber_corp_dir, "--output", output_dir]
-        execute_cli(*args, timeout=90.0)
+        execute_cli(*args, timeout=300.0)
 
         importlib.invalidate_caches()

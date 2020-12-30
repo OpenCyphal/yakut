@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import typing
-from tests.dsdl import compiled_dsdl, OUTPUT_DIR
+from tests.dsdl import OUTPUT_DIR
 from tests.subprocess import execute_cli
 
 

@@ -23,18 +23,21 @@ def test(session):
     )
 
     os.chdir(session.create_tmp())
-    session.log(f"Current directory: {pathlib.Path.cwd()}")
+    session.log(f"Working directory: {pathlib.Path.cwd()}")
 
+    env = {
+        "PYTHONPATH": str(DEPS_DIR),
+        "PATH": os.pathsep.join([session.env["PATH"], str(DEPS_DIR)]),
+    }
     tests = session.posargs or ["yakut", "tests"]
     session.run(
         "pytest",
         *[str(ROOT_DIR / t) for t in tests],
-        env={
-            "PYTHONPATH": str(DEPS_DIR),
-        },
+        env=env,
     )
 
+    fail_under = 0 if session.posargs else 90
     session.run("coverage", "combine")
-    session.run("coverage", "report", "--fail-under=90")
+    session.run("coverage", "report", f"--fail-under={fail_under}")
     if session.interactive:
         session.run("coverage", "html")

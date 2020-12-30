@@ -2,18 +2,13 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
+import os
 import sys
+import time
 import typing
 import dataclasses
-
-
-SERIAL_PORT_NAME = "socket://localhost:50905"
-"""
-The test environment expects a TCP broker to be available at this endpoint.
-For example::
-
-    ncat --broker --listen -p 50905
-"""
+import pytest
+from .subprocess import Subprocess
 
 
 @dataclasses.dataclass(frozen=True)
@@ -29,57 +24,92 @@ The factory takes one argument - the node-ID - which can be None (anonymous).
 """
 
 
-def _make_transport_factories() -> typing.Iterable[TransportFactory]:
+def _generate():
     """
     Sensible transport configurations supported by the CLI to test against.
     Don't forget to extend when adding support for new transports.
     """
     if sys.platform == "linux":
-        # CAN via SocketCAN
+
+        def sudo(cmd: str, ensure_success: bool = True) -> None:
+            c = f"sudo {cmd}"
+            r = os.system(c)
+            if ensure_success and 0 != r:
+                raise RuntimeError(f"Command {c!r} failed with exit code {r}")
+
+        sudo("modprobe can")
+        sudo("modprobe can_raw")
+        sudo("modprobe vcan")
+        for idx in range(3):
+            iface = f"vcan{idx}"
+            sudo(f"ip link add dev {iface} type vcan", ensure_success=False)
+            sudo(f"ip link set     {iface} mtu 72")
+            sudo(f"ip link set up  {iface}")
+
+        def vcan():
+            yield lambda nid: TransportConfig(
+                expression=f"CAN(can.media.socketcan.SocketCANMedia('vcan0',64),local_node_id={nid})",
+                can_transmit=True,
+            )
+
+        def vcan_tmr():
+            # In anonymous mode, transfers with >8/32 bytes may fail for some transports. This is intentional.
+            yield lambda nid: TransportConfig(
+                expression=(
+                    ",".join(
+                        f"CAN(can.media.socketcan.SocketCANMedia('vcan{idx}',{mtu}),local_node_id={nid})"
+                        for idx, mtu in enumerate([8, 32, 64])
+                    )
+                ),
+                can_transmit=True,
+            )
+
+        yield vcan
+        yield vcan_tmr
+
+    serial_broker_port = 50905
+    serial_endpoint = f"socket://localhost:{serial_broker_port}"
+
+    def launch_serial_broker() -> Subprocess:
+        return Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={serial_broker_port}")
+
+    def serial_tunneled_via_tcp():
+        broker = launch_serial_broker()
         yield lambda nid: TransportConfig(
-            expression=f"CAN(can.media.socketcan.SocketCANMedia('vcan0',64),local_node_id={nid})",
+            expression=f"Serial('{serial_endpoint}',local_node_id={nid})",
             can_transmit=True,
         )
+        time.sleep(1.0)  # Ensure all clients have disconnected to avoid warnings in the test logs.
+        broker.wait(5.0, interrupt=True)
 
-        # Redundant CAN via SocketCAN.
-        # In anonymous mode, transfers with >8/32 bytes may fail for some transports. This is intentional.
+    def udp_loopback():
+        yield lambda nid: (
+            TransportConfig(expression=f"UDP('127.0.0.{nid}')", can_transmit=True)
+            if nid is not None
+            else TransportConfig(expression="UDP('127.0.0.1',anonymous=True)", can_transmit=False)
+        )
+
+    def heterogeneous_udp_serial():
+        broker = launch_serial_broker()
         yield lambda nid: TransportConfig(
             expression=(
                 ",".join(
-                    f"CAN(can.media.socketcan.SocketCANMedia('vcan{idx}',{mtu}),local_node_id={nid})"
-                    for idx, mtu in enumerate([8, 32, 64])
+                    [
+                        f"Serial('{serial_endpoint}',local_node_id={nid})",
+                        (f"UDP('127.0.0.{nid}')" if nid is not None else "UDP('127.0.0.1',anonymous=True)"),
+                    ]
                 )
             ),
-            can_transmit=True,
+            can_transmit=nid is not None,
         )
+        time.sleep(1.0)  # Ensure all clients have disconnected to avoid warnings in the test logs.
+        broker.wait(5.0, interrupt=True)
 
-    # Serial via TCP/IP tunnel (emulation)
-    yield lambda nid: TransportConfig(
-        expression=f"Serial('{SERIAL_PORT_NAME}',local_node_id={nid})",
-        can_transmit=True,
-    )
-
-    # UDP/IP on localhost (cannot transmit if anonymous)
-    yield lambda nid: TransportConfig(
-        expression=f"UDP('127.0.0.{nid}')",
-        can_transmit=True,
-    ) if nid is not None else TransportConfig(
-        expression="UDP('127.0.0.1',anonymous=True)",
-        can_transmit=False,
-    )
-
-    # Redundant UDP+Serial. The UDP transport does not support anonymous transfers.
-    yield lambda nid: TransportConfig(
-        expression=(
-            ",".join(
-                [
-                    f"Serial('{SERIAL_PORT_NAME}',local_node_id={nid})",
-                    (f"UDP('127.0.0.{nid}')" if nid is not None else "UDP('127.0.0.1',anonymous=True)"),
-                ]
-            )
-        ),
-        can_transmit=nid is not None,
-    )
+    yield serial_tunneled_via_tcp
+    yield udp_loopback
+    yield heterogeneous_udp_serial
 
 
-TRANSPORT_FACTORIES = list(_make_transport_factories())
+@pytest.fixture(params=_generate())
+def transport_factory(request: typing.Any) -> typing.Iterable[None]:
+    yield from request.param()

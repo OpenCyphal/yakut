@@ -11,11 +11,10 @@ import pyuavcan
 import yakut
 import yakut.yaml
 from tests.subprocess import execute_cli, Subprocess
-from tests.dsdl import compiled_dsdl, OUTPUT_DIR
-from tests.transport import TRANSPORT_FACTORIES, TransportFactory
+from tests.dsdl import OUTPUT_DIR
+from tests.transport import TransportFactory
 
 
-@pytest.mark.parametrize("transport_factory", TRANSPORT_FACTORIES)  # type: ignore
 def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
@@ -142,7 +141,6 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     assert proc_sub_diagnostic_wrong_pid.wait(1.0, interrupt=True)[1].strip() == ""
 
 
-@pytest.mark.parametrize("transport_factory", TRANSPORT_FACTORIES)  # type: ignore
 def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {

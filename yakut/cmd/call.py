@@ -99,11 +99,11 @@ def call(
         yakut call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
     """
     try:
-        import pyuavcan.application
+        from pyuavcan.application import Node
     except ImportError as ex:
-        from yakut.cmd import compile
+        from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(compile.make_usage_suggestion(ex.name))
+        raise click.UsageError(make_usage_suggestion(ex.name))
 
     _logger.debug(
         "server_node_id=%s, service=%r, request_fields=%r, timeout=%.6f, priority=%s, with_metadata=%s",
@@ -124,7 +124,7 @@ def call(
 
     formatter = purser.make_formatter()
     node = purser.get_node("call", allow_anonymous=False)
-    assert isinstance(node, pyuavcan.application.Node) and callable(formatter)
+    assert isinstance(node, Node) and callable(formatter)
     with contextlib.closing(node):
         client = node.presentation.make_client(dtype, service_id, server_node_id)
         client.response_timeout = timeout

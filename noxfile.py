@@ -80,7 +80,7 @@ def test(session):
 @nox.session(python=False)
 def lint(session):
     session.install("pylint == 2.6.0")
-    session.run("pylint", "yakut")
+    session.run("pylint", "yakut", "tests")
 
     session.install("black == 20.8b1")
     session.run("black", "--check", ".")

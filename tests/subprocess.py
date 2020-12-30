@@ -9,7 +9,7 @@ import shutil
 import typing
 import logging
 import subprocess
-from subprocess import CalledProcessError as CalledProcessError
+from subprocess import CalledProcessError as CalledProcessError  # pylint: disable=unused-import
 
 
 _logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def execute(
     if environment_variables:
         env.update(environment_variables)
     # Can't use shell=True with timeout; see https://stackoverflow.com/questions/36952245/subprocess-timeout-failure
-    out = subprocess.run(
+    out = subprocess.run(  # pylint: disable=subprocess-run-check
         cmd,
         timeout=timeout,
         encoding="utf8",

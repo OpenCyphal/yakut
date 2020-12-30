@@ -67,8 +67,7 @@ def construct_port_id_and_type(spec: str) -> typing.Tuple[int, typing.Type[pyuav
                 f"and a fixed port ID is not defined for the specified data type: {spec!r}"
             )
         return port_id, dtype
-    else:
-        raise ValueError(f"The data spec does not specify a valid type: {spec!r}")
+    raise ValueError(f"The data spec does not specify a valid type: {spec!r}")
 
 
 def convert_transfer_metadata_to_builtin(

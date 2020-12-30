@@ -60,7 +60,7 @@ class AbbreviatedGroup(click.Group):
         matches = [x for x in self.list_commands(ctx) if x.startswith(cmd_name)]
         if not matches:
             return None
-        elif len(matches) == 1:
+        if len(matches) == 1:
             return click.Group.get_command(self, ctx, matches[0])
         ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
 
@@ -169,5 +169,5 @@ def _configure_logging(verbosity_level: int) -> None:
 
         # The level spec applies to the handler, not the root logger! This is different from basicConfig().
         coloredlogs.install(level=log_level, fmt=_LOG_FORMAT)
-    except Exception as ex:  # pragma: no cover
-        _logger.exception("Could not set up coloredlogs: %r", ex)
+    except Exception as ex:  # pylint: disable=broad-except
+        _logger.exception("Could not set up coloredlogs: %r", ex)  # pragma: no cover

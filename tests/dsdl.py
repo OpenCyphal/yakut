@@ -27,8 +27,8 @@ def compiled_dsdl() -> None:
     if output_dir not in sys.path:
         sys.path.insert(0, output_dir)
     try:
-        import uavcan
-        import sirius_cyber_corp
+        import uavcan  # pylint: disable=unused-import
+        import sirius_cyber_corp  # pylint: disable=unused-import
     except ImportError:
         from tests.subprocess import execute_cli
         from yakut.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI

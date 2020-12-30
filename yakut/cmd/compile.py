@@ -120,8 +120,7 @@ def _fetch_root_namespace_dirs(location: str) -> typing.List[pathlib.Path]:
             "Resource %r contains the following root namespace directories: %r", location, list(map(str, dirs))
         )
         return dirs
-    else:
-        return [pathlib.Path(location)]
+    return [pathlib.Path(location)]
 
 
 def _fetch_archive_dirs(archive_uri: str) -> typing.List[pathlib.Path]:

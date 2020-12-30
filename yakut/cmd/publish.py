@@ -35,7 +35,7 @@ def _validate_message_spec(
             ctx=ctx,
             param=param,
         )
-    return [(s, f) for s, f in (value[i : i + 2] for i in range(0, len(value), 2))]
+    return [(s, f) for s, f in (value[i : i + 2] for i in range(0, len(value), 2))]  # pylint: disable=R1721
 
 
 @yakut.subcommand()
@@ -114,11 +114,11 @@ def publish(
         yakut pub 33.uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
     """
     try:
-        import pyuavcan.application
+        from pyuavcan.application import Node
     except ImportError as ex:
-        from yakut.cmd import compile
+        from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(compile.make_usage_suggestion(ex.name))
+        raise click.UsageError(make_usage_suggestion(ex.name))
 
     _logger.debug("period=%s, count=%s, priority=%s, message=%s", period, count, priority, message)
     assert all((isinstance(a, str) and isinstance(b, str)) for a, b in message)
@@ -131,7 +131,7 @@ def publish(
 
     send_timeout = max(_MIN_SEND_TIMEOUT, period)
     node = purser.get_node("publish", allow_anonymous=True)
-    assert isinstance(node, pyuavcan.application.Node)
+    assert isinstance(node, Node)
     with contextlib.closing(node):
         publications = [
             Publication(
@@ -165,9 +165,9 @@ def publish(
 
 @yakut.asynchronous
 async def _run(node: object, count: int, period: float, publications: typing.Sequence[Publication]) -> None:
-    import pyuavcan.application
+    from pyuavcan.application import Node
 
-    assert isinstance(node, pyuavcan.application.Node)
+    assert isinstance(node, Node)
     node.start()
 
     sleep_until = asyncio.get_event_loop().time()
@@ -177,7 +177,7 @@ async def _run(node: object, count: int, period: float, publications: typing.Seq
         assert all(isinstance(x, bool) for x in out)
         if not all(out):
             timed_out = [publications[idx] for idx, res in enumerate(out) if not res]
-            _logger.error("The following publications have timed out:\n" + "\n".join(map(str, timed_out)))
+            _logger.error("The following publications have timed out:\n%s", "\n".join(map(str, timed_out)))
 
         sleep_until += period
         sleep_duration = sleep_until - asyncio.get_event_loop().time()

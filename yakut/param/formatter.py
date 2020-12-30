@@ -7,7 +7,7 @@ import typing
 import click
 
 
-Formatter = typing.Callable[[typing.Dict[int, typing.Dict[str, typing.Any]]], str]
+Formatter = typing.Callable[[typing.Any], str]
 FormatterFactory = typing.Callable[[], Formatter]
 
 
@@ -17,7 +17,7 @@ def formatter_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Call
         try:
             return _FORMATTERS[value.upper()]
         except LookupError:
-            raise click.BadParameter(f"Invalid format name: {value!r}")
+            raise click.BadParameter(f"Invalid format name: {value!r}") from None
 
     choices = list(_FORMATTERS.keys())
     default = choices[0]
@@ -54,7 +54,7 @@ def _make_yaml_formatter() -> Formatter:
     from yakut.yaml import YAMLDumper
 
     dumper = YAMLDumper(explicit_start=True)
-    return lambda data: dumper.dumps(data)
+    return dumper.dumps
 
 
 def _make_json_formatter() -> Formatter:

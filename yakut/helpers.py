@@ -14,9 +14,9 @@ class EnumParam(click.Choice):
     F, foo, and FOO_BAR are all considered equivalent as long as there are no ambiguities.
     """
 
-    def __init__(self, enum: enum.EnumMeta) -> None:
-        self._enum = enum
-        super().__init__(list(enum.__members__), case_sensitive=False)
+    def __init__(self, e: enum.EnumMeta) -> None:
+        self._enum = e
+        super().__init__(list(e.__members__), case_sensitive=False)
 
     def convert(
         self,
@@ -35,6 +35,3 @@ class EnumParam(click.Choice):
         if len(candidates) > 1:
             raise click.BadParameter(f"Value {value!r} is ambiguous; possible matches: {[x.name for x in candidates]}")
         return candidates[0]
-
-    def get_metavar(self, param: click.Parameter) -> str:
-        return super(EnumParam, self).get_metavar(param)

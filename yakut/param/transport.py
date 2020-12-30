@@ -88,7 +88,7 @@ def construct_transport(expression: str) -> Transport:
     _logger.debug("Transport expression evaluation result: %r", trs)
     if len(trs) == 1:
         return trs[0]  # Non-redundant transport
-    elif len(trs) > 1:
+    if len(trs) > 1:
         from pyuavcan.transport.redundant import RedundantTransport
 
         rt = RedundantTransport()
@@ -96,21 +96,19 @@ def construct_transport(expression: str) -> Transport:
             rt.attach_inferior(t)
         assert rt.inferiors == trs
         return rt
-    else:
-        raise ValueError("No transports specified")
+    raise ValueError("No transports specified")
 
 
 def _evaluate_transport_expr(expression: str, context: typing.Dict[str, typing.Any]) -> typing.List[Transport]:
-    out = eval(expression, context)
+    out = eval(expression, context)  # pylint: disable=eval-used
     if isinstance(out, Transport):
         return [out]
-    elif isinstance(out, (list, tuple)) and all(isinstance(x, Transport) for x in out):
+    if isinstance(out, (list, tuple)) and all(isinstance(x, Transport) for x in out):
         return list(out)
-    else:
-        raise ValueError(
-            f"The expression {expression!r} yields an instance of {type(out).__name__!r}. "
-            f"Expected an instance of pyuavcan.transport.Transport or a list thereof."
-        )
+    raise ValueError(
+        f"The expression {expression!r} yields an instance of {type(out).__name__!r}. "
+        f"Expected an instance of pyuavcan.transport.Transport or a list thereof."
+    )
 
 
 def _make_evaluation_context() -> typing.Dict[str, typing.Any]:

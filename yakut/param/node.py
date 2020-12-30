@@ -57,11 +57,10 @@ class NodeFactory:
 
         try:
             from pyuavcan import application
-            from pyuavcan.application import heartbeat_publisher
         except ImportError as ex:
-            from yakut.cmd import compile
+            from yakut.cmd.compile import make_usage_suggestion
 
-            raise click.UsageError(compile.make_usage_suggestion(ex.name))
+            raise click.UsageError(make_usage_suggestion(ex.name))
 
         try:
             node_info = pyuavcan.dsdl.update_from_builtin(application.NodeInfo(), self.node_info)
@@ -203,20 +202,17 @@ def _restore_output_transfer_id_map(
     try:
         with open(str(file_path), "rb") as f:
             tid_map = pickle.load(f)
-    except Exception as ex:
+    except Exception as ex:  # pylint: disable=broad-except
         _logger.info("Output TID map: Could not restore from file %s: %s: %s", file_path, type(ex).__name__, ex)
         return {}
-
     mtime_abs_diff = abs(file_path.stat().st_mtime - time.time())
     if mtime_abs_diff > OUTPUT_TRANSFER_ID_MAP_MAX_AGE:
         _logger.debug("Output TID map: File %s is valid but too old: mtime age diff %.0f s", file_path, mtime_abs_diff)
         return {}
-
     if isinstance(tid_map, dict) and all(isinstance(v, OutgoingTransferIDCounter) for v in tid_map.values()):
         return tid_map
-    else:
-        _logger.warning("Output TID map file %s contains invalid data of type %s", file_path, type(tid_map).__name__)
-        return {}
+    _logger.warning("Output TID map file %s contains invalid data of type %s", file_path, type(tid_map).__name__)
+    return {}
 
 
 def _register_output_transfer_id_map_save_at_exit(presentation: pyuavcan.presentation.Presentation) -> None:

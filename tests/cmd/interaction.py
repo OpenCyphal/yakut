@@ -206,7 +206,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         diagnostics = list(json.loads(s) for s in proc_sub_diagnostic_no_meta.wait(1.0, interrupt=True)[1].splitlines())
         print("diagnostics:", diagnostics)
         assert len(diagnostics) >= 2  # >= because see above
-        for index, m in enumerate(diagnostics):
+        for m in diagnostics:
             assert m["8184"]["timestamp"]["microsecond"] == 0
             assert m["8184"]["text"] == ""
     else:

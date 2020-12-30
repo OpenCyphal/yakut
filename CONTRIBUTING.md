@@ -10,11 +10,21 @@ Generally, simple test functions should be located as close as possible to the t
 preferably at the end of the same Python module.
 
 The directory `tests/deps` contains various test dependencies, including `sitecustomize.py`,
-which is used to automatically enable code coverage measurement.
+which is used to measure code coverage in subprocesses (which the test suite spawns a lot of, naturally).
 
 When running tests on GNU/Linux, ensure that the current user is allowed to use `sudo` without an
 interactive password prompt.
 This is needed for setting up `vcan` interfaces and loading relevant kernel modules.
+
+### Using nox
+
+Run the test suite and linters, reuse existing virtualenv, abort on first failure:
+
+```bash
+nox -rxs test lint
+```
+
+See the [Nox docs](https://nox.thea.codes).
 
 ## Tools
 

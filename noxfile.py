@@ -8,8 +8,6 @@ import pathlib
 import nox
 
 
-PYTHONS = ["3.8", "3.9"]
-
 ROOT_DIR = pathlib.Path(__file__).resolve().parent
 DEPS_DIR = ROOT_DIR / "tests" / "deps"
 assert DEPS_DIR.is_dir(), "Invalid configuration"
@@ -34,7 +32,7 @@ def clean(session):
             shutil.rmtree(f, ignore_errors=True)
 
 
-@nox.session(python=PYTHONS)
+@nox.session(python=["3.8", "3.9"])
 def test(session):
     session.install("-e", ".")
     session.install(
@@ -44,6 +42,8 @@ def test(session):
 
     os.chdir(session.create_tmp())
     session.log(f"Working directory: {pathlib.Path.cwd()}")
+    fn = "setup.cfg"
+    (pathlib.Path.cwd() / fn).symlink_to(ROOT_DIR / fn)
 
     env = {
         "PYTHONPATH": str(DEPS_DIR),
@@ -63,3 +63,15 @@ def test(session):
         session.run("coverage", "html")
         report_file = pathlib.Path.cwd().resolve() / "htmlcov" / "index.html"
         session.log(f"COVERAGE REPORT: file://{report_file}")
+
+
+@nox.session(python=["3.8", "3.9"])
+def lint(session):
+    session.install(
+        "mypy   == 0.790",
+        "black  == 20.8b1",
+        "pylint == 2.6.0",
+    )
+    session.run("mypy", "--strict", "yakut", "tests")
+    session.run("pylint", "yakut")
+    session.run("black", "--check", ".")

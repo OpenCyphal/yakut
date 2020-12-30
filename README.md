@@ -1,8 +1,6 @@
 # Yakut
 
-[![AppVeyor CI](https://ci.appveyor.com/api/projects/status/2vv83afj3dxqibi5?svg=true)](https://ci.appveyor.com/project/Zubax/yakut)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=UAVCAN_u&metric=alert_status)](https://sonarcloud.io/dashboard?id=UAVCAN_yakut)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=UAVCAN_u&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=UAVCAN_yakut)
+[![Build status](https://ci.appveyor.com/api/projects/status/knl63ojynybi3co6/branch/main?svg=true)](https://ci.appveyor.com/project/Zubax/yakut/branch/main)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/yakut.svg)](https://pypi.org/project/yakut/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Forum](https://img.shields.io/discourse/users.svg?server=https%3A%2F%2Fforum.uavcan.org&color=1700b3)](https://forum.uavcan.org)

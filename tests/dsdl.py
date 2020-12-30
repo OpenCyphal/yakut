@@ -17,7 +17,7 @@ The output directory needs to be added to YAKUT_PATH in order to use the compile
 """
 
 
-@pytest.fixture(scope="session")  # type: ignore
+@pytest.fixture()
 def compiled_dsdl() -> None:
     """
     Ensures that the regulated DSDL namespaces are compiled and importable.

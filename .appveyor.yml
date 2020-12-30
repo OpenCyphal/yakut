@@ -63,6 +63,7 @@ for:
         - main
     install:
       - git submodule update --init --recursive
+      - python -m pip install --upgrade pip setuptools wheel twine
     deploy_script:
       - '[[ "$APPVEYOR_REPO_BRANCH" == "main" ]] && [[ -z "$APPVEYOR_PULL_REQUEST_HEAD_COMMIT" ]] || exit'
 

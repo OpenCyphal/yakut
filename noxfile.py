@@ -35,8 +35,14 @@ def clean(session):
 
 @nox.session(python=["3.8", "3.9"], reuse_venv=True)
 def test(session):
-    # Test dependencies.
+    # First, while the environment is clean, install just the tool alone and ensure that it is minimally functional.
+    # This is needed to catch errors caused by accidental reliance on test dependencies in the main codebase.
+    # Also in this way we validate that the executable entry points are configured and installed correctly.
     session.install("-e", ".")
+    session.run_always("yakut", "--help", silent=True)
+    session.run_always("yakut", "doc", silent=True)
+
+    # Now we can install dependencies for the full integration test suite.
     session.install(
         "pytest   ~= 6.2",
         "coverage ~= 5.3",
@@ -61,7 +67,9 @@ def test(session):
     }
     session.run("pytest", *map(str, src_dirs), env=env)
 
-    fail_under = 0 if session.posargs else 90
+    # The coverage threshold is intentionally set low for interactive runs because when running locally
+    # in a reused virtualenv the DSDL compiler run may be skipped to save time, resulting in a reduced coverage.
+    fail_under = 1 if session.posargs or session.interactive else 90
     session.run("coverage", "combine")
     session.run("coverage", "report", f"--fail-under={fail_under}")
     if session.interactive:

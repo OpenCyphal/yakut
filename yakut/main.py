@@ -64,6 +64,20 @@ class AbbreviatedGroup(click.Group):
             return click.Group.get_command(self, ctx, matches[0])
         ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
 
+    def resolve_command(
+        self, ctx: click.Context, args: typing.Sequence[typing.Any]
+    ) -> typing.Tuple[str, click.Command, typing.Sequence[typing.Any]]:
+        """
+        This is a workaround for this bug in v7: https://github.com/pallets/click/issues/1422.
+
+        If this is not overridden, then abbreviated commands cause the automatic envvar prefix to be constructed
+        incorrectly, such that instead of the full command name the abbreviated name is used.
+        For example, if the user invokes `yakut comp` meaning `yakut compile`,
+        the auto-constructed envvar prefix would be `YAKUT_COMP_` instead of `YAKUT_COMPILE_`.
+        """
+        _, cmd, out_args = super(AbbreviatedGroup, self).resolve_command(ctx, args)
+        return cmd.name, cmd, out_args
+
 
 _ENV_VAR_PATH = "YAKUT_PATH"
 
@@ -122,8 +136,9 @@ def main(
     It is designed for use either directly by humans or from automation scripts.
     Ask questions at https://forum.uavcan.org
 
-    Any long option can be provided via environment variable prefixed with `YAKUT_`.
-    For example, option `--foo-bar`, if not provided as a command-line argument, will be read from `YAKUT_FOO_BAR`.
+    Any long option can be provided via environment variable prefixed with `YAKUT_`
+    such that an option `--foo-bar` for command `baz`, if not provided as a command-line argument,
+    will be read from `YAKUT_BAZ_FOO_BAR`.
 
     Any command can be abbreviated arbitrarily as long as the resulting abridged name is not ambiguous.
     For example, `publish`, `publ` and `pub` are all valid and equivalent.

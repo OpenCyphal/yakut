@@ -6,9 +6,9 @@ import http
 import shutil
 import typing
 import logging
-import pathlib
 import zipfile
 import tempfile
+from pathlib import Path
 import pyuavcan
 import click
 import yakut
@@ -26,13 +26,14 @@ def make_usage_suggestion(root_namespace_name: typing.Optional[str]) -> str:
     human-friendly suggestion on how to resolve the problem.
     """
     root_namespace_name = root_namespace_name or "<namespace>"
+    root_namespace_name = root_namespace_name.split(".")[0]  # Transform: `uavcan.node` --> `uavcan`
     return f"Run `yakut {_NAME} <path>/{root_namespace_name}` to compile DSDL namespace {root_namespace_name!r}"
 
 
 @yakut.subcommand(
     name=_NAME,
     help=f"""
-Compile DSDL namespaces.
+Compile DSDL namespaces for use by Yakut.
 This needs to be done before using any data types with pub/sub/call and other commands.
 
 The command accepts a list of sources where each element is either a local path
@@ -90,15 +91,18 @@ If not sure, ask for advice at https://forum.uavcan.org.
 def compile_(
     source: typing.Tuple[str, ...],
     lookup: typing.Tuple[str, ...],
-    output: typing.Optional[str],
+    output: typing.Union[str, Path, None],
     allow_unregulated_fixed_port_id: bool,
 ) -> None:
-    src_dirs: typing.List[pathlib.Path] = []
+    output = Path(output or Path.cwd()).resolve()
+    _logger.info("Destination: %r", str(output))
+
+    src_dirs: typing.List[Path] = []
     for location in source:
         src_dirs += _fetch_root_namespace_dirs(location)
     _logger.info("Source namespace dirs: %r", list(map(str, src_dirs)))
 
-    lookup_dirs: typing.List[pathlib.Path] = []
+    lookup_dirs: typing.List[Path] = []
     for location in lookup:
         lookup_dirs += _fetch_root_namespace_dirs(location)
     _logger.info("Lookup namespace dirs: %r", list(map(str, lookup_dirs)))
@@ -106,24 +110,24 @@ def compile_(
     gpi_list = _generate_dsdl_packages(
         source_root_namespace_dirs=src_dirs,
         lookup_root_namespace_dirs=lookup_dirs,
-        generated_packages_dir=pathlib.Path(output or pathlib.Path.cwd()),
+        generated_packages_dir=output,
         allow_unregulated_fixed_port_id=allow_unregulated_fixed_port_id,
     )
     for gpi in gpi_list:
         _logger.info("Generated package %r with %d data types at %r", gpi.name, len(gpi.models), str(gpi.path))
 
 
-def _fetch_root_namespace_dirs(location: str) -> typing.List[pathlib.Path]:
+def _fetch_root_namespace_dirs(location: str) -> typing.List[Path]:
     if "://" in location:
         dirs = _fetch_archive_dirs(location)
         _logger.info(
             "Resource %r contains the following root namespace directories: %r", location, list(map(str, dirs))
         )
         return dirs
-    return [pathlib.Path(location)]
+    return [Path(location)]
 
 
-def _fetch_archive_dirs(archive_uri: str) -> typing.List[pathlib.Path]:
+def _fetch_archive_dirs(archive_uri: str) -> typing.List[Path]:
     """
     Downloads an archive from the specified URI, unpacks it into a temporary directory, and returns the list of
     directories in the root of the unpacked archive.
@@ -132,7 +136,7 @@ def _fetch_archive_dirs(archive_uri: str) -> typing.List[pathlib.Path]:
 
     # TODO: autodetect the type of the archive
     arch_dir = tempfile.mkdtemp(prefix="pyuavcan-cli-dsdl")
-    arch_file = str(pathlib.Path(arch_dir) / "dsdl.zip")
+    arch_file = str(Path(arch_dir) / "dsdl.zip")
 
     _logger.info("Downloading the archive from %r into %r...", archive_uri, arch_file)
     response = requests.get(archive_uri)
@@ -145,16 +149,16 @@ def _fetch_archive_dirs(archive_uri: str) -> typing.List[pathlib.Path]:
     with zipfile.ZipFile(arch_file) as zf:
         zf.extractall(arch_dir)
 
-    (inner,) = [d for d in pathlib.Path(arch_dir).iterdir() if d.is_dir()]  # Strip the outer layer, we don't need it
+    (inner,) = [d for d in Path(arch_dir).iterdir() if d.is_dir()]  # Strip the outer layer, we don't need it
 
-    assert isinstance(inner, pathlib.Path)
+    assert isinstance(inner, Path)
     return [d for d in inner.iterdir() if d.is_dir()]
 
 
 def _generate_dsdl_packages(
-    source_root_namespace_dirs: typing.Iterable[pathlib.Path],
-    lookup_root_namespace_dirs: typing.Iterable[pathlib.Path],
-    generated_packages_dir: pathlib.Path,
+    source_root_namespace_dirs: typing.Iterable[Path],
+    lookup_root_namespace_dirs: typing.Iterable[Path],
+    generated_packages_dir: Path,
     allow_unregulated_fixed_port_id: bool,
 ) -> typing.Sequence[pyuavcan.dsdl.GeneratedPackageInfo]:
     lookup_root_namespace_dirs = frozenset(list(lookup_root_namespace_dirs) + list(source_root_namespace_dirs))

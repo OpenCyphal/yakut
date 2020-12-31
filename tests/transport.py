@@ -111,5 +111,5 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
 
 
 @pytest.fixture(params=_generate())
-def transport_factory(request: typing.Any) -> typing.Iterable[None]:
+def transport_factory(request: typing.Any) -> typing.Iterable[TransportFactory]:
     yield from request.param()

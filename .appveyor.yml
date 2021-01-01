@@ -65,7 +65,7 @@ for:
       - git submodule update --init --recursive
       - python -m pip install --upgrade pip setuptools wheel twine
     deploy_script:
-      - '[[ "$APPVEYOR_REPO_BRANCH" == "main" ]] && [[ -z "$APPVEYOR_PULL_REQUEST_HEAD_COMMIT" ]] || exit'
+      - '[[ -z "$APPVEYOR_PULL_REQUEST_HEAD_COMMIT" ]] || exit'
 
       - echo "https://${GIT_TOKEN}:x-oauth-basic@github.com" > ~/.git-credentials
       - git config --global credential.helper store
@@ -75,6 +75,8 @@ for:
       - 'git tag "$(cat yakut/VERSION)"'
       - 'python setup.py sdist bdist_wheel'
       - 'python -m twine upload dist/*'
+
+      - git push --tags
 
 artifacts:
   - path: '.nox/*/*/*.log'

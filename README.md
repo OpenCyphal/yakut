@@ -30,7 +30,7 @@ Check for new versions every now and then: **`pip install --upgrade yakut`**
 Any option can be supplied either as a command-line argument or as an environment variable named like
 `YAKUT_[subcommand_]option`.
 If both are provided, command-line options take precedence over environment variables.
-You can use this feature to configure desired defaults by exporting environment variables from the 
+You can use this feature to configure desired defaults by exporting environment variables from the
 rc-file of your shell (for bash/zsh this is `~/.bashrc`/`~/.zshrc`, for PowerShell see `$profile`).
 
 Options for the main command shall be specified before the subcommand when invoking Yakut:
@@ -109,8 +109,8 @@ Here are practical examples (don't forget to add quotes around the expression):
 - `UDP("192.168.1.200")` -- UAVCAN/UDP on the local network; local node-ID 456.
 
 - `Serial('/dev/ttyUSB0',None)` -- UAVCAN/serial over a USB CDC ACM port; local node anonymous.
-  
-- `Serial('socket://loopback:50905',123)` -- UAVCAN/serial tunneled via TCP/IP instead of a real serial port.
+
+- `Serial('socket://localhost:50905',123)` -- UAVCAN/serial tunneled via TCP/IP instead of a real serial port.
   The local node-ID is 123.
 
 - `CAN(can.media.socketcan.SocketCANMedia('vcan1',32),3),CAN(can.media.socketcan.SocketCANMedia('vcan2',64),3)` --

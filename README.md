@@ -16,8 +16,8 @@ Ask questions and get assistance at [forum.uavcan.org](https://forum.uavcan.org/
 
 ## Install
 
-If you are on Windows,
-[make sure to have Python installed](https://devblogs.microsoft.com/python/python-in-the-windows-10-may-2019-update/).
+First, make sure to [have Python installed](https://docs.python.org/3/using/index.html).
+Windows users are recommended to grab the official distribution from Windows Store.
 
 Install Yakut: **`pip install yakut`**
 
@@ -31,14 +31,20 @@ Check for new versions every now and then: **`pip install --upgrade yakut`**
 
 Any option can be supplied either as a command-line argument or as an environment variable named like
 `YAKUT_[subcommand_]option`.
-For instance, the `value` in `yakut compile --output=value` can be supplied by exporting `YAKUT_COMPILE_OUTPUT=value`.
 If both are provided, command-line options take precedence over environment variables.
-
 You can use this feature to configure desired defaults by exporting environment variables from the 
 rc-file of your shell (for bash/zsh this is `~/.bashrc`/`~/.zshrc`, for PowerShell see `$profile`).
 
-Any subcommand can be used in an abbreviated form as long as the resulting abbreviation is unambiguous.
-Invocations like `yakut publish` and `yakut pub` are equivalent.
+Options for the main command shall be specified before the subcommand when invoking Yakut:
+
+```bash
+yakut --path=/the/path compile path/to/my_namespace --output=destination/directory
+```
+
+In this example, the corresponding environment variables are `YAKUT_PATH` and `YAKUT_COMPILE_OUTPUT`.
+
+Any subcommand like `yakut compile` can be used in an abbreviated form like `yakut com`
+as long as the resulting abbreviation is unambiguous.
 
 ### Compile DSDL
 
@@ -72,8 +78,8 @@ Specifically, there have been forks of the standard namespace extended with vend
 which is harmful to the ecosystem.
 
 Having to manually compile the regulated namespaces is not an issue because it is just a single command to run.
-You may opt to keeping the namespaces that you use often somewhere in a dedicated directory like `~/.yakut`
-and put `YAKUT_PATH=~/.yakut` into your shell's rc-file so that you don't have to manually specify
+You may opt to keeping compiled namespaces that you use often somewhere in a dedicated directory and put
+`YAKUT_PATH=/your/directory` into your shell's rc-file so that you don't have to manually specify
 the path when invoking Yakut.
 Similarly, you can configure it to use that directory as the default destination for compiled DSDL:
 
@@ -107,11 +113,11 @@ Here are practical examples (don't forget to add quotes around the expression):
 - `Serial('socket://loopback:50905',123)` -- UAVCAN/serial tunneled via TCP/IP instead of a real serial port.
   The local node-ID is 123.
 
-- `CAN(can.media.socketcan.SocketCANMedia('vcan1',32),111), CAN(can.media.socketcan.SocketCANMedia('vcan2',64),111)` --
+- `CAN(can.media.socketcan.SocketCANMedia('vcan1',32),3),CAN(can.media.socketcan.SocketCANMedia('vcan2',64),3)` --
   UAVCAN/CAN over a doubly-redundant CAN FD bus using a virtual (simulated) SocketCAN interface.
-  The node-ID is 111, and the MTU is 32/64 bytes, respectively.
+  The node-ID is 3, and the MTU is 32/64 bytes, respectively.
 
-- `Loopback(2222)` -- A dummy null-transport with node-ID 2222.
+- `Loopback(2222)` -- A null-transport for testing with node-ID 2222.
 
 To learn more, read `yakut --help`.
 If there is a particular transport you use often,

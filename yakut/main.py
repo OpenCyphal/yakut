@@ -65,8 +65,8 @@ class AbbreviatedGroup(click.Group):
         ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
 
     def resolve_command(
-        self, ctx: click.Context, args: typing.Sequence[typing.Any]
-    ) -> typing.Tuple[str, click.Command, typing.Sequence[typing.Any]]:
+        self, ctx: click.Context, args: typing.List[typing.Any]
+    ) -> typing.Tuple[str, click.Command, typing.List[typing.Any]]:
         """
         This is a workaround for this bug in v7: https://github.com/pallets/click/issues/1422.
 

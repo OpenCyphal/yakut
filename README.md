@@ -27,96 +27,113 @@ Check for new versions every now and then: **`pip install --upgrade yakut`**
 
 ## Use
 
+### Primer
+
+Any option can be supplied either as a command-line argument or as an environment variable named like
+`YAKUT_[subcommand_]option`.
+For instance, the `value` in `yakut compile --output=value` can be supplied by exporting `YAKUT_COMPILE_OUTPUT=value`.
+If both are provided, command-line options take precedence over environment variables.
+
+You can use this feature to configure desired defaults by exporting environment variables from the 
+rc-file of your shell (for bash/zsh this is `~/.bashrc`/`~/.zshrc`, for PowerShell see `$profile`).
+
+Any subcommand can be used in an abbreviated form as long as the resulting abbreviation is unambiguous.
+Invocations like `yakut publish` and `yakut pub` are equivalent.
+
 ### Compile DSDL
 
 Suppose we have our custom DSDL namespace that we want to use.
 First, it needs to be *compiled*:
 
 ```bash
-yakut comp ~/custom_data_types/sirius_cyber_corp
+yakut compile ~/custom_data_types/sirius_cyber_corp
 ```
-
-`comp` means `compile` -- you can shorten commands arbitrarily as long as the resulting abbreviation is unambiguous.
 
 Some commands require the standard namespace to be available,
 so let's compile it too, along with the regulated namespace:
 
 ```bash
-yakut comp  ~/public_regulated_data_types/uavcan  ~/public_regulated_data_types/reg
+yakut compile  ~/public_regulated_data_types/uavcan  ~/public_regulated_data_types/reg
 ```
 
-Compilation outputs will be stored in the current working directory, but it can be overridden if needed.
+Compilation outputs will be stored in the current working directory, but it can be overridden if needed
+via `--output` or `YAKUT_COMPILE_OUTPUT`.
 Naturally, Yakut needs to know where the outputs are located to use them;
 by default it looks in the current directory.
-You can specify additional search locations using `--path` or the environment variable `YAKUT_PATH`.
-
-In general, any option can be supplied either as a command-line argument or as an environment variable
-prefixed with `YAKUT_`.
-For instance, `--foo-bar` and `YAKUT_FOO_BAR` are interchangeable, but the former takes precedence.
+You can specify additional search locations using `--path` or`YAKUT_PATH`.
 
 A question one is likely to ask here is:
-*Why don't you ship precompiled regulated namespaces together with the tool?*
-Indeed, that would be really trivial to do, but we avoid that on purpose to emphasize our commitment to
-supporting vendor-specific DSDL at the same level with the standard DSDL.
-In the past we used to treat the standard namespace differently,
+*Why don't you ship precompiled regulated DSDL together with the tool?*
+Indeed, that would be trivial to do, but we avoid that on purpose to emphasize our commitment to
+supporting vendor-specific and regulated DSDL at the same level.
+In the past we used to give regulated namespaces special treatment,
 which caused our users to acquire misconceptions about the purpose of DSDL.
-Specifically, there have been forks of the regulated namespace repository extended with vendor-specific types,
-which is unacceptable and is harmful to the ecosystem.
+Specifically, there have been forks of the standard namespace extended with vendor-specific types,
+which is harmful to the ecosystem.
 
 Having to manually compile the regulated namespaces is not an issue because it is just a single command to run.
-You may opt to keeping the namespaces you commonly use somewhere in a dedicated directory like `~/.uavcan/`
-and add `export YAKUT_PATH=~/.uavcan/` in your `.bashrc` (or whatever shell you are using) so that you don't have to
-manually specify the path when invoking Yakut.
-
-### Pub/sub and RPC
-
-Commands that access the network need to know how to do so.
-This is configured using the option `--transport`/`YAKUT_TRANSPORT`.
-Assuming that we use the UDP transport on the local loopback interface,
-we could say something like this, depending on which shell/OS you're on:
+You may opt to keeping the namespaces that you use often somewhere in a dedicated directory like `~/.yakut`
+and put `YAKUT_PATH=~/.yakut` into your shell's rc-file so that you don't have to manually specify
+the path when invoking Yakut.
+Similarly, you can configure it to use that directory as the default destination for compiled DSDL:
 
 ```bash
-# bash/sh/zsh
-export YAKUT_TRANSPORT='UDP("127.0.0.1",anonymous=True)'
+# bash/zsh on GNU/Linux or macOS
+export YAKUT_COMPILE_OUTPUT=~/.yakut
+export YAKUT_PATH="$YAKUT_COMPILE_OUTPUT"
 ```
 
 ```powershell
-# PowerShell
-$env:YAKUT_TRANSPORT="UDP('127.0.0.1',anonymous=True)"
+# PowerShell on Windows
+$env:YAKUT_COMPILE_OUTPUT="$env:APPDATA\Yakut"
+$env:YAKUT_PATH="$env:YAKUT_COMPILE_OUTPUT"
 ```
 
-Hint: if you use a particular transport configuration often,
-consider exporting `YAKUT_TRANSPORT` in your `.bashrc` (or whatever shell you are using).
-If you need to use a different transport configuration temporarily,
-you can override it using `--transport` because the command-line option takes precedence over the environment variable.
+So that you say simply `yakut compile path/to/my_namespace`
+knowing that the outputs will be always stored to and read from a fixed place unless you override it.
 
-You are probably wondering what transports are available and how to use them.
-For that, run `yakut doc --help`.
+### Access the network
 
-Suppose that there is a node 42 that serves `sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0` at service-ID 123.
-We can invoke it as follows (configuring the transport is left as an exercise to the reader):
+Commands that access the network need to know how to do so.
+This is configured by providing a *transport initialization expression* via `--transport`/`YAKUT_TRANSPORT`.
+Here are practical examples (don't forget to add quotes around the expression):
+
+- `UDP("127.0.0.1",anonymous=True)` -- UAVCAN/UDP on the local loopback interface; local node anonymous.
+
+- `UDP("192.168.1.200")` -- UAVCAN/UDP on the local network; local node-ID 456.
+
+- `Serial('/dev/ttyUSB0',None)` -- UAVCAN/serial over a USB CDC ACM port; local node anonymous.
+  
+- `Serial('socket://loopback:50905',123)` -- UAVCAN/serial tunneled via TCP/IP instead of a real serial port.
+  The local node-ID is 123.
+
+- `CAN(can.media.socketcan.SocketCANMedia('vcan1',32),111), CAN(can.media.socketcan.SocketCANMedia('vcan2',64),111)` --
+  UAVCAN/CAN over a doubly-redundant CAN FD bus using a virtual (simulated) SocketCAN interface.
+  The node-ID is 111, and the MTU is 32/64 bytes, respectively.
+
+- `Loopback(2222)` -- A dummy null-transport with node-ID 2222.
+
+To learn more, read `yakut --help`.
+If there is a particular transport you use often,
+consider configuring it as the default via environment variables as shown earlier.
+
+Next there are practical examples (configuring the transport is left as an exercise to the reader).
+
+#### Publishing messages
+
+Publishing two messages synchronously twice (four messages total);
+notice how we specify the subject-ID before the data type name:
 
 ```bash
-$ yakut call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
----
-123:
-  slope: 0.1
-  y_intercept: 0.0
-```
-
-Publishing messages -- notice how we specify the subject-ID before the data type name:
-
-```bash
-yakut pub 33.uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"' -N2
+yakut pub 33.uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"' -N2
 ```
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
 
-Notice that the first subject uses a different notation, with `/` and `_` instead of `.`.
-This is supported for convenience because it allows you to type data type names very quickly relying on the
-standard filesystem tab completion (assuming that your data types are in the current working directory).
+#### Subscribing to subjects
 
-Subscribing to subjects is done similarly:
+Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0`
+to receive messages published by the above command:
 
 ```bash
 $ yakut sub 33.uavcan.si.unit.angle.Scalar.1.0
@@ -141,4 +158,36 @@ $ yakut sub 33.uavcan.si.unit.angle.Scalar.1.0
     transfer_id: 1
     source_node_id: 42
   radian: 2.309999942779541
+```
+
+#### Invoking RPC-services
+
+Given custom data types:
+
+```shell
+# sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0
+PointXY.1.0[<64] points
+@extent 1024 * 8
+---
+float64 slope
+float64 y_intercept
+@sealed
+```
+
+```shell
+# sirius_cyber_corp.PointXY.1.0
+float16 x
+float16 y
+@sealed
+```
+
+Suppose that there is node 42 that serves `sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0` at service-ID 123:
+
+```bash
+$ yakut compile sirius_cyber_corp
+$ yakut call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+---
+123:
+  slope: 0.1
+  y_intercept: 0.0
 ```

@@ -16,9 +16,9 @@ When running tests on GNU/Linux, ensure that the current user is allowed to use 
 interactive password prompt.
 This is needed for setting up `vcan` interfaces, loading relevant kernel modules, and setting up packet capture.
 
-### Using nox
+### Using Nox
 
-First things first: `pip install nox`
+Install [Nox](https://nox.thea.codes): `pip install nox`
 
 Run the test suite and linters, abort on first failure:
 
@@ -33,11 +33,9 @@ If you want to start from scratch, use `clean`:
 nox -s clean
 ```
 
-See the [Nox docs](https://nox.thea.codes).
-
 ## Tools
 
-We recommend the [JetBrains PyCharm](https://www.jetbrains.com/pycharm/) IDE for development.
+We recommend [JetBrains PyCharm](https://www.jetbrains.com/pycharm/) for development.
 
 The test suite stores compiled DSDL into `.compiled/` in the current working directory
 (when using Nox, the current working directory may be under a virtualenv private directory).

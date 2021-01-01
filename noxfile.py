@@ -21,7 +21,7 @@ def clean(session):
         "htmlcov",
         ".coverage*",
         ".*cache",
-        ".*generated",
+        ".*compiled",
         "*.egg-info",
         "*.log",
         "*.tmp",
@@ -85,7 +85,7 @@ def test(session):
     session.run("mypy", "--strict", *map(str, src_dirs))
 
 
-@nox.session(python=False)
+@nox.session(reuse_venv=True)
 def lint(session):
     session.install("pylint == 2.6.0")
     session.run("pylint", "yakut", "tests")

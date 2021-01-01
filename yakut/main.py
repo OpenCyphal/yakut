@@ -75,7 +75,7 @@ class AbbreviatedGroup(click.Group):
         For example, if the user invokes `yakut comp` meaning `yakut compile`,
         the auto-constructed envvar prefix would be `YAKUT_COMP_` instead of `YAKUT_COMPILE_`.
         """
-        _, cmd, out_args = super(AbbreviatedGroup, self).resolve_command(ctx, args)
+        _, cmd, out_args = super().resolve_command(ctx, args)
         return cmd.name, cmd, out_args
 
 

@@ -5,7 +5,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Forum](https://img.shields.io/discourse/users.svg?server=https%3A%2F%2Fforum.uavcan.org&color=1700b3)](https://forum.uavcan.org)
 
-Yakut is a simple cross-platform command-line interface (CLI) tool for diagnostics and debugging of
+Yakút is a simple cross-platform command-line interface (CLI) tool for diagnostics and debugging of
 [UAVCAN](https://uavcan.org) networks.
 By virtue of being based on [PyUAVCAN](https://github.com/UAVCAN/pyuavcan),
 Yakut supports all UAVCAN transports (UDP, serial, CAN, ...)
@@ -14,7 +14,7 @@ It is designed to be usable with GNU/Linux, Windows, and macOS.
 
 Ask questions and get assistance at [forum.uavcan.org](https://forum.uavcan.org/).
 
-## Install
+## Installing
 
 First, make sure to [have Python installed](https://docs.python.org/3/using/index.html).
 Windows users are recommended to grab the official distribution from Windows Store.
@@ -25,9 +25,7 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
-## Use
-
-### Primer
+## Invoking commands
 
 Any option can be supplied either as a command-line argument or as an environment variable named like
 `YAKUT_[subcommand_]option`.
@@ -46,7 +44,9 @@ In this example, the corresponding environment variables are `YAKUT_PATH` and `Y
 Any subcommand like `yakut compile` can be used in an abbreviated form like `yakut com`
 as long as the resulting abbreviation is unambiguous.
 
-### Compile DSDL
+There is a dedicated `--help` option for every subcommand.
+
+## Compiling DSDL
 
 Suppose we have our custom DSDL namespace that we want to use.
 First, it needs to be *compiled*:
@@ -98,7 +98,7 @@ $env:YAKUT_PATH="$env:YAKUT_COMPILE_OUTPUT"
 So that you say simply `yakut compile path/to/my_namespace`
 knowing that the outputs will be always stored to and read from a fixed place unless you override it.
 
-### Access the network
+## Communicating
 
 Commands that access the network need to know how to do so.
 This is configured by providing a *transport initialization expression* via `--transport`/`YAKUT_TRANSPORT`.
@@ -125,7 +125,7 @@ consider configuring it as the default via environment variables as shown earlie
 
 Next there are practical examples (configuring the transport is left as an exercise to the reader).
 
-#### Publishing messages
+### Publishing messages
 
 Publishing two messages synchronously twice (four messages total);
 notice how we specify the subject-ID before the data type name:
@@ -136,7 +136,7 @@ yakut pub 33.uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' uavcan.diagnostic.Re
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
 
-#### Subscribing to subjects
+### Subscribing to subjects
 
 Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0`
 to receive messages published by the above command:
@@ -166,7 +166,7 @@ $ yakut sub 33.uavcan.si.unit.angle.Scalar.1.0
   radian: 2.309999942779541
 ```
 
-#### Invoking RPC-services
+### Invoking RPC-services
 
 Given custom data types:
 

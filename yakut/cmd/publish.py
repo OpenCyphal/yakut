@@ -90,7 +90,7 @@ def publish(
     The command accepts a list of space-separated pairs like:
 
     \b
-        [SUBJECT_ID.]TYPE_NAME.MAJOR.MINOR  YAML_FIELDS
+        [SUBJECT_ID:]TYPE_NAME.MAJOR.MINOR  YAML_FIELDS
 
     The first element is a name like `uavcan.node.Heartbeat.1.0` prepended by the subject-ID.
     The subject-ID may be omitted if a fixed one is defined for the data type.
@@ -111,7 +111,7 @@ def publish(
 
     \b
         yakut pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
-        yakut pub 33.uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
+        yakut pub 33:uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
     """
     try:
         from pyuavcan.application import Node

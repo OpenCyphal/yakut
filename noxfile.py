@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 import os
+import sys
 import shutil
 from pathlib import Path
 import nox
@@ -69,7 +70,11 @@ def test(session):
 
     # The coverage threshold is intentionally set low for interactive runs because when running locally
     # in a reused virtualenv the DSDL compiler run may be skipped to save time, resulting in a reduced coverage.
-    fail_under = 1 if session.posargs or session.interactive else 90
+    # Some features are not available on Windows so the coverage threshold is set low for it.
+    if session.posargs or session.interactive or sys.platform.startswith("win"):
+        fail_under = 1
+    else:
+        fail_under = 90
     session.run("coverage", "combine")
     session.run("coverage", "report", f"--fail-under={fail_under}")
     if session.interactive:

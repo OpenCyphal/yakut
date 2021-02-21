@@ -30,7 +30,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     proc_sub_diagnostic = Subprocess.cli(
         "--format=json",
         "sub",
-        "4321.uavcan.diagnostic.Record.1.1",
+        "4321:uavcan.diagnostic.Record.1.1",
         "--count=3",
         environment_variables=env,
     )
@@ -44,7 +44,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     proc_sub_temperature = Subprocess.cli(
         "--format=json",
         "sub",
-        "555.uavcan.si.sample.temperature.Scalar.1.0",
+        "555:uavcan.si.sample.temperature.Scalar.1.0",
         "--count=3",
         "--no-metadata",
         environment_variables=env,
@@ -59,11 +59,11 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "{software_image_crc: [0xdeadbeef]}",
         f"--transport={transport_factory(51).expression}",  # Takes precedence over the environment variable.
         "pub",
-        "4321.uavcan.diagnostic.Record.1.1",
+        "4321:uavcan.diagnostic.Record.1.1",
         '{severity: {value: 6}, timestamp: {microsecond: 123456}, text: "Hello world!"}',
-        "1234.uavcan.diagnostic.Record.1.1",
+        "1234:uavcan.diagnostic.Record.1.1",
         '{text: "Goodbye world."}',
-        "555.uavcan.si.sample.temperature.Scalar.1.0",
+        "555:uavcan.si.sample.temperature.Scalar.1.0",
         "{kelvin: 123.456}",
         "--count=3",
         "--period=2",

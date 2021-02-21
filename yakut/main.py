@@ -2,16 +2,20 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
+from __future__ import annotations
 import os
 import sys
 import typing
 import logging
+from pathlib import Path
 import click
 import yakut
 from yakut.param.transport import transport_factory_option, TransportFactory, Transport
 from yakut.param.formatter import formatter_factory_option, FormatterFactory, Formatter
 from yakut.param.node import node_factory_option, NodeFactory
 
+if typing.TYPE_CHECKING:
+    import pyuavcan.application
 
 _logger = logging.getLogger(__name__.replace("__", ""))
 _LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-3.3s %(name)s: %(message)s"
@@ -21,29 +25,35 @@ logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will 
 class Purser:
     def __init__(
         self,
+        paths: typing.Iterable[typing.Union[str, Path]],
         formatter_factory: FormatterFactory,
         transport_factory: TransportFactory,
         node_factory: NodeFactory,
     ) -> None:
+        self._paths = list(Path(x) for x in paths)
         self._f_formatter = formatter_factory
         self._f_transport = transport_factory
         self._f_node = node_factory
 
         self._transport: typing.Optional[Transport] = None
-        self._node: typing.Optional[object] = None
+        self._node: typing.Optional["pyuavcan.application.Node"] = None
+
+    @property
+    def paths(self) -> typing.List[Path]:
+        return list(self._paths)
 
     def make_formatter(self) -> Formatter:
         return self._f_formatter()
 
     def get_transport(self) -> Transport:
-        if self._transport is None:
+        if self._transport is None:  # pragma: no branch
             self._transport = self._f_transport()
         if self._transport is not None:
             return self._transport
         click.get_current_context().fail("Transport not configured")
 
-    def get_node(self, name_suffix: str, allow_anonymous: bool) -> object:
-        if self._node is None:
+    def get_node(self, name_suffix: str, allow_anonymous: bool) -> "pyuavcan.application.Node":
+        if self._node is None:  # pragma: no branch
             tr = self.get_transport()
             self._node = self._f_node(tr, name_suffix=name_suffix, allow_anonymous=allow_anonymous)
         return self._node
@@ -86,6 +96,7 @@ _ENV_VAR_PATH = "YAKUT_PATH"
     cls=AbbreviatedGroup,
     context_settings={
         "max_content_width": click.get_terminal_size()[0],
+        "auto_envvar_prefix": "YAKUT",  # Specified here, not in __main__.py, otherwise doesn't work when installed.
     },
 )
 @click.version_option(version=yakut.__version__)
@@ -145,11 +156,13 @@ def main(
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
 
-    for p in (os.getcwd(), *path):
-        _logger.debug("New path item: %s", p)
+    path = (os.getcwd(), *path)
+    _logger.debug("Path: %r", path)
+    for p in path:
         sys.path.append(str(p))
 
     ctx.obj = Purser(
+        paths=path,
         formatter_factory=formatter_factory,
         transport_factory=transport_factory,
         node_factory=node_factory,

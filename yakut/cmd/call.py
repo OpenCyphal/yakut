@@ -77,7 +77,7 @@ def call(
     and the data type name of the form:
 
     \b
-        [SERVICE_ID.]FULL_SERVICE_TYPE_NAME.MAJOR.MINOR
+        [SERVICE_ID:]FULL_SERVICE_TYPE_NAME.MAJOR.MINOR
 
     In the data type name, forward or backward slashes can be used instead of ".";
     version numbers can be also separated using underscores.
@@ -96,7 +96,7 @@ def call(
 
     \b
         yakut call 42 uavcan.node.GetInfo.1.0 +M -T3 -Pe
-        yakut call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+        yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
     """
     try:
         from pyuavcan.application import Node

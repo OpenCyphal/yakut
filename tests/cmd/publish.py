@@ -11,7 +11,8 @@ from tests.subprocess import execute_cli
 def _unittest_publish(compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
-        "YAKUT_TRANSPORT": "Loopback(1234)",
+        "UAVCAN__LOOPBACK__BIT": "1",
+        "UAVCAN__NODE__ID__NATURAL16": "1234",
     }
 
     # Count zero, nothing to do.
@@ -19,7 +20,7 @@ def _unittest_publish(compiled_dsdl: typing.Any) -> None:
         "-vv",
         f"--path={OUTPUT_DIR}",
         "pub",
-        "4444.uavcan.si.unit.force.Scalar.1.0",
+        "4444:uavcan.si.unit.force.Scalar.1.0",
         "{}",
         "--count",
         "0",
@@ -31,7 +32,7 @@ def _unittest_publish(compiled_dsdl: typing.Any) -> None:
     # Compiled DSDL not found.
     result, _, stderr = execute_cli(
         "pub",
-        "4444.uavcan.si.unit.force.Scalar.1.0",
+        "4444:uavcan.si.unit.force.Scalar.1.0",
         "{}",
         "--count",
         "0",
@@ -47,7 +48,7 @@ def _unittest_publish(compiled_dsdl: typing.Any) -> None:
         "-vv",
         f"--path={OUTPUT_DIR}",
         "pub",
-        "4444.uavcan.si.unit.force.Scalar.1.0",
+        "4444:uavcan.si.unit.force.Scalar.1.0",
         "{}",
         "--period=0",
         timeout=5.0,
@@ -62,7 +63,7 @@ def _unittest_publish(compiled_dsdl: typing.Any) -> None:
     result, _, stderr = execute_cli(
         f"--path={OUTPUT_DIR}",
         "pub",
-        "4444.uavcan.si.unit.force.Scalar.1.0",
+        "4444:uavcan.si.unit.force.Scalar.1.0",
         "{}",
         timeout=5.0,
         ensure_success=False,

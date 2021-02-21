@@ -102,12 +102,47 @@ knowing that the outputs will be always stored to and read from a fixed place un
 ## Communicating
 
 Commands that access the network need to know how to do so.
-This is configured by providing a *transport initialization expression* via `--transport`/`YAKUT_TRANSPORT`.
+There are two ways to configure that:
+pass registers via environment variables (this is the default),
+or pass initialization expression via `--transport`/`YAKUT_TRANSPORT` (in which case the registers are ignored).
+
+### Configuring the transport via UAVCAN registers
+
+UAVCAN registers are named values that contain various configuration parameters of a UAVCAN application/node.
+They are extensively described in the [UAVCAN Specification](https://uavcan.org/specification).
+When starting a new process, it is possible to pass arbitrary registers via environment variables.
+
+There are certain registers that are looked at by UAVCAN nodes to determine how to connect to the network.
+Some of them are given below, but the list is not exhaustive.
+The full description of supported registers is available in the API documentation for
+[`pyuavcan.application.make_transport()`](https://pyuavcan.readthedocs.io/en/stable/api/pyuavcan.application.html#pyuavcan.application.make_transport).
+
+If the available registers define more than one transport configuration, a redundant transport will be initialized.
+
+**This initialization method requires that the standard DSDL namespace `uavcan` is compiled.**
+
+Transport |Register name       |Register type  |Environment variable name        |Semantics                                          |Example environment variable value
+----------|--------------------|---------------|---------------------------------|---------------------------------------------------|------------------------------------
+All       |`uavcan.node.id`    |`natural16[1]` |`UAVCAN__NODE__ID__NATURAL16`    |The local node-ID; anonymous if not set            |`42`
+UDP       |`uavcan.udp.ip`     |`string`       |`UAVCAN__UDP__IP__STRING`        |Space-separated local IPs (16 LSB set to node-ID)  |`127.9.0.0 192.168.0.0`
+Serial    |`uavcan.serial.port`|`string`       |`UAVCAN__SERIAL__PORT__STRING`   |Space-separated serial port names                  |`COM9 socket://localhost:50905`
+CAN       |`uavcan.can.iface`  |`string`       |`UAVCAN__CAN__IFACE__STRING`     |Space-separated CAN iface names                    |`socketcan:vcan0 pcan:PCAN_USBBUS1`
+CAN       |`uavcan.can.mtu`    |`natural16[1]` |`UAVCAN__CAN__MTU__NATURAL16`    |Maximum transmission unit; selects Classic/FD      |`64`
+CAN       |`uavcan.can.bitrate`|`natural32[2]` |`UAVCAN__CAN__BITRATE__NATURAL16`|Arbitration/data segment bits per second           |`1000000 4000000`
+Loopback  |`uavcan.loopback`   |`bit[1]`       |`UAVCAN__LOOPBACK__BIT`          |Use loopback interface (only for basic testing)    |`1`
+
+### Configuring the transport via initialization expression
+
+Being specific to this tool, this method is not compatible with the UAVCAN ecosystem at large,
+but its advantages are that it does not require the standard DSDL namespace `uavcan` to be compiled beforehand
+and it allows one to force the tool to disregard the registers if they are irrelevant in the current context.
+
+The *transport initialization expression* is passed via `--transport`/`YAKUT_TRANSPORT`.
 Here are practical examples (don't forget to add quotes around the expression):
 
-- `UDP("127.0.0.1",anonymous=True)` -- UAVCAN/UDP on the local loopback interface; local node anonymous.
+- `UDP("127.0.0.1",None)` -- UAVCAN/UDP on the local loopback interface; local node anonymous.
 
-- `UDP("192.168.1.200")` -- UAVCAN/UDP on the local network; local node-ID 456.
+- `UDP("192.168.0.0",456)` -- UAVCAN/UDP on the local network; local node-ID 456, local IP address 192.168.1.200.
 
 - `Serial('/dev/ttyUSB0',None)` -- UAVCAN/serial over a USB CDC ACM port; local node anonymous.
 
@@ -132,7 +167,7 @@ Publishing two messages synchronously twice (four messages total);
 notice how we specify the subject-ID before the data type name:
 
 ```bash
-yakut pub 33.uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"' -N2
+yakut pub 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"' -N2
 ```
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
@@ -143,7 +178,7 @@ Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0`
 to receive messages published by the above command:
 
 ```bash
-$ yakut sub 33.uavcan.si.unit.angle.Scalar.1.0
+$ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
 ---
 33:
   _metadata_:
@@ -192,7 +227,7 @@ Suppose that there is node 42 that serves `sirius_cyber_corp.PerformLinearLeastS
 
 ```bash
 $ yakut compile sirius_cyber_corp
-$ yakut call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+$ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
 ---
 123:
   slope: 0.1

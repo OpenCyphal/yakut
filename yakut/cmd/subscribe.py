@@ -55,7 +55,7 @@ def subscribe(
     the subject-ID may be omitted if the data type defines a fixed one:
 
     \b
-        [SUBJECT_ID.]TYPE_NAME.MAJOR.MINOR
+        [SUBJECT_ID:]TYPE_NAME.MAJOR.MINOR
 
     If multiple subjects are specified, a synchronous subscription will be used.
     It is useful for subscribing to a group of coupled subjects like lockstep sensor feeds,
@@ -72,7 +72,7 @@ def subscribe(
     Examples:
 
     \b
-        yakut sub 33.uavcan.si.unit.angle.Scalar.1.0 --no-metadata
+        yakut sub 33:uavcan.si.unit.angle.Scalar.1.0 --no-metadata
     """
     _logger.debug("subject=%r, with_metadata=%r, count=%r", subject, with_metadata, count)
     if not subject:

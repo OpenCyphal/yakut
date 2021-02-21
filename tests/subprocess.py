@@ -9,6 +9,7 @@ import shutil
 import typing
 import logging
 import subprocess
+from pathlib import Path
 from subprocess import CalledProcessError as CalledProcessError  # pylint: disable=unused-import
 
 
@@ -115,7 +116,7 @@ class Subprocess:
         cmd = _make_process_args(*args)
         _logger.info("Starting subprocess: %s", cmd)
 
-        if sys.platform.startswith("win"):
+        if sys.platform.startswith("win"):  # pragma: no cover
             # If the current process group is used, CTRL_C_EVENT will kill the parent and everyone in the group!
             creationflags: int = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
@@ -185,6 +186,7 @@ class Subprocess:
 def _get_env(environment_variables: typing.Optional[typing.Dict[str, str]] = None) -> typing.Dict[str, str]:
     from tests import DEPS_DIR
 
+    venv_path = Path(sys.executable).parent
     copy_keys = {
         "PATH",
         "SYSTEMROOT",
@@ -196,6 +198,7 @@ def _get_env(environment_variables: typing.Optional[typing.Dict[str, str]] = Non
         {
             "PYTHONUNBUFFERED": "1",
             "PYTHONPATH": str(DEPS_DIR),  # This is to load sitecustomize.py, which enables coverage.
+            "PATH": os.pathsep.join([str(venv_path), env["PATH"]]),  # Make scripts from venv invokable.
         }
     )
     env.update(environment_variables or {})

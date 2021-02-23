@@ -32,7 +32,7 @@ def _unittest_a(stdout_file: Path, stderr_file: Path) -> None:
     _ = stdout_file, stderr_file
 
     ast = load_ast((Path(__file__).parent / "a.orc.yaml").read_text())
-    comp = load_composition(ast, {"C": "DEF", "D": "this variable will be unset"})
+    comp = load_composition(ast, {"C": b"DEF", "D": b"this variable will be unset"})
     print(comp)
     ctx = Context(lookup_paths=[])
 
@@ -67,7 +67,7 @@ def _unittest_a(stdout_file: Path, stderr_file: Path) -> None:
     assert "text value\n" in sys.stderr.read()
 
     # Refers to a non-existent file.
-    comp = load_composition(ast, {"CRASH": "1"})
+    comp = load_composition(ast, {"CRASH": b"1"})
     print(comp)
     assert ErrorCode.FILE_ERROR == exec_composition(ctx, comp, gate=_true, stack=Stack())
 
@@ -77,7 +77,7 @@ def _unittest_b(stdout_file: Path) -> None:
 
     ctx = Context(lookup_paths=[ROOT_DIR, Path(__file__).parent])
     _std_reset()
-    env = {"PROCEED_B": "1"}
+    env = {"PROCEED_B": b"1"}
     assert 0 == exec_file(ctx, "b.orc.yaml", env, gate=_true)
     _std_flush()
     sys.stdout.seek(0)
@@ -89,9 +89,9 @@ def _unittest_b(stdout_file: Path) -> None:
         "finalizer b 1",
     ]
     assert env == {
-        "PROCEED_B": "1",
-        "FOO": "123",
-        "BAR": "123",
+        "PROCEED_B": b"1",
+        "FOO": b"123",
+        "BAR": b"123",
     }
 
     _std_reset()
@@ -103,12 +103,12 @@ def _unittest_b(stdout_file: Path) -> None:
         "finalizer b",
     ]
     assert env == {
-        "FOO": "123",
-        "BAR": "123",
+        "FOO": b"123",
+        "BAR": b"123",
     }
 
     _std_reset()
-    env = {"PLEASE_FAIL": "1"}
+    env = {"PLEASE_FAIL": b"1"}
     assert 0 == exec_file(ctx, "b.orc.yaml", env, gate=_true)
     _std_flush()
     sys.stdout.seek(0)
@@ -116,13 +116,13 @@ def _unittest_b(stdout_file: Path) -> None:
         "finalizer b",
     ]
     assert env == {
-        "PLEASE_FAIL": "1",
-        "FOO": "123",
-        "BAR": "123",
+        "PLEASE_FAIL": b"1",
+        "FOO": b"123",
+        "BAR": b"123",
     }
 
     _std_reset()
-    env = {"PROCEED_B": "1", "PLEASE_FAIL": "1"}
+    env = {"PROCEED_B": b"1", "PLEASE_FAIL": b"1"}
     assert 42 == exec_file(ctx, "b.orc.yaml", env, gate=_true)
     _std_flush()
     sys.stdout.seek(0)
@@ -134,16 +134,16 @@ def _unittest_b(stdout_file: Path) -> None:
         "finalizer b 1",
     ]
     assert env == {
-        "PROCEED_B": "1",
-        "PLEASE_FAIL": "1",
-        "FOO": "123",
-        "BAR": "123",
+        "PROCEED_B": b"1",
+        "PLEASE_FAIL": b"1",
+        "FOO": b"123",
+        "BAR": b"123",
     }
 
     ctx = Context(lookup_paths=[])
-    assert ErrorCode.FILE_ERROR == exec_file(ctx, "b.orc.yaml", {"PROCEED_B": "1"}, gate=_true)
+    assert ErrorCode.FILE_ERROR == exec_file(ctx, "b.orc.yaml", {"PROCEED_B": b"1"}, gate=_true)
     ctx = Context(lookup_paths=[Path(__file__).parent])
-    assert ErrorCode.FILE_ERROR == exec_file(ctx, "b.orc.yaml", {"PROCEED_B": "1"}, gate=_true)
+    assert ErrorCode.FILE_ERROR == exec_file(ctx, "b.orc.yaml", {"PROCEED_B": b"1"}, gate=_true)
     ctx = Context(lookup_paths=[])
     assert ErrorCode.FILE_ERROR == exec_file(ctx, "b.orc.yaml", {}, gate=_true)
 

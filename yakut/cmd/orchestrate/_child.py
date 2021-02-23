@@ -37,7 +37,7 @@ class Child:
     For that, export the COMSPEC environment variable.
     """
 
-    def __init__(self, cmd: str, env: Dict[str, str], *, stdout: BinaryIO, stderr: BinaryIO) -> None:
+    def __init__(self, cmd: str, env: Dict[str, bytes], *, stdout: BinaryIO, stderr: BinaryIO) -> None:
         """
         :param cmd: Shell command to execute. Execution starts immediately.
         :param env: Additional environment variables.
@@ -46,8 +46,8 @@ class Child:
         """
         self._return: Optional[int] = None
         self._signaling_schedule: List[Tuple[float, Callable[[], None]]] = []
-        e = os.environ.copy()
-        e.update(env)
+        e = os.environb.copy()
+        e.update({k.encode(): v for k, v in env.items()})
         self._proc = Popen(cmd, env=e, shell=True, stdout=stdout, stderr=stderr, stdin=DEVNULL, bufsize=1)
 
     @property

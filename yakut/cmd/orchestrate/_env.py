@@ -3,132 +3,56 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
-from typing import Dict, Tuple, Any
+from typing import Dict, Any
 
 
 NAME_SEP = "."
 ITEM_SEP = " "
-
-REGISTER_VALUE_OPTION_NAMES = [
-    "empty",
-    "string",
-    "unstructured",
-    "bit",
-    "integer64",
-    "integer32",
-    "integer16",
-    "integer8",
-    "natural32",
-    "natural64",
-    "natural16",
-    "natural8",
-    "real64",
-    "real32",
-    "real16",
-]
-"""Field names from uavcan.register.Value.1."""
 
 
 class EnvironmentVariableError(ValueError):
     pass
 
 
-def canonicalize_register(name: str, value: Any) -> Tuple[str, str]:
+def encode(value: Any) -> bytes:
     """
-    Ensures that the name has the correct type suffux and converts the value to string.
+    Converts the register value to binary environment variable value as defined by the UAVCAN Specification,
+    the Register interface.
 
-    >>> canonicalize_register('foo.empty', ['this', 'is', 'ignored'])
-    ('foo.empty', '')
-    >>> canonicalize_register('foo', None)
-    ('foo.empty', '')
-    >>> canonicalize_register('foo.string', 123)
-    ('foo.string', '123')
-    >>> canonicalize_register('foo', 'hello')  # Auto-detect.
-    ('foo.string', 'hello')
-    >>> canonicalize_register('foo', b'hello')
-    ('foo.unstructured', '68656c6c6f')
-    >>> canonicalize_register('foo.unstructured', '68656c6c6f')  # Same, just different notation.
-    ('foo.unstructured', '68656c6c6f')
-    >>> canonicalize_register('foo', [True, False, True])
-    ('foo.bit', '1 0 1')
-    >>> canonicalize_register('foo', [60_000, 50_000])
-    ('foo.natural16', '60000 50000')
-    >>> canonicalize_register('foo', 300_000)
-    ('foo.natural32', '300000')
-    >>> canonicalize_register('foo', [2 ** 32, 0])
-    ('foo.natural64', '4294967296 0')
-    >>> canonicalize_register('foo', -10_000)
-    ('foo.integer16', '-10000')
-    >>> canonicalize_register('foo', [-10_000, 40_000])
-    ('foo.integer32', '-10000 40000')
-    >>> canonicalize_register('foo', [-(2 ** 31), 2 ** 31])
-    ('foo.integer64', '-2147483648 2147483648')
-    >>> canonicalize_register('foo', 1.0)
-    ('foo.real64', '1.0')
-    >>> canonicalize_register('foo', [1, 'a'])  # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    ...
-    EnvironmentVariableError: ...
+    >>> encode(123)
+    b'123'
+    >>> encode('hello world')
+    b'hello world'
+    >>> encode(b'hello')
+    b'hello'
+    >>> encode([True, False, True])
+    b'1 0 1'
+    >>> encode([60_000, 50_000])
+    b'60000 50000'
+    >>> encode(300_000)
+    b'300000'
+    >>> encode([2 ** 32, 0])
+    b'4294967296 0'
+    >>> encode(-10_000)
+    b'-10000'
+    >>> encode([-10_000, 40_000])
+    b'-10000 40000'
+    >>> encode([-(2 ** 31), 2 ** 31])
+    b'-2147483648 2147483648'
+    >>> encode(1.0)
+    b'1.0'
     """
-    # pylint: disable=too-many-return-statements,too-many-branches,multiple-statements
-    for val_opt_name in REGISTER_VALUE_OPTION_NAMES:
-        suffix = NAME_SEP + val_opt_name
-        if name.endswith(suffix):
-            if val_opt_name == "empty":
-                return name, ""
-            if val_opt_name == "string":
-                return name, str(value)
-            if val_opt_name == "unstructured":
-                try:
-                    if not isinstance(value, bytes):
-                        value = bytes.fromhex(str(value))
-                except ValueError:
-                    raise EnvironmentVariableError(f"{name!r}: expected bytes or hex-encoded string") from None
-                return name, value.hex()
-            # All other values are vector values. Converge scalars to one-dimensional vectors:
-            try:
-                value = list(value)
-            except TypeError:
-                value = [value]
-            if val_opt_name == "bit":
-                return name, ITEM_SEP.join(("1" if x else "0") for x in value)
-            if val_opt_name.startswith("integer") or val_opt_name.startswith("natural"):
-                return name, ITEM_SEP.join(str(int(x)) for x in value)
-            if val_opt_name.startswith("real"):
-                return name, ITEM_SEP.join(str(float(x)) for x in value)
-            assert False, f"Internal error: unhandled value option: {val_opt_name}"
-
-    def convert(ty: str) -> Tuple[str, str]:
-        assert ty in REGISTER_VALUE_OPTION_NAMES
-        return canonicalize_register(name + NAME_SEP + ty, value)
-
-    # Type not specified. Perform auto-detection.
-    if value is None:
-        return convert("empty")  # Empty values are used to trigger removal of the register.
     if isinstance(value, str):
-        return convert("string")
+        return value.encode()
     if isinstance(value, bytes):
-        return convert("unstructured")
-    # All other values are vector values. Converge scalars to one-dimensional vectors:
-    try:
-        value = list(value)
-    except TypeError:
-        value = [value]
-    if all(isinstance(x, bool) for x in value):
-        return convert("bit")
-    if all(isinstance(x, int) for x in value):
-        # fmt: off
-        if all(0          <= x < (2 ** 16) for x in value): return convert("natural16")
-        if all(0          <= x < (2 ** 32) for x in value): return convert("natural32")
-        if all(0          <= x < (2 ** 64) for x in value): return convert("natural64")
-        if all(-(2 ** 15) <= x < (2 ** 15) for x in value): return convert("integer16")
-        if all(-(2 ** 31) <= x < (2 ** 31) for x in value): return convert("integer32")
-        if all(-(2 ** 63) <= x < (2 ** 63) for x in value): return convert("integer64")
-        # fmt: on
-    if all(isinstance(x, (int, float)) for x in value):
-        return convert("real64")
-
-    raise EnvironmentVariableError(f"Cannot infer the type of {name!r}")
+        return value
+    if isinstance(value, (int, bool)):
+        return encode(str(int(value)))
+    if isinstance(value, float):
+        return encode(str(value))
+    if isinstance(value, list):
+        return b" ".join(map(encode, value))
+    raise EnvironmentVariableError(f"Cannot encode register value of type {type(value).__name__}")
 
 
 def flatten_registers(spec: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:

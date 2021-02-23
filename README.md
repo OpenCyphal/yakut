@@ -121,15 +121,15 @@ If the available registers define more than one transport configuration, a redun
 
 **This initialization method requires that the standard DSDL namespace `uavcan` is compiled.**
 
-Transport |Register name       |Register type  |Environment variable name        |Semantics                                          |Example environment variable value
-----------|--------------------|---------------|---------------------------------|---------------------------------------------------|------------------------------------
-All       |`uavcan.node.id`    |`natural16[1]` |`UAVCAN__NODE__ID__NATURAL16`    |The local node-ID; anonymous if not set            |`42`
-UDP       |`uavcan.udp.ip`     |`string`       |`UAVCAN__UDP__IP__STRING`        |Space-separated local IPs (16 LSB set to node-ID)  |`127.9.0.0 192.168.0.0`
-Serial    |`uavcan.serial.port`|`string`       |`UAVCAN__SERIAL__PORT__STRING`   |Space-separated serial port names                  |`COM9 socket://localhost:50905`
-CAN       |`uavcan.can.iface`  |`string`       |`UAVCAN__CAN__IFACE__STRING`     |Space-separated CAN iface names                    |`socketcan:vcan0 pcan:PCAN_USBBUS1`
-CAN       |`uavcan.can.mtu`    |`natural16[1]` |`UAVCAN__CAN__MTU__NATURAL16`    |Maximum transmission unit; selects Classic/FD      |`64`
-CAN       |`uavcan.can.bitrate`|`natural32[2]` |`UAVCAN__CAN__BITRATE__NATURAL16`|Arbitration/data segment bits per second           |`1000000 4000000`
-Loopback  |`uavcan.loopback`   |`bit[1]`       |`UAVCAN__LOOPBACK__BIT`          |Use loopback interface (only for basic testing)    |`1`
+Transport |Register name       |Register type  |Environment variable name |Semantics                                          |Example environment variable value
+----------|--------------------|---------------|--------------------------|---------------------------------------------------|------------------------------------
+All       |`uavcan.node.id`    |`natural16[1]` |`UAVCAN__NODE__ID`        |The local node-ID; anonymous if not set            |`42`
+UDP       |`uavcan.udp.ip`     |`string`       |`UAVCAN__UDP__IP`         |Space-separated local IPs (16 LSB set to node-ID)  |`127.9.0.0 192.168.0.0`
+Serial    |`uavcan.serial.port`|`string`       |`UAVCAN__SERIAL__PORT`    |Space-separated serial port names                  |`COM9 socket://localhost:50905`
+CAN       |`uavcan.can.iface`  |`string`       |`UAVCAN__CAN__IFACE`      |Space-separated CAN iface names                    |`socketcan:vcan0 pcan:PCAN_USBBUS1`
+CAN       |`uavcan.can.mtu`    |`natural16[1]` |`UAVCAN__CAN__MTU`        |Maximum transmission unit; selects Classic/FD      |`64`
+CAN       |`uavcan.can.bitrate`|`natural32[2]` |`UAVCAN__CAN__BITRATE`    |Arbitration/data segment bits per second           |`1000000 4000000`
+Loopback  |`uavcan.loopback`   |`bit[1]`       |`UAVCAN__LOOPBACK`        |Use loopback interface (only for basic testing)    |`1`
 
 ### Configuring the transport via initialization expression
 

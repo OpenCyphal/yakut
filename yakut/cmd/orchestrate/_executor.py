@@ -50,7 +50,7 @@ def locate(ctx: Context, file: str) -> Optional[Path]:
 
 
 def exec_file(
-    ctx: Context, file: str, inout_env: Dict[str, str], *, gate: FlagDelegate, stack: Optional[Stack] = None
+    ctx: Context, file: str, inout_env: Dict[str, bytes], *, gate: FlagDelegate, stack: Optional[Stack] = None
 ) -> int:
     """
     This function never raises exceptions in response to invalid syntax or a programmable error.
@@ -116,7 +116,7 @@ def exec_composition(ctx: Context, comp: Composition, *, gate: FlagDelegate, sta
 def exec_script(
     ctx: Context,
     scr: Sequence[Statement],
-    env: Dict[str, str],
+    env: Dict[str, bytes],
     *,
     kill_timeout: float,
     gate: FlagDelegate,
@@ -182,7 +182,7 @@ def exec_script(
 
 
 def exec_shell(
-    ctx: Context, cmd: str, env: Dict[str, str], *, kill_timeout: float, gate: FlagDelegate, stack: Stack
+    ctx: Context, cmd: str, env: Dict[str, bytes], *, kill_timeout: float, gate: FlagDelegate, stack: Stack
 ) -> int:
     started_at = time.monotonic()
     ch = Child(cmd, env, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer)
@@ -192,7 +192,9 @@ def exec_shell(
         stack.log_info(
             *itertools.chain(
                 (f"{prefix}EXECUTING WITH ENVIRONMENT VARIABLES:",),
-                ((k.ljust(longest_env) + " = " + repr(v)) for k, v in env.items()) if env else ["<no variables>"],
+                ((k.ljust(longest_env) + " = " + repr(v.decode("raw_unicode_escape"))) for k, v in env.items())
+                if env
+                else ["<no variables>"],
                 cmd.splitlines(),
             ),
         )

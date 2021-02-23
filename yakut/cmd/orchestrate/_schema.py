@@ -6,7 +6,7 @@ from __future__ import annotations
 import dataclasses
 from typing import Dict, Sequence, Any, List
 from yakut.yaml import YAMLLoader
-from ._env import canonicalize_register, flatten_registers, NAME_SEP, EnvironmentVariableError
+from ._env import encode, flatten_registers, NAME_SEP, EnvironmentVariableError
 
 
 NOT_ENV = "="
@@ -21,7 +21,7 @@ class SchemaError(ValueError):
 
 @dataclasses.dataclass(frozen=True)
 class Composition:
-    env: Dict[str, str]
+    env: Dict[str, bytes]
     ext: Sequence[External]
 
     predicate: Sequence[Statement]
@@ -69,7 +69,7 @@ def load_ast(text: str) -> Any:
         raise SchemaError(f"Syntax error: {ex}") from ex
 
 
-def load_composition(ast: Any, env: Dict[str, str]) -> Composition:
+def load_composition(ast: Any, env: Dict[str, bytes]) -> Composition:
     """
     Environment inheritance order (last entry takes precedence):
 
@@ -86,10 +86,9 @@ def load_composition(ast: Any, env: Dict[str, str]) -> Composition:
             {k: v for k, v in ast.items() if isinstance(k, str) and NOT_ENV not in k}
         ).items():
             if NAME_SEP in name:  # UAVCAN register.
-                name, value = canonicalize_register(name, value)
                 name = name.upper().replace(NAME_SEP, "_" * 2)
             if value is not None:
-                env[name] = str(value)
+                env[name] = encode(value)
             else:
                 env.pop(name, None)  # None is used to unset variables.
     except EnvironmentVariableError as ex:
@@ -108,13 +107,13 @@ def load_composition(ast: Any, env: Dict[str, str]) -> Composition:
     return out
 
 
-def load_script(ast: Any, env: Dict[str, str]) -> Sequence[Statement]:
+def load_script(ast: Any, env: Dict[str, bytes]) -> Sequence[Statement]:
     if isinstance(ast, list):
         return [load_statement(x, env) for x in ast]
     return [load_statement(ast, env)]
 
 
-def load_statement(ast: Any, env: Dict[str, str]) -> Statement:
+def load_statement(ast: Any, env: Dict[str, bytes]) -> Statement:
     if isinstance(ast, str):
         return ShellStatement(ast)
     if isinstance(ast, dict):

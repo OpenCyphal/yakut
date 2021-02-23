@@ -123,37 +123,33 @@ The configuration of remote nodes may be enforced via UAVCAN using proxy command
 As prescribed by the UAVCAN standard, the node parameters are modeled as registers
 (see standard RPC-service uavcan.register.Access).
 Register values described in the orc-file are passed to the invoked processes via environment variables.
-The mapping between register names and environment variables is as follows,
-where "name" is the name of the register and "ty" is its type (like "string", "natural16", etc., see UAVCAN
-Specification):
+An environment variable name is constructed from register name by upper-casing it and replacing full stop characters
+(".") with double low line characters ("__").
 
-\b
-    (name + "." + ty).upper().replace(".", "_" * 2)
-
-String-typed variables are passed as-is, "unstructured" variables are hex-encoded (aka base16),
+Variables of "unstructured" type are passed as-is, "string" variables are UTF8-encoded,
 and numerical values are passed as decimals. Array elements are space-separated.
-For example, register "m.motor.inductance_dq" of type "real32[2]" and value (0.12, 0.13)
-is passed as an environment variable named "M__MOTOR__INDUCTANCE_DQ__REAL32" assigned "0.12 0.13".
+For example, register "m.motor.inductance_dq" with value (0.12, 0.13)
+is passed as an environment variable named "M__MOTOR__INDUCTANCE_DQ" assigned "0.12 0.13".
 
-When defining a register value in the orc-file, the user may spell out its name in its entirety
-suffixed with the type name (refer to the YAML format specification for syntactic details):
+When defining a register value in the orc-file, the user may spell out its name in its entirety:
 
 \b
-    m.motor.inductance_dq.real32: [0.12, 0.13]
-    m.motor.flux_linkage.real32:  1.34
-    uavcan.node.id.natural16:     1201
+    m.motor.inductance_dq: [0.12, 0.13]
+    m.motor.flux_linkage:  1.34
+    uavcan.node.id:        1201
+    uavcan.pub.foo.id:     7777
 
-For convenience and clarity, it is possible to group registers into dictionaries and remove the type name suffix.
-If the type name suffix is not provided, the orchestrator will apply heuristics to deduce the type automatically.
-Null-valued entities are resolved to registers of type "empty", which are useful for removing existing registers.
+For convenience and clarity, it is possible to group registers into dictionaries.
+Null-valued entities can be used to erase registers defined in an outer scope.
 The following YAML-definition is equivalent to the above:
 
 \b
     m.motor:
-      inductance_dq: [0.12, 0.13]   # m.motor.inductance_dq : real32[2]
-      flux_linkage:   1.34          # m.motor.flux_linkage  : real32[1]
+      inductance_dq: [0.12, 0.13]
+      flux_linkage:   1.34
     uavcan:
-      node.id: 1201                 # uavcan.node.id : natural16[1]
+      node.id: 1201
+      pub.foo.id: 7777
 
 It is also possible to define regular environment variables alongside the registers -- they will be passed
 to the invoked processes as-is without modification.

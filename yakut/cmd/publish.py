@@ -85,7 +85,9 @@ def publish(
 ) -> None:
     """
     Publish messages on the specified subjects.
-    The local node will also publish heartbeat and respond to GetInfo, unless it is configured to be anonymous.
+    Unless the local transport is configured in anonymous node,
+    the local node will also publish on standard subjects like Heartbeat and provide some standard RPC-services
+    like GetInfo.
 
     The command accepts a list of space-separated pairs like:
 

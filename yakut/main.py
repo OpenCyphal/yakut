@@ -114,7 +114,7 @@ _ENV_VAR_PATH = "YAKUT_PATH"
     },
 )
 @click.version_option(version=yakut.__version__)
-@click.option("--verbose", "-v", count=True, help="Show verbose log messages. Specify twice for extra verbosity.")
+@click.option("--verbose", "-v", count=True, help="Emit verbose log messages. Specify twice for extra verbosity.")
 @click.option(
     "--path",
     "-P",

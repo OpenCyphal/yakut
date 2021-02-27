@@ -70,7 +70,9 @@ def call(
 ) -> None:
     """
     Invoke an RPC-service using the specified request object and print the response.
-    While waiting for the response, the local node will also publish heartbeat and respond to GetInfo.
+    Unless the local transport is configured in anonymous node,
+    while waiting for the response the local node will also publish on standard subjects like
+    Heartbeat and provide some standard RPC-services like GetInfo.
 
     The first positional argument is the server node-ID.
     The second is the pair of service-ID (which can be omitted if a fixed one is defined for the type)

@@ -46,6 +46,8 @@ If the value is an URI, it must point to an archive containing DSDL root namespa
 
 See also: top-level option `--path` and related environment variable `YAKUT_PATH`.
 
+This command may be removed after https://github.com/UAVCAN/pyuavcan/issues/153 is implemented.
+
 Example path: ~/uavcan/public_regulated_data_types/uavcan/
 
 Example URI: {DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI}

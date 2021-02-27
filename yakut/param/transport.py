@@ -38,7 +38,6 @@ def transport_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
             # If no expression is given, construct from the registers passed via environment variables:
             try:
                 from pyuavcan.application import make_transport
-                from pyuavcan.application.register import Registry
             except (ImportError, AttributeError):
                 _logger.info(
                     "Transport initialization expression is not provided and constructing the transport "
@@ -61,9 +60,10 @@ By default, if this option is not given (neither via --transport nor YAKUT_TRANS
 commands that access the network deduce the transport configuration from standard registers passed via
 environment variables, such as UAVCAN__NODE__ID, UAVCAN__UDP__IFACE, UAVCAN__SERIAL__IFACE,
 and so on.
-The full list of the registers that configure the transport is available in the documentation for PyUAVCAN:
-https://pyuavcan.readthedocs.io, "make_transport()".
-However, this method requires that the standard DSDL namespace "uavcan" is compiled (see command "yakut compile").
+The full list of registers that configure the transport is available in the definition of the standard
+RPC-service "uavcan.register.Access", and in the documentation for PyUAVCAN:
+https://pyuavcan.readthedocs.io (see "make_transport()").
+This method requires that the standard DSDL namespace "uavcan" is compiled (see command "yakut compile")!
 
 If this expression is given, the registers are ignored, and the transport instance is constructed by evaluating it.
 Upon evaluation, the expression should yield either a single transport instance or a sequence thereof.

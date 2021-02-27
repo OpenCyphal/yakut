@@ -49,7 +49,7 @@ class NodeFactory:
         }
     )
 
-    def __call__(self, transport: Transport, name_suffix: str, allow_anonymous: bool) -> "pyuavcan.application.Node":
+    def __call__(self, transport: Transport, name_suffix: str, allow_anonymous: bool) -> pyuavcan.application.Node:
         """
         We use ``object`` for return type instead of Node because the Node class requires generated code
         to be generated.

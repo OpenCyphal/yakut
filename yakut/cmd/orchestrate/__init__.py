@@ -110,6 +110,8 @@ EXAMPLE_PUB_SUB_STDOUT = """
 _HELP = f"""
 Manage configuration of multiple UAVCAN nodes using YAML files.
 
+Currently, this tool is not tested against Windows and is therefore not expected to function there correctly.
+
 Here, "orchestration" means configuration management of a UAVCAN-based distributed computing system.
 The participants of such a system may be either software processes executed on a computer (local or remote),
 dedicated hardware units (e.g., a flight management unit or a sensor), or a mix thereof.
@@ -126,9 +128,9 @@ Register values described in the orc-file are passed to the invoked processes vi
 An environment variable name is constructed from register name by upper-casing it and replacing full stop characters
 (".") with double low line characters ("__").
 
-Variables of "unstructured" type are passed as-is, "string" variables are UTF8-encoded,
+Binary-typed values (aka raw bytes) are passed as-is, strings are UTF8-encoded,
 and numerical values are passed as decimals. Array elements are space-separated.
-For example, register "m.motor.inductance_dq" with value (0.12, 0.13)
+For example, register "m.motor.inductance_dq" of type "real32[2]" with value (0.12, 0.13)
 is passed as an environment variable named "M__MOTOR__INDUCTANCE_DQ" assigned "0.12 0.13".
 
 When defining a register value in the orc-file, the user may spell out its name in its entirety:
@@ -139,9 +141,7 @@ When defining a register value in the orc-file, the user may spell out its name 
     uavcan.node.id:        1201
     uavcan.pub.foo.id:     7777
 
-For convenience and clarity, it is possible to group registers into dictionaries.
-Null-valued entities can be used to erase registers defined in an outer scope.
-The following YAML-definition is equivalent to the above:
+For convenience and clarity, it is possible to group registers into dictionaries:
 
 \b
     m.motor:
@@ -155,8 +155,11 @@ It is also possible to define regular environment variables alongside the regist
 to the invoked processes as-is without modification.
 Regular environment variables are distinguished from registers by the lack of "." in their names.
 
+Null-valued keys can be used to erase registers and environment variables defined in an outer scope
+(so that they are not propagated).
+
 The behaviors defined by an orchestration file are specified using "compositions".
-A composition is a YAML-dictionary of UAVCAN registers, environment variables (see above), or "directives".
+A composition is a YAML-dictionary of UAVCAN registers, environment variables, and "directives".
 A directive is a dictionary key ending with an equals sign "=".
 The syntax can be approximated as follows, using a PEG-like notation:
 
@@ -180,7 +183,7 @@ If there is more than one command/composition specified, all of them are launche
 until the executor encounters the first "join statement", whereat it will wait for the previously
 launched script items to complete successfully before continuing.
 
-A shell command that returns a zero is considered successful, and vice versa.
+A shell command that returns zero is considered successful, otherwise it is considered to have failed.
 The exit code of a composition is that of its first statement to fail, or zero if all completed successfully
 (but see below about predicates).
 The execution order is as follows:
@@ -221,7 +224,7 @@ from the caller.
 Upon successful execution, the caller inherits all environment variables back from the callee.
 If the callee fails or cannot be executed for other reasons, the execution of the caller is aborted
 and its exit code is propagated.
-Example:
+Example of three orc-files:
 
 \b
 {_indent(EXAMPLE_EXTERNAL)}
@@ -252,8 +255,6 @@ if the process refuses to stop peacefully in a reasonable time.
 Children's stdout/stderr are piped into those of the orchestrator host process with per-line buffering
 (so that concurrent output does not mangle lines of text).
 Despite the line buffering, the streams are operated in binary mode.
-
-Currently, this tool is not tested against Windows and is therefore not expected to function there correctly.
 
 A slightly more practical example is shown below:
 

@@ -54,6 +54,7 @@ class NodeFactory:
         We use ``object`` for return type instead of Node because the Node class requires generated code
         to be generated.
         """
+        # pylint: disable=too-many-statements
         from yakut import Purser
 
         _logger.debug("Constructing node using %r with %r and name %r", self, transport, name_suffix)

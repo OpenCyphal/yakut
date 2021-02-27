@@ -8,9 +8,12 @@ import sys
 import time
 import signal
 from subprocess import Popen, DEVNULL
-from typing import Dict, Optional, Callable, List, Tuple, BinaryIO
+from typing import Dict, Optional, Callable, List, Tuple, BinaryIO, Any
 import logging
 
+# Disable unused ignore warning for this file only because there appears to be no other way to make MyPy
+# accept this file both on Windows and GNU/Linux.
+# mypy: warn_unused_ignores=False
 
 _logger = logging.getLogger(__name__)
 
@@ -46,8 +49,13 @@ class Child:
         """
         self._return: Optional[int] = None
         self._signaling_schedule: List[Tuple[float, Callable[[], None]]] = []
-        e = os.environb.copy()
-        e.update({k.encode(): v for k, v in env.items()})
+        e: Any
+        if os.supports_bytes_environ:
+            e = os.environb.copy()  # type: ignore
+            e.update({k.encode(): v for k, v in env.items()})
+        else:  # pragma: no cover
+            e = os.environ.copy()
+            e.update({k: v.decode() for k, v in env.items()})
         self._proc = Popen(cmd, env=e, shell=True, stdout=stdout, stderr=stderr, stdin=DEVNULL, bufsize=1)
 
     @property

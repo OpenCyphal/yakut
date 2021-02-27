@@ -95,7 +95,7 @@ $=:
   uavcan.node.id: 9  # The publisher is not anonymous unlike others.
 .=:
 - ?=: rm -r $YAKUT_COMPILE_OUTPUT       # Clean up at the exit.
-uavcan.udp.ip: 127.42.0.1  # Configure the transport via registers.
+uavcan.udp.iface: 127.42.0.1  # Configure the transport via registers.
 YAKUT_COMPILE_OUTPUT: pub_sub_compiled_dsdl
 YAKUT_PATH:           pub_sub_compiled_dsdl
 """.strip()

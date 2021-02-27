@@ -54,6 +54,8 @@ class NodeFactory:
         We use ``object`` for return type instead of Node because the Node class requires generated code
         to be generated.
         """
+        from yakut import Purser
+
         _logger.debug("Constructing node using %r with %r and name %r", self, transport, name_suffix)
         if not re.match(r"[a-z][a-z0-9_]*[a-z0-9]", name_suffix):  # pragma: no cover
             raise ValueError(f"Internal error: Poorly chosen node name suffix: {name_suffix!r}")
@@ -73,7 +75,11 @@ class NodeFactory:
             node_info.name = f"org.uavcan.yakut.{name_suffix}"
         _logger.debug("Node info: %r", node_info)
 
-        node = application.make_node(node_info, ignore_environment_variables=True, transport=transport)
+        ctx = click.get_current_context()
+        assert isinstance(ctx, click.Context)
+        purser = ctx.find_object(Purser)
+        assert isinstance(purser, Purser)
+        node = application.make_node(node_info, purser.get_registry(), transport=transport)
         try:
             # Configure the heartbeat publisher.
             try:

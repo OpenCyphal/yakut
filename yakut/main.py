@@ -5,7 +5,7 @@
 from __future__ import annotations
 import os
 import sys
-import typing
+from typing import TYPE_CHECKING, Union, Iterable, Optional, List, Any, Tuple, Callable, Awaitable
 import logging
 from pathlib import Path
 import click
@@ -14,7 +14,7 @@ from yakut.param.transport import transport_factory_option, TransportFactory, Tr
 from yakut.param.formatter import formatter_factory_option, FormatterFactory, Formatter
 from yakut.param.node import node_factory_option, NodeFactory
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     import pyuavcan.application
 
 _logger = logging.getLogger(__name__.replace("__", ""))
@@ -25,7 +25,7 @@ logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will 
 class Purser:
     def __init__(
         self,
-        paths: typing.Iterable[typing.Union[str, Path]],
+        paths: Iterable[Union[str, Path]],
         formatter_factory: FormatterFactory,
         transport_factory: TransportFactory,
         node_factory: NodeFactory,
@@ -35,15 +35,31 @@ class Purser:
         self._f_transport = transport_factory
         self._f_node = node_factory
 
-        self._transport: typing.Optional[Transport] = None
-        self._node: typing.Optional["pyuavcan.application.Node"] = None
+        self._registry: Optional[pyuavcan.application.register.Registry] = None
+        self._transport: Optional[Transport] = None
+        self._node: Optional["pyuavcan.application.Node"] = None
 
     @property
-    def paths(self) -> typing.List[Path]:
+    def paths(self) -> List[Path]:
         return list(self._paths)
 
     def make_formatter(self) -> Formatter:
         return self._f_formatter()
+
+    def get_registry(self) -> pyuavcan.application.register.Registry:
+        """
+        Commands should never construct registry on their own!
+        Doing so is likely to create divergent configurations that are not exposed via the Register Interface.
+        Instead, use this factory: it will create a registry instance at the first invocation and then it will be
+        shared with all components.
+
+        :raises: :class:`ImportError` if the standard DSDL namespace ``uavcan`` is not available.
+        """
+        if self._registry is None:
+            from pyuavcan.application import make_registry
+
+            self._registry = make_registry()
+        return self._registry
 
     def get_transport(self) -> Transport:
         if self._transport is None:  # pragma: no branch
@@ -63,7 +79,7 @@ pass_purser = click.make_pass_decorator(Purser)
 
 
 class AbbreviatedGroup(click.Group):
-    def get_command(self, ctx: click.Context, cmd_name: str) -> typing.Optional[click.Command]:
+    def get_command(self, ctx: click.Context, cmd_name: str) -> Optional[click.Command]:
         rv = click.Group.get_command(self, ctx, cmd_name)
         if rv is not None:
             return rv
@@ -74,9 +90,7 @@ class AbbreviatedGroup(click.Group):
             return click.Group.get_command(self, ctx, matches[0])
         ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
 
-    def resolve_command(
-        self, ctx: click.Context, args: typing.List[typing.Any]
-    ) -> typing.Tuple[str, click.Command, typing.List[typing.Any]]:
+    def resolve_command(self, ctx: click.Context, args: List[Any]) -> Tuple[str, click.Command, List[Any]]:
         """
         This is a workaround for this bug in v7: https://github.com/pallets/click/issues/1422.
 
@@ -128,7 +142,7 @@ Examples:
 def main(
     ctx: click.Context,
     verbose: int,
-    path: typing.Tuple[str, ...],
+    path: Tuple[str, ...],
     formatter_factory: FormatterFactory,
     transport_factory: TransportFactory,
     node_factory: NodeFactory,
@@ -169,14 +183,14 @@ def main(
     )
 
 
-subcommand: typing.Callable[..., typing.Callable[..., typing.Any]] = main.command  # type: ignore
+subcommand: Callable[..., Callable[..., Any]] = main.command  # type: ignore
 
 
-def asynchronous(f: typing.Callable[..., typing.Awaitable[typing.Any]]) -> typing.Callable[..., typing.Any]:
+def asynchronous(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
     import asyncio
     from functools import update_wrapper
 
-    def proxy(*args: typing.Any, **kwargs: typing.Any) -> typing.Any:
+    def proxy(*args: Any, **kwargs: Any) -> Any:
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(f(*args, **kwargs))
 

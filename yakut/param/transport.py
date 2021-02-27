@@ -3,7 +3,6 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
-import os
 from typing import Callable, Optional, Any, List, Dict
 import inspect
 import logging
@@ -11,7 +10,6 @@ import pyuavcan
 from pyuavcan.transport import Transport as Transport
 import click
 from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
-
 
 TransportFactory = Callable[[], Optional[Transport]]
 """
@@ -23,7 +21,9 @@ _logger = logging.getLogger(__name__)
 
 def transport_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
     def validate(ctx: click.Context, param: object, value: Optional[str]) -> TransportFactory:
-        _ = ctx, param
+        from yakut import Purser
+
+        _ = param
         _logger.debug("Transport expression: %r", value)
 
         def factory() -> Optional[Transport]:
@@ -37,14 +37,17 @@ def transport_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
                 return result
             # If no expression is given, construct from the registers passed via environment variables:
             try:
-                from pyuavcan.application import make_transport, make_registry
+                from pyuavcan.application import make_transport
+                from pyuavcan.application.register import Registry
             except (ImportError, AttributeError):
                 _logger.info(
                     "Transport initialization expression is not provided and constructing the transport "
                     "from registers is not possible because the standard DSDL namespace is not compiled"
                 )
                 return None
-            result = make_transport(make_registry())
+            purser = ctx.find_object(Purser)
+            assert isinstance(purser, Purser)
+            result = make_transport(purser.get_registry())
             _logger.info("Transport constructed from registers: %r", result)
             return result
 

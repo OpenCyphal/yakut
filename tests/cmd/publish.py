@@ -11,8 +11,8 @@ from tests.subprocess import execute_cli
 def _unittest_publish(compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
-        "UAVCAN__LOOPBACK__BIT": "1",
-        "UAVCAN__NODE__ID__NATURAL16": "1234",
+        "UAVCAN__LOOPBACK": "1",
+        "UAVCAN__NODE__ID": "1234",
     }
 
     # Count zero, nothing to do.

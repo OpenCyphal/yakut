@@ -178,7 +178,6 @@ def _generate_dsdl_packages(
             str(ns),
             list(map(str, lookup_root_namespace_dirs)),
         )
-        shutil.rmtree(dest_dir, ignore_errors=True)
         gpi = pyuavcan.dsdl.compile(
             root_namespace_directory=ns,
             lookup_directories=list(lookup_root_namespace_dirs),

@@ -182,9 +182,7 @@ $ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
 ---
 33:
   _metadata_:
-    timestamp:
-      system: 1608987583.298886
-      monotonic: 788272.540747
+    timestamp: {system: 1608987583.298886, monotonic: 788272.540747}
     priority: nominal
     transfer_id: 0
     source_node_id: 42
@@ -193,9 +191,7 @@ $ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
 ---
 33:
   _metadata_:
-    timestamp:
-      system: 1608987583.298886
-      monotonic: 788272.540747
+    timestamp: {system: 1608987583.298886, monotonic: 788272.540747}
     priority: nominal
     transfer_id: 1
     source_node_id: 42

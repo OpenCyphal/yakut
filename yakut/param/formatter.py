@@ -88,10 +88,7 @@ def _unittest_formatter() -> None:
     obj = {
         2345: {
             "abc": {
-                "def": [
-                    123,
-                    456,
-                ],
+                "def": [123, 456],
             },
             "ghi": 789,
         }
@@ -101,9 +98,7 @@ def _unittest_formatter() -> None:
         == """---
 2345:
   abc:
-    def:
-    - 123
-    - 456
+    def: [123, 456]
   ghi: 789
 """
     )

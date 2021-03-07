@@ -17,6 +17,7 @@ import ruamel.yaml
 class YAMLDumper:
     """
     YAML generation facade.
+    Natively represents decimal.Decimal as floats in the output.
     """
 
     def __init__(self, explicit_start: bool = False):
@@ -24,7 +25,8 @@ class YAMLDumper:
         self._impl = ruamel.yaml.YAML(typ="rt")
         # noinspection PyTypeHints
         self._impl.explicit_start = explicit_start
-        self._impl.default_flow_style = False
+        self._impl.default_flow_style = None  # Choose between block/inline automatically
+        self._impl.width = 2 ** 31  # Unlimited width
 
     def dump(self, data: typing.Any, stream: typing.TextIO) -> None:
         self._impl.dump(data, stream)
@@ -38,7 +40,6 @@ class YAMLDumper:
 class YAMLLoader:
     """
     YAML parsing facade.
-    Natively represents decimal.Decimal as floats in the output.
     """
 
     def __init__(self) -> None:
@@ -85,7 +86,7 @@ def _unittest_yaml() -> None:
 abc: -.inf
 def:
 - .nan
-- qaz: 789.0
+- {qaz: 789.0}
 """
     )
     assert YAMLLoader().load(ref) == {

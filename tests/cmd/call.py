@@ -14,7 +14,8 @@ from tests.transport import TransportFactory
 from yakut.param.transport import construct_transport
 
 
-def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+@pytest.mark.asyncio
+async def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
         "YAKUT_TRANSPORT": transport_factory(88).expression,
@@ -59,7 +60,7 @@ def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: ty
         "--with-metadata",
         environment_variables=env,
     )
-    asyncio.get_event_loop().run_until_complete(server.serve_for(handle_request, 3.0))
+    await server.serve_for(handle_request, 3.0)
     result, stdout, _ = proc.wait(5.0)
     assert result == 0
     assert last_metadata is not None
@@ -67,7 +68,9 @@ def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: ty
     assert last_metadata.client_node_id == 88
 
     # Finalize to avoid warnings in the output.
+    server.close()
     server_presentation.close()
+    await asyncio.sleep(1.0)
 
     # Parse the output and validate it.
     parsed = json.loads(stdout)

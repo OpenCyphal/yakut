@@ -19,6 +19,10 @@ The output directory needs to be added to YAKUT_PATH in order to use the compile
 
 @pytest.fixture()
 def compiled_dsdl() -> None:
+    ensure_compiled_dsdl()
+
+
+def ensure_compiled_dsdl() -> None:
     """
     Ensures that the regulated DSDL namespaces are compiled and importable.
     To force recompilation, remove the output directory.

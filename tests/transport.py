@@ -23,6 +23,8 @@ This factory constructs arguments for the CLI instructing it to use a particular
 The factory takes one argument - the node-ID - which can be None (anonymous).
 """
 
+SERIAL_BROKER_PORT = 50905
+
 
 def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[TransportFactory]]]:
     """
@@ -67,11 +69,10 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
         yield vcan
         yield vcan_tmr
 
-    serial_broker_port = 50905
-    serial_endpoint = f"socket://localhost:{serial_broker_port}"
+    serial_endpoint = f"socket://127.0.0.1:{SERIAL_BROKER_PORT}"
 
     def launch_serial_broker() -> Subprocess:
-        return Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={serial_broker_port}")
+        return Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={SERIAL_BROKER_PORT}")
 
     def serial_tunneled_via_tcp() -> typing.Iterator[TransportFactory]:
         broker = launch_serial_broker()
@@ -113,3 +114,14 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
 @pytest.fixture(params=_generate())
 def transport_factory(request: typing.Any) -> typing.Iterable[TransportFactory]:
     yield from request.param()
+
+
+@pytest.fixture()
+def serial_broker() -> typing.Iterable[str]:
+    """
+    Ensures that the serial broker is available for the test.
+    The value is the endpoint where the broker is reachable; e.g., ``socket://127.0.0.1:50905``.
+    """
+    proc = Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={SERIAL_BROKER_PORT}")
+    yield f"socket://127.0.0.1:{SERIAL_BROKER_PORT}"
+    proc.wait(5.0, interrupt=True)

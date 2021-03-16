@@ -46,8 +46,9 @@ def test(session):
 
     # Now we can install dependencies for the full integration test suite.
     session.install(
-        "pytest   ~= 6.2",
-        "coverage ~= 5.3",
+        "pytest         ~= 6.2",
+        "pytest-asyncio == 0.14",
+        "coverage       ~= 5.3",
     )
 
     # The test suite generates a lot of temporary files, so we change the working directory.

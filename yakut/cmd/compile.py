@@ -3,7 +3,6 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 import http
-import shutil
 import typing
 import logging
 import zipfile

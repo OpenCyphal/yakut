@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     import pyuavcan.application
 
 _logger = logging.getLogger(__name__.replace("__", ""))
+# Some of the integration tests may parse the logs expecting its lines to follow this format.
+# If you change this, you may break these tests.
 _LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-3.3s %(name)s: %(message)s"
 logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will be overridden later.
 
@@ -80,6 +82,7 @@ pass_purser = click.make_pass_decorator(Purser)
 
 class AbbreviatedGroup(click.Group):
     def get_command(self, ctx: click.Context, cmd_name: str) -> Optional[click.Command]:
+        cmd_name = cmd_name.replace("_", "-")
         rv = click.Group.get_command(self, ctx, cmd_name)
         if rv is not None:
             return rv

@@ -70,14 +70,16 @@ def call(
 ) -> None:
     """
     Invoke an RPC-service using the specified request object and print the response.
-    While waiting for the response, the local node will also publish heartbeat and respond to GetInfo.
+    Unless the local transport is configured in anonymous node,
+    while waiting for the response the local node will also publish on standard subjects like
+    Heartbeat and provide some standard RPC-services like GetInfo.
 
     The first positional argument is the server node-ID.
     The second is the pair of service-ID (which can be omitted if a fixed one is defined for the type)
     and the data type name of the form:
 
     \b
-        [SERVICE_ID.]FULL_SERVICE_TYPE_NAME.MAJOR.MINOR
+        [SERVICE_ID:]FULL_SERVICE_TYPE_NAME.MAJOR.MINOR
 
     In the data type name, forward or backward slashes can be used instead of ".";
     version numbers can be also separated using underscores.
@@ -96,7 +98,7 @@ def call(
 
     \b
         yakut call 42 uavcan.node.GetInfo.1.0 +M -T3 -Pe
-        yakut call 42 123.sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+        yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
     """
     try:
         from pyuavcan.application import Node

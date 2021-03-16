@@ -54,7 +54,7 @@ def _unittest_accommodate_udp_localhost() -> None:
         f"--path={OUTPUT_DIR}",
         "accommodate",
         timeout=30.0,
-        environment_variables={"YAKUT_TRANSPORT": 'UDP("127.0.0.1",anonymous=True)'},
+        environment_variables={"YAKUT_TRANSPORT": 'UDP("127.0.0.1",None)'},
     )
     # Exclude zero from the set because an IP address with the host address of zero may cause complications.
     assert 1 <= int(stdout) <= 65534

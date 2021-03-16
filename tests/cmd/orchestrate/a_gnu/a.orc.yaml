@@ -1,0 +1,26 @@
+?=: echo $A $B $C $D      # Variable D is erased (see below).
+$=:
+- '>&2 echo $A__B__C'
+- sleep 10
+- sleep 8
+-
+-  # The second join statement is redundant but it should cause no error.
+- echo finalizer
+- $=:
+  - |
+    sleep 0.5                           # Ensure deterministic ordering.
+    echo "a.d.e: $A__D__E"              # This is a multi-line statement.
+  - ?=: []
+.=:
+- ?=: test -n "$CRASH"
+  $=:
+    external=: nonexistent.orc.yaml
+-
+- exit 100
+A: 100
+B: abc
+D:      # Variable D is erased.
+a:
+  b:
+    c: text value
+  d.e: [1, 2, 3]

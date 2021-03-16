@@ -40,6 +40,7 @@
       <w>cmsg</w>
       <w>coloredlogs</w>
       <w>computron</w>
+      <w>comspec</w>
       <w>conftest</w>
       <w>constrainedness</w>
       <w>constructible</w>
@@ -90,6 +91,7 @@
       <w>geez</w>
       <w>gendsdl</w>
       <w>genericity</w>
+      <w>getenv</w>
       <w>getpeername</w>
       <w>getsockopt</w>
       <w>gibibyte</w>

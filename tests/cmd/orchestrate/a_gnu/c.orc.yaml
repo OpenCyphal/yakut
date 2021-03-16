@@ -1,0 +1,17 @@
+$=:
+  - echo $FOO
+  - ?=:  # Since this is an optional block, its failure will be ignored.
+      external=: nonexistent.orc.yaml
+      .=: fgsfds
+  -
+  - $=: echo $FOO
+    FOO: 456
+  -
+  - external=: tests/cmd/orchestrate/a_gnu/b.orc.yaml  # Recursive inclusion but with the gate flag cleared.
+    PROCEED_B:
+.=:
+  ?=: test -n "$PLEASE_FAIL"
+  $=: exit 42
+
+PASSWORD: hunter2
+BAR: 789

@@ -46,6 +46,8 @@ If the value is an URI, it must point to an archive containing DSDL root namespa
 
 See also: top-level option `--path` and related environment variable `YAKUT_PATH`.
 
+This command may be removed after https://github.com/UAVCAN/pyuavcan/issues/153 is implemented.
+
 Example path: ~/uavcan/public_regulated_data_types/uavcan/
 
 Example URI: {DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI}
@@ -72,7 +74,7 @@ If a DSDL root namespace is specified as an input, it is automatically added to 
 @click.option(
     "--output",
     "-O",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True),
+    type=str,
     help=f"""
 Path to the directory where the compilation outputs will be stored.
 If not specified, defaults to the current working directory.
@@ -135,7 +137,7 @@ def _fetch_archive_dirs(archive_uri: str) -> typing.List[Path]:
     import requests  # Takes over 100 ms to import! Having it in the file scope is a performance disaster.
 
     # TODO: autodetect the type of the archive
-    arch_dir = tempfile.mkdtemp(prefix="pyuavcan-cli-dsdl")
+    arch_dir = tempfile.mkdtemp(prefix="yakut-dsdl-")
     arch_file = str(Path(arch_dir) / "dsdl.zip")
 
     _logger.info("Downloading the archive from %r into %r...", archive_uri, arch_file)
@@ -176,8 +178,7 @@ def _generate_dsdl_packages(
             str(ns),
             list(map(str, lookup_root_namespace_dirs)),
         )
-        shutil.rmtree(dest_dir, ignore_errors=True)
-        gpi = pyuavcan.dsdl.generate_package(
+        gpi = pyuavcan.dsdl.compile(
             root_namespace_directory=ns,
             lookup_directories=list(lookup_root_namespace_dirs),
             output_directory=generated_packages_dir,

@@ -29,12 +29,12 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
     Sensible transport configurations supported by the CLI to test against.
     Don't forget to extend when adding support for new transports.
     """
-    if sys.platform == "linux":
+    if sys.platform == "linux":  # pragma: no branch
 
         def sudo(cmd: str, ensure_success: bool = True) -> None:
             c = f"sudo {cmd}"
             r = os.system(c)
-            if ensure_success and 0 != r:
+            if ensure_success and 0 != r:  # pragma: no cover
                 raise RuntimeError(f"Command {c!r} failed with exit code {r}")
 
         sudo("modprobe can")
@@ -84,9 +84,9 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
 
     def udp_loopback() -> typing.Iterator[TransportFactory]:
         yield lambda nid: (
-            TransportConfig(expression=f"UDP('127.0.0.{nid}')", can_transmit=True)
+            TransportConfig(expression=f"UDP('127.0.0.0',{nid})", can_transmit=True)
             if nid is not None
-            else TransportConfig(expression="UDP('127.0.0.1',anonymous=True)", can_transmit=False)
+            else TransportConfig(expression="UDP('127.0.0.1',None)", can_transmit=False)
         )
 
     def heterogeneous_udp_serial() -> typing.Iterator[TransportFactory]:
@@ -95,8 +95,8 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
             expression=(
                 ",".join(
                     [
-                        f"Serial('{serial_endpoint}',local_node_id={nid})",
-                        (f"UDP('127.0.0.{nid}')" if nid is not None else "UDP('127.0.0.1',anonymous=True)"),
+                        f"Serial('{serial_endpoint}',{nid})",
+                        f"UDP('127.0.0.1',{nid})",
                     ]
                 )
             ),

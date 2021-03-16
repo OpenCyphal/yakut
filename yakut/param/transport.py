@@ -3,7 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
-import typing
+from typing import Callable, Optional, Any, List, Dict
 import inspect
 import logging
 import pyuavcan
@@ -11,8 +11,7 @@ from pyuavcan.transport import Transport as Transport
 import click
 from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
 
-
-TransportFactory = typing.Callable[[], typing.Optional[Transport]]
+TransportFactory = Callable[[], Optional[Transport]]
 """
 The result is None if no transport configuration was provided when invoking the command.
 """
@@ -20,38 +19,60 @@ The result is None if no transport configuration was provided when invoking the 
 _logger = logging.getLogger(__name__)
 
 
-def transport_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
-    def validate(ctx: click.Context, param: object, value: typing.Optional[str]) -> TransportFactory:
-        _ = ctx, param
+def transport_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
+    def validate(ctx: click.Context, param: object, value: Optional[str]) -> TransportFactory:
+        from yakut import Purser
+
+        _ = param
         _logger.debug("Transport expression: %r", value)
 
-        def factory() -> typing.Optional[Transport]:
-            result: typing.Optional[Transport] = None
+        def factory() -> Optional[Transport]:
+            # Try constructing from the expression if provided:
             if value:
                 try:
                     result = construct_transport(value)
                 except Exception as ex:
                     raise click.BadParameter(f"Could not initialize transport {value!r}: {ex!r}") from ex
-            _logger.info("Expression %r yields %r", value, result)
+                _logger.info("Transport %r constructed from expression %r", result, value)
+                return result
+            # If no expression is given, construct from the registers passed via environment variables:
+            try:
+                from pyuavcan.application import make_transport
+            except (ImportError, AttributeError):
+                _logger.info(
+                    "Transport initialization expression is not provided and constructing the transport "
+                    "from registers is not possible because the standard DSDL namespace is not compiled"
+                )
+                return None
+            purser = ctx.find_object(Purser)
+            assert isinstance(purser, Purser)
+            result = make_transport(purser.get_registry())
+            _logger.info("Transport constructed from registers: %r", result)
             return result
 
         return factory
 
     doc = f"""
-Specify the UAVCAN network interface to use.
+Override the network interface configuration, including the local node-ID.
 This option is only relevant for commands that access the network, like pub/sub/call/etc.; other commands ignore it.
 
-The value is a (Python) expression that yields a transport instance or a sequence thereof upon evaluation.
+By default, if this option is not given (neither via --transport nor YAKUT_TRANSPORT),
+commands that access the network deduce the transport configuration from standard registers passed via
+environment variables, such as UAVCAN__NODE__ID, UAVCAN__UDP__IFACE, UAVCAN__SERIAL__IFACE,
+and so on.
+The full list of registers that configure the transport is available in the definition of the standard
+RPC-service "uavcan.register.Access", and in the documentation for PyUAVCAN:
+https://pyuavcan.readthedocs.io (see "make_transport()").
+This method requires that the standard DSDL namespace "uavcan" is compiled (see command "yakut compile")!
+
+If this expression is given, the registers are ignored, and the transport instance is constructed by evaluating it.
+Upon evaluation, the expression should yield either a single transport instance or a sequence thereof.
 In the latter case, the multiple transports will be joined under the same redundant transport instance,
 which may be heterogeneous (e.g., UDP+Serial).
-
-The node-ID for the local node is to be configured here as well, because per the UAVCAN architecture,
-this is a transport-layer property.
-
+This method does not require any DSDL to be compiled at all.
 To see supported transports and how they should be initialized, run `yakut doc`.
-Also, read the PyUAVCAN documentation at https://pyuavcan.readthedocs.io.
 
-The transport expression does not need to explicitly reference the `pyuavcan.transport` module
+The expression does not need to explicitly reference the `pyuavcan.transport` module
 because its contents are wildcard-imported for convenience.
 Further, when specifying a transport class, the suffix `Transport` may be omitted;
 e.g., `UDPTransport` and `UDP` are equivalent.
@@ -61,7 +82,7 @@ Examples showcasing loopback, CAN, and heterogeneous UDP+Serial:
 \b
     Loopback(None)
     CAN(can.media.socketcan.SocketCANMedia('vcan0',64),42)
-    UDP('127.42.0.123',anonymous=True),Serial("/dev/ttyUSB0",None)
+    UDP('127.42.0.123',None),Serial("/dev/ttyUSB0",None)
 
 To avoid issues caused by resetting the transfer-ID counters between invocations,
 the tool stores the output transfer-ID map on disk keyed by the node-ID.
@@ -99,7 +120,7 @@ def construct_transport(expression: str) -> Transport:
     raise ValueError("No transports specified")
 
 
-def _evaluate_transport_expr(expression: str, context: typing.Dict[str, typing.Any]) -> typing.List[Transport]:
+def _evaluate_transport_expr(expression: str, context: Dict[str, Any]) -> List[Transport]:
     out = eval(expression, context)  # pylint: disable=eval-used
     if isinstance(out, Transport):
         return [out]
@@ -111,7 +132,7 @@ def _evaluate_transport_expr(expression: str, context: typing.Dict[str, typing.A
     )
 
 
-def _make_evaluation_context() -> typing.Dict[str, typing.Any]:
+def _make_evaluation_context() -> Dict[str, Any]:
     import os
 
     def handle_import_error(parent_module_name: str, ex: ImportError) -> None:
@@ -127,7 +148,7 @@ def _make_evaluation_context() -> typing.Dict[str, typing.Any]:
     pyuavcan.util.import_submodules(pyuavcan.transport, error_handler=handle_import_error)
 
     # Populate the context with all references that may be useful for the transport expression.
-    context: typing.Dict[str, typing.Any] = {
+    context: Dict[str, Any] = {
         "pyuavcan": pyuavcan,
         "os": os,
     }

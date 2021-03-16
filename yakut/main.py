@@ -2,16 +2,20 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
+from __future__ import annotations
 import os
 import sys
-import typing
+from typing import TYPE_CHECKING, Union, Iterable, Optional, List, Any, Tuple, Callable, Awaitable
 import logging
+from pathlib import Path
 import click
 import yakut
 from yakut.param.transport import transport_factory_option, TransportFactory, Transport
 from yakut.param.formatter import formatter_factory_option, FormatterFactory, Formatter
 from yakut.param.node import node_factory_option, NodeFactory
 
+if TYPE_CHECKING:
+    import pyuavcan.application
 
 _logger = logging.getLogger(__name__.replace("__", ""))
 _LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-3.3s %(name)s: %(message)s"
@@ -21,29 +25,51 @@ logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will 
 class Purser:
     def __init__(
         self,
+        paths: Iterable[Union[str, Path]],
         formatter_factory: FormatterFactory,
         transport_factory: TransportFactory,
         node_factory: NodeFactory,
     ) -> None:
+        self._paths = list(Path(x) for x in paths)
         self._f_formatter = formatter_factory
         self._f_transport = transport_factory
         self._f_node = node_factory
 
-        self._transport: typing.Optional[Transport] = None
-        self._node: typing.Optional[object] = None
+        self._registry: Optional[pyuavcan.application.register.Registry] = None
+        self._transport: Optional[Transport] = None
+        self._node: Optional["pyuavcan.application.Node"] = None
+
+    @property
+    def paths(self) -> List[Path]:
+        return list(self._paths)
 
     def make_formatter(self) -> Formatter:
         return self._f_formatter()
 
+    def get_registry(self) -> pyuavcan.application.register.Registry:
+        """
+        Commands should never construct registry on their own!
+        Doing so is likely to create divergent configurations that are not exposed via the Register Interface.
+        Instead, use this factory: it will create a registry instance at the first invocation and then it will be
+        shared with all components.
+
+        :raises: :class:`ImportError` if the standard DSDL namespace ``uavcan`` is not available.
+        """
+        if self._registry is None:
+            from pyuavcan.application import make_registry
+
+            self._registry = make_registry()
+        return self._registry
+
     def get_transport(self) -> Transport:
-        if self._transport is None:
+        if self._transport is None:  # pragma: no branch
             self._transport = self._f_transport()
         if self._transport is not None:
             return self._transport
         click.get_current_context().fail("Transport not configured")
 
-    def get_node(self, name_suffix: str, allow_anonymous: bool) -> object:
-        if self._node is None:
+    def get_node(self, name_suffix: str, allow_anonymous: bool) -> "pyuavcan.application.Node":
+        if self._node is None:  # pragma: no branch
             tr = self.get_transport()
             self._node = self._f_node(tr, name_suffix=name_suffix, allow_anonymous=allow_anonymous)
         return self._node
@@ -53,7 +79,7 @@ pass_purser = click.make_pass_decorator(Purser)
 
 
 class AbbreviatedGroup(click.Group):
-    def get_command(self, ctx: click.Context, cmd_name: str) -> typing.Optional[click.Command]:
+    def get_command(self, ctx: click.Context, cmd_name: str) -> Optional[click.Command]:
         rv = click.Group.get_command(self, ctx, cmd_name)
         if rv is not None:
             return rv
@@ -64,9 +90,7 @@ class AbbreviatedGroup(click.Group):
             return click.Group.get_command(self, ctx, matches[0])
         ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
 
-    def resolve_command(
-        self, ctx: click.Context, args: typing.List[typing.Any]
-    ) -> typing.Tuple[str, click.Command, typing.List[typing.Any]]:
+    def resolve_command(self, ctx: click.Context, args: List[Any]) -> Tuple[str, click.Command, List[Any]]:
         """
         This is a workaround for this bug in v7: https://github.com/pallets/click/issues/1422.
 
@@ -86,10 +110,11 @@ _ENV_VAR_PATH = "YAKUT_PATH"
     cls=AbbreviatedGroup,
     context_settings={
         "max_content_width": click.get_terminal_size()[0],
+        "auto_envvar_prefix": "YAKUT",  # Specified here, not in __main__.py, otherwise doesn't work when installed.
     },
 )
 @click.version_option(version=yakut.__version__)
-@click.option("--verbose", "-v", count=True, help="Show verbose log messages. Specify twice for extra verbosity.")
+@click.option("--verbose", "-v", count=True, help="Emit verbose log messages. Specify twice for extra verbosity.")
 @click.option(
     "--path",
     "-P",
@@ -117,7 +142,7 @@ Examples:
 def main(
     ctx: click.Context,
     verbose: int,
-    path: typing.Tuple[str, ...],
+    path: Tuple[str, ...],
     formatter_factory: FormatterFactory,
     transport_factory: TransportFactory,
     node_factory: NodeFactory,
@@ -145,25 +170,27 @@ def main(
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
 
-    for p in (os.getcwd(), *path):
-        _logger.debug("New path item: %s", p)
+    path = (os.getcwd(), *path)
+    _logger.debug("Path: %r", path)
+    for p in path:
         sys.path.append(str(p))
 
     ctx.obj = Purser(
+        paths=path,
         formatter_factory=formatter_factory,
         transport_factory=transport_factory,
         node_factory=node_factory,
     )
 
 
-subcommand: typing.Callable[..., typing.Callable[..., typing.Any]] = main.command  # type: ignore
+subcommand: Callable[..., Callable[..., Any]] = main.command  # type: ignore
 
 
-def asynchronous(f: typing.Callable[..., typing.Awaitable[typing.Any]]) -> typing.Callable[..., typing.Any]:
+def asynchronous(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
     import asyncio
     from functools import update_wrapper
 
-    def proxy(*args: typing.Any, **kwargs: typing.Any) -> typing.Any:
+    def proxy(*args: Any, **kwargs: Any) -> Any:
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(f(*args, **kwargs))
 

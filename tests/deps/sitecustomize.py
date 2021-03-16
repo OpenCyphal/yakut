@@ -1,6 +1,7 @@
 # Copyright (c) 2019 UAVCAN Consortium
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
+# type: ignore
 
 import os
 import sys
@@ -28,7 +29,6 @@ def setup_coverage() -> None:
         # Coverage configuration; see https://coverage.readthedocs.io/en/coverage-4.2/subprocess.html
         os.environ["COVERAGE_PROCESS_START"] = str(SETUP_CFG)
         coverage.process_startup()
-        print(f"Tracking coverage of {sys.argv}", file=sys.stderr)
 
 
 if not detect_debugger():

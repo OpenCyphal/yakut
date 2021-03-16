@@ -18,7 +18,7 @@ _logger = logging.getLogger(__name__)
 
 def construct_port_id_and_type(spec: str) -> typing.Tuple[int, typing.Type[pyuavcan.dsdl.CompositeObject]]:
     r"""
-    Parses a data specifier string of the form ``[port_id.]full_data_type_name.major_version.minor_version``.
+    Parses a data specifier string of the form ``[port_id:]full_data_type_name.major_version.minor_version``.
     Name separators may be replaced with ``/`` or ``\`` for compatibility with file system paths;
     the version number separators may also be underscores for convenience.
     Raises ValueError, possibly with suggestions, if such type is non-reachable.
@@ -88,9 +88,9 @@ def convert_transfer_metadata_to_builtin(
 
 _MICRO = decimal.Decimal("0.000001")
 
-_RE_SPLIT = re.compile(r"^(?:(\d+)\.)?((?:[a-zA-Z_][a-zA-Z0-9_]*)(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)[_.](\d+)[_.](\d+)$")
+_RE_SPLIT = re.compile(r"^(?:(\d+)[:.])?((?:[a-zA-Z_][a-zA-Z0-9_]*)(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)[_.](\d+)[_.](\d+)$")
 """
-Splits ``123.ns.Type.123.45`` into ``('123', 'ns.Type', '123', '45')``.
+Splits ``123:ns.Type.123.45`` into ``('123', 'ns.Type', '123', '45')``.
 Splits     ``ns.Type.123.45`` into ``(None, 'ns.Type', '123', '45')``.
 The version separators (the last two) may be underscores.
 """
@@ -113,25 +113,25 @@ def _parse_data_spec(spec: str) -> typing.Tuple[typing.Optional[int], str, int, 
 def _unittest_parse_data_spec() -> None:
     import pytest
 
-    assert (123, "ns.Type", 12, 34) == _parse_data_spec(" 123.ns.Type.12.34 ")
-    assert (123, "ns.Type", 12, 34) == _parse_data_spec("123.ns.Type_12.34")
-    assert (123, "ns.Type", 12, 34) == _parse_data_spec("123.ns/Type.12_34")
-    assert (123, "ns.Type", 12, 34) == _parse_data_spec("123.ns.Type_12_34")
+    assert (123, "ns.Type", 12, 34) == _parse_data_spec(" 123:ns.Type.12.34 ")
+    assert (123, "ns.Type", 12, 34) == _parse_data_spec("123:ns.Type_12.34")
+    assert (123, "ns.Type", 12, 34) == _parse_data_spec("123:ns/Type.12_34")
+    assert (123, "ns.Type", 12, 34) == _parse_data_spec("123:ns.Type_12_34")
     assert (123, "ns.Type", 12, 34) == _parse_data_spec(r"123\ns\Type_12_34 ")
 
     assert (None, "ns.Type", 12, 34) == _parse_data_spec("ns.Type.12.34 ")
-    assert (123, "Type", 12, 34) == _parse_data_spec("123.Type.12.34")
+    assert (123, "Type", 12, 34) == _parse_data_spec("123:Type.12.34")
     assert (None, "Type", 12, 34) == _parse_data_spec("Type.12.34")
-    assert (123, "ns0.sub.Type0", 0, 1) == _parse_data_spec("123.ns0.sub.Type0.0.1")
+    assert (123, "ns0.sub.Type0", 0, 1) == _parse_data_spec("123:ns0.sub.Type0.0.1")
     assert (None, "ns0.sub.Type0", 255, 255) == _parse_data_spec(r"ns0/sub\Type0.255.255")
 
     with pytest.raises(ValueError):
-        _parse_data_spec("123.ns.Type.12")
+        _parse_data_spec("123:ns.Type.12")
     with pytest.raises(ValueError):
-        _parse_data_spec("123.ns.Type.12.43.56")
+        _parse_data_spec("123:ns.Type.12.43.56")
     with pytest.raises(ValueError):
         _parse_data_spec("ns.Type.12")
     with pytest.raises(ValueError):
         _parse_data_spec("ns.Type.12.43.56")
     with pytest.raises(ValueError):
-        _parse_data_spec("123.ns.0Type.12.43")
+        _parse_data_spec("123:ns.0Type.12.43")

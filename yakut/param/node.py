@@ -2,6 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
+from __future__ import annotations
 import os
 import re
 import time
@@ -19,6 +20,8 @@ import yakut
 from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
 from yakut.helpers import EnumParam
 
+if typing.TYPE_CHECKING:
+    import pyuavcan.application  # pylint: disable=ungrouped-imports
 
 _logger = logging.getLogger(__name__)
 
@@ -46,11 +49,14 @@ class NodeFactory:
         }
     )
 
-    def __call__(self, transport: Transport, name_suffix: str, allow_anonymous: bool) -> object:
+    def __call__(self, transport: Transport, name_suffix: str, allow_anonymous: bool) -> pyuavcan.application.Node:
         """
         We use ``object`` for return type instead of Node because the Node class requires generated code
         to be generated.
         """
+        # pylint: disable=too-many-statements
+        from yakut import Purser
+
         _logger.debug("Constructing node using %r with %r and name %r", self, transport, name_suffix)
         if not re.match(r"[a-z][a-z0-9_]*[a-z0-9]", name_suffix):  # pragma: no cover
             raise ValueError(f"Internal error: Poorly chosen node name suffix: {name_suffix!r}")
@@ -70,8 +76,11 @@ class NodeFactory:
             node_info.name = f"org.uavcan.yakut.{name_suffix}"
         _logger.debug("Node info: %r", node_info)
 
-        presentation = pyuavcan.presentation.Presentation(transport)
-        node = application.Node(presentation, info=node_info)
+        ctx = click.get_current_context()
+        assert isinstance(ctx, click.Context)
+        purser = ctx.find_object(Purser)
+        assert isinstance(purser, Purser)
+        node = application.make_node(node_info, purser.get_registry(), transport=transport)
         try:
             # Configure the heartbeat publisher.
             try:
@@ -110,7 +119,7 @@ class NodeFactory:
                 tid_map = _restore_output_transfer_id_map(path)
                 if tid_map:
                     _logger.debug("Restored output TID map from %s: %r", path, tid_map)
-                    presentation.output_transfer_id_map.update(tid_map)
+                    node.presentation.output_transfer_id_map.update(tid_map)
                     tid_map_restored = True
             if not tid_map_restored:
                 _logger.debug("Could not restore output TID map from %s", path)
@@ -185,12 +194,9 @@ The vendor-specific status code (VSSC) of the local node. The default is (PID % 
         metavar="YAML",
         type=str,
         callback=validate,
-        help=f"""
+        help="""
 Override the default values of the uavcan.node.GetInfo response returned by the local node.
-The defaults are (the default node name depends on the subcommand):
-
-\b
-{factory.node_info}
+The protocol version cannot be overridden.
 """,
     )(f)
     return f

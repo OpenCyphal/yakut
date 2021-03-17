@@ -6,7 +6,6 @@ from __future__ import annotations
 import asyncio
 from typing import Optional, Iterable, List, Tuple, TYPE_CHECKING
 from pathlib import Path
-import logging
 import click
 import pyuavcan
 import yakut
@@ -16,7 +15,7 @@ if TYPE_CHECKING:
     import pyuavcan.application
     import pyuavcan.application.file
 
-_logger = logging.getLogger(__name__)
+_logger = yakut.get_logger(__name__)
 
 
 def _validate_root_directory(ctx: click.Context, param: click.Parameter, value: Iterable[str]) -> List[Path]:

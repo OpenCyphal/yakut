@@ -5,14 +5,13 @@
 import sys
 import random
 import asyncio
-import logging
 import contextlib
 import click
 import pyuavcan
 import yakut
 
 
-_logger = logging.getLogger(__name__)
+_logger = yakut.get_logger(__name__)
 
 
 @yakut.subcommand()

@@ -21,7 +21,7 @@ With a slow garbage-collected language like Python, having a smaller timeout doe
 This may be made configurable later.
 """
 
-_logger = logging.getLogger(__name__)
+_logger = yakut.get_logger(__name__)
 
 
 def _validate_message_spec(

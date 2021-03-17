@@ -8,14 +8,14 @@ from __future__ import annotations
 import re
 from typing import Optional, TYPE_CHECKING, Any
 import dataclasses
-import logging
 import pyuavcan
+import yakut
 
 if TYPE_CHECKING:
     import pyuavcan.application  # pylint: disable=ungrouped-imports
 
 
-_logger = logging.getLogger(__name__)
+_logger = yakut.get_logger(__name__.split("._")[0])
 
 
 @dataclasses.dataclass(frozen=True)

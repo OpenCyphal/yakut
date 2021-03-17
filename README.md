@@ -125,7 +125,7 @@ Transport |Register name        |Register type  |Environment variable name|Seman
 ----------|---------------------|---------------|-------------------------|---------------------------------------------------|------------------------------------
 All       |`uavcan.node.id`     |`natural16[1]` |`UAVCAN__NODE__ID`       |The local node-ID; anonymous if not set            |`42`
 UDP       |`uavcan.udp.iface`   |`string`       |`UAVCAN__UDP__IFACE`     |Space-separated local IPs (16 LSB set to node-ID)  |`127.9.0.0 192.168.0.0`
-Serial    |`uavcan.serial.iface`|`string`       |`UAVCAN__SERIAL__IFACE`  |Space-separated serial port names                  |`COM9 socket://localhost:50905`
+Serial    |`uavcan.serial.iface`|`string`       |`UAVCAN__SERIAL__IFACE`  |Space-separated serial port names                  |`COM9 socket://127.0.0.1:50905`
 CAN       |`uavcan.can.iface`   |`string`       |`UAVCAN__CAN__IFACE`     |Space-separated CAN iface names                    |`socketcan:vcan0 pcan:PCAN_USBBUS1`
 CAN       |`uavcan.can.mtu`     |`natural16[1]` |`UAVCAN__CAN__MTU`       |Maximum transmission unit; selects Classic/FD      |`64`
 CAN       |`uavcan.can.bitrate` |`natural32[2]` |`UAVCAN__CAN__BITRATE`   |Arbitration/data segment bits per second           |`1000000 4000000`
@@ -167,6 +167,8 @@ Publishing two messages synchronously twice (four messages total);
 notice how we specify the subject-ID before the data type name:
 
 ```bash
+export UAVCAN__UDP__IFACE=127.63.0.0
+export UAVCAN__NODE__ID=42
 yakut pub 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"' -N2
 ```
 
@@ -178,6 +180,7 @@ Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0`
 to receive messages published by the above command:
 
 ```bash
+$ export UAVCAN__UDP__IFACE=127.63.0.0
 $ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
 ---
 33:
@@ -222,6 +225,8 @@ float16 y
 Suppose that there is node 42 that serves `sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0` at service-ID 123:
 
 ```bash
+$ export UAVCAN__UDP__IFACE=127.63.0.0
+$ export UAVCAN__NODE__ID=42
 $ yakut compile sirius_cyber_corp
 $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
 ---
@@ -229,3 +234,68 @@ $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: 
   slope: 0.1
   y_intercept: 0.0
 ```
+
+## Updating node software
+
+The file server command can be used to serve files,
+run a plug-and-play node-ID allocator (some embedded bootloader implementations require that),
+and automatically send software update requests `uavcan.node.ExecuteCommand` to nodes whose software is old.
+
+To demonstrate this capability, suppose that the network contains the following nodes:
+
+- nodes 1, 2 named `com.example.foo`, software 1.0
+- nodes 3, 4 named `com.example.bar`, hardware v4.2, software v3.4
+- node 5 named `com.example.baz`
+
+Software updates are distributed as atomic package files.
+In case of embedded systems, the package is usually just the firmware image,
+possibly compressed or amended with some metadata.
+For the file server this is irrelevant since it never looks inside the files it serves.
+However, the name is relevant as it shall follow a particular pattern to make the server recognize
+the file as a software package.
+The full specification is given in the command help: `yakut file-server --help`.
+
+Suppose that we have the following packages that we need to deploy:
+
+- v1.1 for nodes `com.example.foo` with any hardware
+- v3.3 for nodes `com.example.bar` with hardware v4.x
+- v3.5 for nodes `com.example.bar` with hardware v5.6 only
+- nothing for `com.example.baz`
+
+```shell
+$ ls *.app*                       # List all software packages
+com.example.foo-1.1.app.zip       # Any hardware
+com.example.bar-4-3.3.app.pkg     # Hardware v4.x
+com.example.bar-5.6-3.5.app.bin   # Hardware v5.6 only
+```
+
+The server rescans its root directory whenever a new node is found online,
+meaning that packages can be added/removed at runtime and the server will pick up the changes on the fly.
+Launch the server:
+
+```shell
+$ export UAVCAN__UDP__IFACE=127.63.0.0
+$ export UAVCAN__NODE__ID=42
+$ yakut file-server --plug-and-play=allocation_table.db --update-software
+```
+
+If there are any nodes online (or if they join the network later),
+the server will check the version of each by sending `uavcan.node.GetInfo`,
+and if a newer package is available locally, it will request the node to install it
+by sending `uavcan.node.ExecuteCommand`.
+
+In this specific case, the following will happen:
+
+- Nodes 1 and 2 will be updated to v1.1.
+- Nodes 3 and 4 will not be updated because the newer package v3.5 is incompatible with hardware v4.2,
+  and the compatible version v3.3 is too old.
+- Node 5 will not be updated because there are no suitable packages.
+
+Add `--verbose` to see how exactly the decisions are made.
+
+This command can be used to implement **automatic network-wide configuration management**.
+Start the server and leave it running.
+Store all relevant packages into its root directory.
+When a node is connected or restarted, the server will automatically compare the version of its software
+against the local files and perform an update if necessary.
+Therefore, the entire network will be kept up-to-date without manual intervention.

@@ -24,6 +24,7 @@
       <w>autoconfiguration</w>
       <w>autodoc</w>
       <w>autosummary</w>
+      <w>badc</w>
       <w>baudrate</w>
       <w>bgcolor</w>
       <w>blin</w>
@@ -51,6 +52,7 @@
       <w>datagrams</w>
       <w>dcabf</w>
       <w>ddddddd</w>
+      <w>deadbeef</w>
       <w>deadbeefdeadbeefdeadbeefdeadbeef</w>
       <w>deallocated</w>
       <w>debian</w>
@@ -103,6 +105,8 @@
       <w>hitl</w>
       <w>hostmask</w>
       <w>hwgrep</w>
+      <w>hwmaj</w>
+      <w>hwmin</w>
       <w>iana</w>
       <w>icmp</w>
       <w>iface</w>
@@ -245,8 +249,11 @@
       <w>suka</w>
       <w>supernum</w>
       <w>supremum</w>
+      <w>swmaj</w>
+      <w>swmin</w>
       <w>synth</w>
       <w>systeminfo</w>
+      <w>telega</w>
       <w>tempfile</w>
       <w>templatedir</w>
       <w>testpaths</w>

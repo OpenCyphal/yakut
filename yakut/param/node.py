@@ -124,7 +124,7 @@ class NodeFactory:
             if not tid_map_restored:
                 _logger.debug("Could not restore output TID map from %s", path)
 
-            _logger.info("Constructed node: %s", node)
+            _logger.debug("Constructed node: %s", node)
             return node
         except Exception:
             node.close()
@@ -209,7 +209,12 @@ def _restore_output_transfer_id_map(
         with open(str(file_path), "rb") as f:
             tid_map = pickle.load(f)
     except Exception as ex:  # pylint: disable=broad-except
-        _logger.info("Output TID map: Could not restore from file %s: %s: %s", file_path, type(ex).__name__, ex)
+        _logger.info(
+            "Output TID map: Could not restore from file %s: %s: %s. No problem, will use defaults.",
+            file_path,
+            type(ex).__name__,
+            ex,
+        )
         return {}
     mtime_abs_diff = abs(file_path.stat().st_mtime - time.time())
     if mtime_abs_diff > OUTPUT_TRANSFER_ID_MAP_MAX_AGE:

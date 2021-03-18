@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
+import sys
 import dataclasses
 import functools
 from typing import Optional, Iterable, List, Any, Tuple
@@ -11,10 +12,15 @@ import enum
 import click
 
 
+# errors=ignore is necessary to handle Unicode support limitations on Windows.
+_TEXT_STREAM = click.get_text_stream("stdout", errors="ignore")
+
+
 def refresh_screen(contents: str) -> None:
     click.echo("\n")  # Mark the boundary between screens when redirecting to file.
     click.clear()
-    click.echo(contents)
+    sys.stdout.flush()  # Synchronize clear with the following output since it is buffered separately.
+    click.echo(contents, file=_TEXT_STREAM)
 
 
 class Color(enum.Enum):

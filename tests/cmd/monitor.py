@@ -164,7 +164,7 @@ async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_
         print("=== LAST SCREEN ===")
         print(last_screen)
         return last_screen
-    except Exception:
+    except Exception:  # pragma: no cover
         proc.kill()
         raise
 
@@ -260,6 +260,8 @@ async def _run_nodes(serial_iface: str) -> None:
                 if i % 5 == 0:
                     await reg_client_b.call(uavcan.register.List_1_0.Request(i % 11))
             await asyncio.sleep(0.01)
+    except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
+        pass
     finally:
         print("STOPPING THE NODES...")
         for n in nodes:
@@ -277,6 +279,8 @@ async def _run_zombie(serial_iface: str) -> None:
         while True:
             await pub.publish(Empty_1_0())
             await asyncio.sleep(0.5)
+    except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
+        pass
     finally:
         pres.close()
 
@@ -298,6 +302,8 @@ async def _run_anonymous(serial_iface: str) -> None:
         while True:
             await asyncio.sleep(1.0)
             await pub.publish(String_1_0("I am here incognito."))
+    except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
+        pass
     finally:
         node.close()
 
@@ -318,7 +324,7 @@ async def _delay(target: Awaitable[None], delay: float, duration: Optional[float
             await target
         else:
             await asyncio.wait_for(target, duration)
-    except (asyncio.TimeoutError, asyncio.CancelledError):
+    except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
         pass
     print("FINISHED", target)
 

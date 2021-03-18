@@ -195,7 +195,7 @@ class Avatar:
         return (ts - self._ts_node_id_collision) <= Heartbeat_1_0.OFFLINE_TIMEOUT
 
     def __repr__(self) -> str:
-        return pyuavcan.util.repr_attributes(self, node_id=self._node_id)
+        return str(pyuavcan.util.repr_attributes(self, node_id=self._node_id))
 
 
 def expand_subjects(m: uavcan.node.port.SubjectIDList_0_1) -> AbstractSet[int]:

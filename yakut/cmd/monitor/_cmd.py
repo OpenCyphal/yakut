@@ -25,16 +25,37 @@ async def monitor(purser: yakut.Purser) -> None:
 
     If the tool is launched with an anonymous node-ID, its functionality will be limited
     as it will be unable to send introspection requests to other nodes (like uavcan.node.GetInfo),
-    but it will attempt to snoop on relevant data sent to other nodes and extract as much information as it can
-    through passive monitoring.
-    If there is another node like this one running on the network that is non-anonymous,
-    it will act as a source of target illumination, allowing other monitors to benefit from its probing requests.
+    but it will always attempt to snoop on relevant data sent to other nodes and extract as much information as it can
+    through passive monitoring (e.g., by intercepting responses to uavcan.node.GetInfo).
 
     The tool will set up low-level packet capture using the advanced network introspection API of PyUAVCAN.
     This may fail for some transports (UDP in particular) unless the user has the permissions required for packet
     capture and the system is configured appropriately (capabilities enabled, capture drivers installed, etc).
     Ethernet-based transports shall be connected to the SPAN port of the local switch (see port mirroring).
-    Refer to the PyUAVCAN documentation to find out how to enable packet capture: https://pyuavcan.readthedocs.io.
+    Refer to the PyUAVCAN documentation for details: https://pyuavcan.readthedocs.io.
+
+    The output contains a table of nodes that are (or were) online followed by the connectivity matrix.
+    The matrix shows the real-time traffic split by session:
+    if node X emits transfers over port Y, the matrix cell (Y, X) will contain the averaged rate
+    in transfers per second for this session.
+    The rightmost/bottom cells show the totals per port/node, respectively.
+    These values allow one to assess how much load each element contributes to the total.
+    The summary load in bytes per second (B/s) is also provided per port/node.
+
+    Cells of the connectivity matrix are colored based on the port introspection information published
+    by their node via uavcan.node.port.List.
+    Cells that represent inactive ports (not a publisher, subscriber, client, or server) are colored black.
+    Therefore, if a node publishes its port introspection and you see a value printed in a black cell,
+    it is an error since the node is emitting transfers over a port that is not reported in the introspection
+    message.
+
+    Do keep in mind that the observed quantities are computed and valid for the application layer only,
+    not the transport layer.
+    Intentional or unintentional effects such as deterministic data loss mitigation, transport redundancy,
+    or errors in the communication medium may duplicate transfers or transport frames (packets) exchanged
+    over the network, but such occurrences will not be displayed on the matrix because it is by design
+    supposed to focus on the application-layer workload.
+    If you need a lower-level view of the network, consider using specialized tools such as Wireshark or candump.
     """
     import numpy as np
     from scipy.sparse import dok_matrix, spmatrix

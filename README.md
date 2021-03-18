@@ -246,6 +246,8 @@ It is also able to detect some common network configuration issues like node-ID 
 (multiple nodes sharing the same node-ID)
 or zombie nodes (nodes that do not publish `uavcan.node.Heartbeat`).
 
+Read `yakut monitor --help` for details.
+
 <img src="/docs/monitor.gif" alt="yakut monitor">
 
 The monitor can be an anonymous node or it can be given a node-ID of its own.

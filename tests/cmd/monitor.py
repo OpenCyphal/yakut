@@ -23,6 +23,7 @@ async def _unittest_monitor(compiled_dsdl: Any, serial_broker: str) -> None:
         await asyncio.sleep(10.0)
     finally:
         task_nodes.cancel()
+        await asyncio.sleep(3.0)
 
 
 async def _run_nodes(serial_iface: str) -> None:

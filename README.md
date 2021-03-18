@@ -28,6 +28,10 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
+### Common issues
+
+If you are experiencing illegal instruction faults on aarch64, upgrade NumPy and Cython: `pip install -U numpy cython`.
+
 ## Invoking commands
 
 Any option can be supplied either as a command-line argument or as an environment variable named like

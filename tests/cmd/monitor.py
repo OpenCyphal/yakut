@@ -309,7 +309,7 @@ async def _run_anonymous(serial_iface: str) -> None:
 
 
 async def _inject_error(serial_iface: str) -> None:
-    from serial import serial_for_url
+    from serial import serial_for_url  # type: ignore
 
     p = serial_for_url(serial_iface)
     p.write(b"\x00 this is not a valid frame \x00")

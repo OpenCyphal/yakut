@@ -44,7 +44,7 @@ class NodeState:
     """
 
 
-class Avatar:
+class Avatar:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         iface: Iface,

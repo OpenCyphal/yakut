@@ -2,6 +2,8 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
+# pylint: disable=too-many-locals
+
 from __future__ import annotations
 import sys
 import functools

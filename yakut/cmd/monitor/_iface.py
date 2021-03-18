@@ -10,7 +10,7 @@ from pyuavcan.transport import Timestamp, AlienTransfer
 import yakut
 
 if TYPE_CHECKING:
-    import pyuavcan.application
+    import pyuavcan.application  # pylint: disable=ungrouped-imports
 
 
 class Iface:

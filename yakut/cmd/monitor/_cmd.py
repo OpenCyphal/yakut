@@ -57,12 +57,12 @@ async def monitor(purser: yakut.Purser) -> None:
     supposed to focus on the application-layer workload.
     If you need a lower-level view of the network, consider using specialized tools such as Wireshark or candump.
     """
+    # pylint: disable=too-many-locals
     import numpy as np
     from scipy.sparse import dok_matrix, spmatrix
 
     try:
-        import uavcan.node
-        import uavcan.node.port
+        import uavcan.node.port  # pylint: disable=unused-import
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
 

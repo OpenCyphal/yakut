@@ -192,7 +192,7 @@ class Avatar:
     def _check_node_id_collision(self, ts: float) -> bool:
         from uavcan.node import Heartbeat_1_0
 
-        return (ts - self._ts_node_id_collision) < Heartbeat_1_0.OFFLINE_TIMEOUT
+        return (ts - self._ts_node_id_collision) <= Heartbeat_1_0.OFFLINE_TIMEOUT
 
     def __repr__(self) -> str:
         return pyuavcan.util.repr_attributes(self, node_id=self._node_id)

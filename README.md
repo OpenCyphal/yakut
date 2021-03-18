@@ -12,6 +12,8 @@ Yakut supports all UAVCAN transports (UDP, serial, CAN, ...)
 and is compatible with all major features of the protocol.
 It is designed to be usable with GNU/Linux, Windows, and macOS.
 
+<img src="/docs/monitor.png" alt="yakut monitor">
+
 Ask questions and get assistance at [forum.uavcan.org](https://forum.uavcan.org/).
 
 ## Installing
@@ -234,6 +236,23 @@ $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: 
   slope: 0.1
   y_intercept: 0.0
 ```
+
+## Monitoring the network
+
+The command `yakut monitor` can be used to display *all* activity on the network in a compact representation.
+It tracks online nodes and maintains real-time statistics on all transfers exchanged between each node
+on the network.
+It is also able to detect some common network configuration issues like node-ID collision
+(multiple nodes sharing the same node-ID)
+or zombie nodes (nodes that do not publish `uavcan.node.Heartbeat`).
+
+<img src="/docs/monitor.gif" alt="yakut monitor">
+
+The monitor can be an anonymous node or it can be given a node-ID of its own.
+In the latter case it will actively query other nodes using the standard introspection services.
+
+Some transports, UAVCAN/UDP in particular, require special privileges to run this tool due to the security
+implications of low-level packet capture.
 
 ## Updating node software
 

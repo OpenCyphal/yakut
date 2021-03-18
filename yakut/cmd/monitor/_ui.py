@@ -12,6 +12,7 @@ import click
 
 
 def refresh_screen(contents: str) -> None:
+    click.echo("\n")  # Mark the boundary between screens when redirecting to file.
     click.clear()
     click.echo(contents)
 

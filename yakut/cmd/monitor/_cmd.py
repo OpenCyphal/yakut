@@ -56,8 +56,7 @@ async def monitor(purser: yakut.Purser) -> None:
 
     total_transport_error_count = 0
 
-    models: Dict[int, Avatar] = {}
-    anon_model: Optional[Avatar] = None
+    models: Dict[Optional[int], Avatar] = {}
 
     ts_last_trace: Optional[Timestamp] = None
 
@@ -72,21 +71,13 @@ async def monitor(purser: yakut.Purser) -> None:
     def on_trace(ts: Timestamp, tr: AlienTransfer) -> None:
         nonlocal ts_last_trace
         ts_last_trace = ts
-
         # Create node instances lazily.
         node_id = tr.metadata.session_specifier.source_node_id
-        if node_id is not None:
-            if node_id not in models:
-                _logger.info("New node %r", node_id)
-                models[node_id] = Avatar(iface, node_id)
-        else:
-            nonlocal anon_model
-            if anon_model is None:
-                _logger.info("Anonymous node detected")
-                anon_model = Avatar(iface, None)
-
+        if node_id not in models:
+            _logger.info("New node %r", node_id)
+            models[node_id] = Avatar(iface, node_id)
         # Update statistical counters.
-        x = tr.metadata.session_specifier.source_node_id
+        x = node_id
         if x is None:
             x = N_NODES
         y = linearize_data_specifier(tr.metadata.session_specifier.data_specifier)
@@ -140,20 +131,19 @@ async def monitor(purser: yakut.Purser) -> None:
 
             # Recompute the new node state snapshots
             snapshot: Dict[Optional[int], NodeState] = {}
-            for node_id, mo in sorted(models.items()):
+            for node_id, mo in sorted(models.items(), key=lambda x: x[0] if x[0] is not None else N_NODES):
                 assert isinstance(mo, Avatar)
                 snapshot[node_id] = mo.update(ts)
-            if anon_model:
-                snapshot[None] = anon_model.update(ts)
 
             # Render the model into a huge text buffer
             ts_render_started = node.loop.time()
             view.render(
                 states=snapshot,
-                total_transport_errors=total_transport_error_count,
                 xfer_deltas=xfer_deltas,
                 xfer_rates=xfer_rates,
                 byte_rates=byte_rates,
+                total_transport_errors=total_transport_error_count,
+                fir_window_duration=fir_window_duration,
             )
             elapsed_render = node.loop.time() - ts_render_started
 

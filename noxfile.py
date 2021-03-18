@@ -76,7 +76,7 @@ def test(session):
     if session.posargs or session.interactive or sys.platform.startswith("win"):
         fail_under = 1
     else:
-        fail_under = 90
+        fail_under = 70
     session.run("coverage", "combine")
     session.run("coverage", "report", f"--fail-under={fail_under}")
     if session.interactive:

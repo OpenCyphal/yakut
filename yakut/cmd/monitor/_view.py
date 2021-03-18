@@ -79,25 +79,29 @@ class View:
     def render(
         self,
         states: Dict[Optional[int], NodeState],
-        total_transport_errors: int,
         xfer_deltas: spmatrix,
         xfer_rates: spmatrix,
         byte_rates: spmatrix,
+        total_transport_errors: int,
+        fir_window_duration: float,
     ) -> None:
         self._fragments.append(self._render_node_table(states))
 
         self._fragments.append(self._connectivity_matrix_legend)
         self._fragments.append(self._render_connectivity_matrix(states, xfer_deltas, xfer_rates, byte_rates))
 
-        error_canvas = Canvas()
-        col = error_canvas.put(0, 0, "Total transport layer errors:")
-        error_canvas.put(
+        annotation_canvas = Canvas()
+        col = annotation_canvas.put(0, 0, "Total transport layer errors:")
+        col = annotation_canvas.put(
             0,
             col,
             f"{total_transport_errors:9d}",
             style=S_POOR if total_transport_errors > 0 else S_NICE,
         )
-        self._fragments.append(error_canvas.flip_buffer())
+        col += 9
+        col = annotation_canvas.put(0, col, f"Values averaged over {fir_window_duration:.1f} sec")
+        _ = col
+        self._fragments.append(annotation_canvas.flip_buffer())
 
     # noinspection SpellCheckingInspection
     _NODE_TABLE_HEADER = [
@@ -133,7 +137,7 @@ class View:
                 else:
                     put(node_id, None)
             else:
-                put("anon", S_MUTED)
+                put("anon", None if ss.online else S_MUTED)
 
             if ss.heartbeat:
                 if node_id is None and ss.online:
@@ -155,7 +159,7 @@ class View:
                     if node_id is not None:
                         put("zombie", S_FAILURE)
                     else:
-                        put("online", S_MUTED)
+                        put("online", None)
                 else:
                     if ss.node_id_collision:
                         put("node collision", S_FAILURE)
@@ -240,14 +244,15 @@ class View:
 
         for row in (row_subject + num_subjects + 1, row_service + num_services + 1):
             tbl[row + 0, num_nodes + 3] = "↖ t/s", S_MUTED
+            tbl[row + 1, num_nodes + 3] = "", S_MUTED
 
         for row in (row_subject, row_service, row_total):  # Row of node-IDs and per-port totals.
             for ii, (node_id, state) in enumerate(online_states.items()):
+                sty = S_POOR if state.ports is None else S_NICE
                 if node_id is not None:
-                    sty = S_POOR if state.ports is None else S_NICE
                     tbl[row, ii + 1] = node_id, sty
                 else:
-                    tbl[row, ii + 1] = " anon", S_DEFAULT
+                    tbl[row, ii + 1] = " anon", sty
             tbl[row, num_nodes + 1] = " ∑t/s"
             tbl[row, num_nodes + 2] = " ∑B/s"
 
@@ -307,6 +312,9 @@ class View:
         sty = get_matrix_cell_style(None, None, int(xfer_delta_by_ds.sum()) > 0)
         tbl[row_total + 1, num_nodes + 1] = render_xfer_rate(float(xfer_rates_by_ds.sum())), sty
         tbl[row_total + 2, num_nodes + 2] = render_byte_rate(float(byte_rates_by_ds.sum())), sty
+
+        tbl[row_total + 1, num_nodes + 3] = ""
+        tbl[row_total + 2, num_nodes + 3] = ""
 
         return tbl.flip_buffer()
 

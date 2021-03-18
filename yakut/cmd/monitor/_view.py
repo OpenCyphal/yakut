@@ -130,9 +130,7 @@ class View:
                 col += 1
 
             if node_id is not None:
-                if ss.node_id_collision:
-                    put(node_id, S_FAILURE)
-                elif not ss.online:
+                if not ss.online:
                     put(node_id, S_MUTED)
                 else:
                     put(node_id, None)
@@ -152,7 +150,9 @@ class View:
                 put(txt, sty_override or sty)
                 put(ss.heartbeat.vendor_specific_status_code, sty_override)
             else:
-                col += 3
+                put("?", S_MUTED)
+                put("?", S_MUTED)
+                put("?", S_MUTED)
 
             if ss.online:
                 if ss.heartbeat is None:
@@ -161,10 +161,7 @@ class View:
                     else:
                         put("online", None)
                 else:
-                    if ss.node_id_collision:
-                        put("node collision", S_FAILURE)
-                    else:
-                        put(render_uptime(ss.heartbeat.uptime), None)
+                    put(render_uptime(ss.heartbeat.uptime), None)
             else:
                 put("offline", S_MUTED)
 

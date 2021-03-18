@@ -30,7 +30,6 @@ class NodeState:
     """
     Online means that the node is emitting any transfers whatsoever.
     """
-    node_id_collision: bool
 
     heartbeat: Optional[uavcan.node.Heartbeat_1_0]
     """
@@ -66,7 +65,6 @@ class Avatar:
         self._ts_heartbeat = -math.inf
         self._ts_port_list = -math.inf
         self._ts_info_request = -math.inf
-        self._ts_node_id_collision = -math.inf
 
         self._ports = PortSet()
 
@@ -114,11 +112,13 @@ class Avatar:
 
         assert isinstance(obj, Heartbeat)
 
-        # Simple node-ID collision detection heuristics.
-        # They may trigger false-positives during some transients (like during restart) but this is probably okay.
-        if self._heartbeat and ts - self._ts_heartbeat < Heartbeat.OFFLINE_TIMEOUT:
-            if Heartbeat.OFFLINE_TIMEOUT <= obj.uptime < self._heartbeat.uptime:
-                self._ts_node_id_collision = ts
+        # We used to have a node-ID collision heuristic here that checked if the timestamp is oscillating back and
+        # forth, as it would indicate that there are multiple nodes running on the same node-ID. While this
+        # heuristic is correct, it is ineffective in practice because heartbeats of nodes with a lower uptime
+        # would have lower transfer-ID values, which (unless the transport is cyclic-TID) would make the transfer
+        # reassembler discard such new heartbeats from conflicting nodes as duplicates (already seen transfers).
+        # It is therefore impossible to detect collisions at this layer (it is possible only below the transport
+        # layer). Although it might *occasionally* work if the heartbeats are delayed or published irregularly.
 
         # Invalidate the node info if the uptime goes backwards or if we received a heartbeat after a long pause.
         restart = self._heartbeat and (
@@ -129,13 +129,12 @@ class Avatar:
             self._restart()
 
         if not self._info and self._node_id is not None:
-            if not self._check_node_id_collision(ts):
-                timeout = 2 ** (self._num_info_requests + 2)
-                if ts - self._ts_info_request >= timeout:
-                    _logger.debug("%r: Would request info; timeout=%.1f", self, timeout)
-                    self._num_info_requests += 1
-                    self._ts_info_request = ts
-                    self._iface.try_request(GetInfo, self._node_id, GetInfo.Request())
+            timeout = 2 ** (self._num_info_requests + 2)
+            if ts - self._ts_info_request >= timeout:
+                _logger.debug("%r: Would request info; timeout=%.1f", self, timeout)
+                self._num_info_requests += 1
+                self._ts_info_request = ts
+                self._iface.try_request(GetInfo, self._node_id, GetInfo.Request())
 
         self._heartbeat = obj
         self._ts_heartbeat = ts
@@ -185,14 +184,8 @@ class Avatar:
             online=online,
             heartbeat=self._heartbeat,
             info=self._info,
-            node_id_collision=self._check_node_id_collision(ts),
             ports=self._ports if port_introspection_valid else None,
         )
-
-    def _check_node_id_collision(self, ts: float) -> bool:
-        from uavcan.node import Heartbeat_1_0
-
-        return (ts - self._ts_node_id_collision) <= Heartbeat_1_0.OFFLINE_TIMEOUT
 
     def __repr__(self) -> str:
         return str(pyuavcan.util.repr_attributes(self, node_id=self._node_id))

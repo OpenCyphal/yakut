@@ -242,9 +242,8 @@ $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: 
 The command `yakut monitor` can be used to display *all* activity on the network in a compact representation.
 It tracks online nodes and maintains real-time statistics on all transfers exchanged between each node
 on the network.
-It is also able to detect some common network configuration issues like node-ID collision
-(multiple nodes sharing the same node-ID)
-or zombie nodes (nodes that do not publish `uavcan.node.Heartbeat`).
+It may also be able to detect some common network configuration issues like zombie nodes
+(nodes that do not publish `uavcan.node.Heartbeat`).
 
 Read `yakut monitor --help` for details.
 

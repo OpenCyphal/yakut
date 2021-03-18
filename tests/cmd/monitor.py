@@ -104,6 +104,7 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any, serial_broker: str) -> Non
 async def _unittest_monitor_errors(compiled_dsdl: Any, serial_broker: str) -> None:
     _ = compiled_dsdl
     asyncio.get_running_loop().slow_callback_duration = 10.0
+    asyncio.get_running_loop().set_exception_handler(lambda *_: None)
 
     # This time the monitor node is anonymous.
     task = asyncio.gather(

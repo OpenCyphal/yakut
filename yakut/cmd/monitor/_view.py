@@ -46,7 +46,7 @@ class View:
 
         legend_canvas = Canvas()
         row = 0
-        col = legend_canvas.put(row, 0, "APPLICATION LAYER CONNECTIVITY MATRIX [t/s=transfer/second] Legend: ")
+        col = legend_canvas.put(row, 0, "APPLICATION LAYER CONNECTIVITY MATRIX [t/s=transfer/second] Colors: ")
         col = legend_canvas.put(
             row, col, "pub/cln", style=get_matrix_cell_style(tx=True, rx=False, recently_active=False)
         )

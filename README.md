@@ -251,6 +251,11 @@ It may also be able to detect some common network configuration issues like zomb
 
 Read `yakut monitor --help` for details.
 
+```bash
+$ export UAVCAN__CAN__IFACE="socketcan:can0 socketcan:can1 socketcan:can2"  # Triply-redundant UAVCAN/CAN
+$ yakut monitor
+```
+
 <img src="/docs/monitor.gif" alt="yakut monitor">
 
 The monitor can be an anonymous node or it can be given a node-ID of its own.

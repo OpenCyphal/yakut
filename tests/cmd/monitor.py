@@ -139,6 +139,7 @@ async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_
     proc = Subprocess.cli(
         "--verbose",
         "monitor",
+        "--plug-and-play=allocation_table.db" * (node_id is not None),
         environment_variables={
             "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__SERIAL__IFACE": serial_iface,

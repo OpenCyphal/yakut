@@ -9,13 +9,13 @@ import time
 import signal
 from subprocess import Popen, DEVNULL
 from typing import Dict, Optional, Callable, List, Tuple, BinaryIO, Any
-import logging
+import yakut
 
 # Disable unused ignore warning for this file only because there appears to be no other way to make MyPy
 # accept this file both on Windows and GNU/Linux.
 # mypy: warn_unused_ignores=False
 
-_logger = logging.getLogger(__name__)
+_logger = yakut.get_logger(__name__)
 
 
 if sys.platform.startswith("win"):  # pragma: no cover
@@ -164,6 +164,7 @@ def signal_tree(pid: int, sig: int) -> None:
 
 def _unittest_child(caplog: object) -> None:
     import pytest
+    import logging
     from pathlib import Path
 
     assert isinstance(caplog, pytest.LogCaptureFixture)

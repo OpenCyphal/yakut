@@ -112,7 +112,13 @@ class Subprocess:
     False
     """
 
-    def __init__(self, *args: str, environment_variables: typing.Optional[typing.Dict[str, str]] = None):
+    def __init__(
+        self,
+        *args: str,
+        environment_variables: typing.Optional[typing.Dict[str, str]] = None,
+        stdout: typing.Optional[typing.BinaryIO] = None,
+        stderr: typing.Optional[typing.BinaryIO] = None,
+    ):
         cmd = _make_process_args(*args)
         _logger.info("Starting subprocess: %s", cmd)
 
@@ -129,8 +135,8 @@ class Subprocess:
         # For some reason stdout is not flushed at exit there.
         self._inferior = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=stdout or subprocess.PIPE,
+            stderr=stderr or subprocess.PIPE,
             encoding="utf8",
             env=env,
             creationflags=creationflags,
@@ -138,11 +144,24 @@ class Subprocess:
         )
 
     @staticmethod
-    def cli(*args: str, environment_variables: typing.Optional[typing.Dict[str, str]] = None) -> Subprocess:
+    def cli(
+        *args: str,
+        environment_variables: typing.Optional[typing.Dict[str, str]] = None,
+        stdout: typing.Optional[typing.BinaryIO] = None,
+        stderr: typing.Optional[typing.BinaryIO] = None,
+    ) -> Subprocess:
         """
         A convenience factory for running the CLI tool.
         """
-        return Subprocess("python", "-m", "yakut", *args, environment_variables=environment_variables)
+        return Subprocess(
+            "python",
+            "-m",
+            "yakut",
+            *args,
+            environment_variables=environment_variables,
+            stdout=stdout,
+            stderr=stderr,
+        )
 
     def wait(
         self, timeout: float, interrupt: typing.Optional[bool] = False, log: bool = True

@@ -16,6 +16,11 @@ When running tests on GNU/Linux, ensure that the current user is allowed to use 
 interactive password prompt.
 This is needed for setting up `vcan` interfaces, loading relevant kernel modules, and setting up packet capture.
 
+### Manual testing
+
+Some tools with rich UI are difficult to fully test manually.
+These should be validated manually; please find instructions in the corresponding files under `tests/cmd`.
+
 ### Using Nox
 
 Install [Nox](https://nox.thea.codes): `pip install nox`

@@ -4,7 +4,6 @@
 
 import http
 import typing
-import logging
 import zipfile
 import tempfile
 from pathlib import Path
@@ -16,7 +15,7 @@ from yakut.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
 
 _NAME = "compile"
 
-_logger = logging.getLogger(__name__)
+_logger = yakut.get_logger(__name__)
 
 
 def make_usage_suggestion(root_namespace_name: typing.Optional[str]) -> str:

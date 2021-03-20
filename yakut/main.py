@@ -17,7 +17,18 @@ from yakut.param.node import node_factory_option, NodeFactory
 if TYPE_CHECKING:
     import pyuavcan.application
 
-_logger = logging.getLogger(__name__.replace("__", ""))
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    This is a trivial wrapper over :func:`logging.getLogger` that removes private components from the logger name.
+    For example, ``yakut.cmd.file_server._cmd`` becomes ``yakut.cmd.file_server`` (private submodule hidden).
+    Also, double underscores are removed.
+    All this is done to make the log messages appear nicer, since this is important for a CLI tool.
+    """
+    return logging.getLogger(name.replace("__", "").split("._", 1)[0])
+
+
+_logger = get_logger("yakut")
 # Some of the integration tests may parse the logs expecting its lines to follow this format.
 # If you change this, you may break these tests.
 _LOG_FORMAT = "%(asctime)s %(process)07d %(levelname)-3.3s %(name)s: %(message)s"

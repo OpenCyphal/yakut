@@ -17,7 +17,7 @@ from yakut.util import convert_transfer_metadata_to_builtin, construct_port_id_a
 _M = typing.TypeVar("_M", bound=pyuavcan.dsdl.CompositeObject)
 
 
-_logger = logging.getLogger(__name__)
+_logger = yakut.get_logger(__name__)
 
 
 @yakut.subcommand()

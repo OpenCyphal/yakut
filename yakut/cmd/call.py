@@ -5,7 +5,6 @@
 import sys
 import typing
 import decimal
-import logging
 import contextlib
 import click
 import pyuavcan
@@ -18,7 +17,7 @@ from yakut.util import convert_transfer_metadata_to_builtin, construct_port_id_a
 _S = typing.TypeVar("_S", bound=pyuavcan.dsdl.ServiceObject)
 
 
-_logger = logging.getLogger(__name__)
+_logger = yakut.get_logger(__name__)
 
 
 def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: str) -> typing.Any:

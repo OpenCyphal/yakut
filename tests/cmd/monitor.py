@@ -136,10 +136,11 @@ async def _unittest_monitor_errors(compiled_dsdl: Any, serial_broker: str) -> No
 
 async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_id: Optional[int]) -> str:
     stdout_file = "monitor_stdout"
+    args = ["--verbose", "monitor"]
+    if node_id is not None:
+        args.append("--plug-and-play=allocation_table.db")
     proc = Subprocess.cli(
-        "--verbose",
-        "monitor",
-        "--plug-and-play=allocation_table.db" * (node_id is not None),
+        *args,
         environment_variables={
             "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__SERIAL__IFACE": serial_iface,

@@ -65,7 +65,7 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any, serial_broker: str) -> Non
         asyncio.create_task(_delay(_run_nodes(serial_broker), 1.0, duration=5.0)),
         asyncio.create_task(_delay(_run_anonymous(serial_broker), 1.0, duration=5.0)),
     ]
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(serial_broker, 15.0, 42)).splitlines()]
+    cells = [x.split() for x in (await _monitor_and_get_last_screen(serial_broker, 19.0, 42)).splitlines()]
     await asyncio.gather(*tasks)
     await asyncio.sleep(3.0)
 

@@ -4,6 +4,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from typing import Any, Optional, Awaitable
+import os
 import asyncio
 import itertools
 import pytest
@@ -136,15 +137,18 @@ async def _unittest_monitor_errors(compiled_dsdl: Any, serial_broker: str) -> No
 
 async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_id: Optional[int]) -> str:
     stdout_file = "monitor_stdout"
+    stdout = open(stdout_file, "wb")
+    args = ["monitor"]
+    if node_id is not None:
+        args.append("--plug-and-play=allocation_table.db")
     proc = Subprocess.cli(
-        "--verbose",
-        "monitor",
+        *args,
         environment_variables={
             "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__SERIAL__IFACE": serial_iface,
             "UAVCAN__NODE__ID": str(node_id if node_id is not None else 0xFFFF),
         },
-        stdout=open(stdout_file, "wb"),
+        stdout=stdout,
     )
     try:
         await asyncio.sleep(1.0)
@@ -157,6 +161,9 @@ async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_
         assert " CRI" not in stderr
         assert "Traceback" not in stderr
 
+        stdout.flush()
+        os.fsync(stdout.fileno())
+        stdout.close()
         with open(stdout_file, "r") as f:
             screens = f.read().split("\n" * 3)
             assert len(screens) > 1

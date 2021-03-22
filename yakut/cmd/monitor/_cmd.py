@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import asyncio
-from typing import Optional, Dict, TypeVar, Generic, cast, Any
+from typing import Optional, Dict, TypeVar, Generic, cast, Any, TYPE_CHECKING
 import click
 import pyuavcan
 from pyuavcan.transport import MessageDataSpecifier, ServiceDataSpecifier, Timestamp, AlienTransfer
@@ -14,11 +14,27 @@ from ._view import View
 from ._iface import Iface
 from ._ui import refresh_screen
 
+if TYPE_CHECKING:
+    import pyuavcan.application
+
 
 @yakut.subcommand()
+@click.option(
+    "--plug-and-play",
+    "-P",
+    metavar="FILE",
+    type=click.Path(dir_okay=False, resolve_path=True, path_type=str),
+    help=f"""
+Run a centralized plug-and-play (PnP) node-ID allocator alongside the monitor.
+The file path points to the allocation table; if missing, a new file will be created.
+If this option is used, the monitor cannot be used in anonymous mode (a local node-ID shall be given).
+Low-level implementation details are available in the documentation for pyuavcan.application.plug_and_play
+at https://pyuavcan.readthedocs.io.
+""",
+)
 @yakut.pass_purser
 @yakut.asynchronous
-async def monitor(purser: yakut.Purser) -> None:
+async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
     """
     Display information about online nodes and network traffic in real time (like htop).
     The command may attempt to detect and report some basic network configuration/implementation issues.
@@ -68,6 +84,8 @@ async def monitor(purser: yakut.Purser) -> None:
 
         raise click.UsageError(make_usage_suggestion(ex.name))
 
+    allow_anonymous = not plug_and_play
+
     period = 2.0
 
     fir_window_duration = 10.0
@@ -110,10 +128,14 @@ async def monitor(purser: yakut.Purser) -> None:
         total_transport_error_count += 1
         _ = tr
 
-    with purser.get_node("monitor", allow_anonymous=True) as node:
+    with purser.get_node("monitor", allow_anonymous=allow_anonymous) as node:
         iface = Iface(node)
         iface.add_trace_handler(on_trace)
         iface.add_transport_error_handler(on_transport_error)
+
+        if plug_and_play:
+            _logger.info("Starting plug-and-play allocator using file %r", plug_and_play)
+            launch_centralized_plug_and_play_allocator(plug_and_play, node)
 
         # Special case: set up an entry for the local node manually because we won't be able to request own node.
         if node.id is not None:
@@ -225,6 +247,21 @@ class MovingAverage(Generic[_T]):
 
     def compute(self) -> _T:
         return cast(_T, self._sum * (1.0 / len(self._samples)))
+
+
+def launch_centralized_plug_and_play_allocator(database_path: str, node: pyuavcan.application.Node) -> None:
+    from pyuavcan.application.plug_and_play import CentralizedAllocator
+    from pyuavcan.application.node_tracker import NodeTracker, Entry
+
+    alloc = CentralizedAllocator(node, database_path)
+    tracker = NodeTracker(node)
+
+    def register_node(node_id: int, _old_entry: Optional[Entry], entry: Optional[Entry]) -> None:
+        if entry is not None:
+            unique_id = entry.info.unique_id.tobytes() if entry.info else None
+            alloc.register_node(node_id, unique_id)
+
+    tracker.add_update_handler(register_node)
 
 
 _logger = yakut.get_logger(__name__)

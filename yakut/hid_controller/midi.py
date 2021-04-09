@@ -60,14 +60,14 @@ class MIDIController(Controller):
         self._port.close()
 
     def _handle_control_change(self, channel: int, control: int, value: int) -> None:
-        if channel > 31:
-            # MIDI Spec says:
-            #   Controller numbers 0 through 31 are for controllers that obtain information from pedals, levers,
-            #   wheels, etc. Controller numbers 32 through 63 are reserved for optional use as the LSB when higher
-            #   resolution is required and correspond to 0 through 31 respectively.
-            # There are higher numbers as well but they do not seem relevant at the moment.
-            _logger.debug("%s: Drop channel %r", self, channel)
-            return
+        # Accept all channels.
+        _ = channel
+        # From the MIDI 1.0 Spec:
+        #   All controller number assignments are designated by agreement between the MMA and JMSC. The numbers listed
+        #   in Table III are specified for standard musical instrument applications. However, many non-musical devices
+        #   which implement MIDI, such as lighting controllers, may use designated controller numbers at their
+        #   discretion.
+        # Here, we treat all controls equally regardless of their fixed functions prescribed by the MIDI spec.
         axis = control
         # Automatically differentiate between buttons and sliders by evaluating the value: if only min or max
         # are seen, assume this is a button, otherwise, assume it is a slider. I am not yet sure how sensible
@@ -83,12 +83,6 @@ class MIDIController(Controller):
 
     # noinspection PyUnresolvedReferences
     def _callback(self, msg: mido.Message) -> None:
-        # From the MIDI 1.0 Spec:
-        #   All controller number assignments are designated by agreement between the MMA and JMSC. The numbers listed
-        #   in Table III are specified for standard musical instrument applications. However, many non-musical devices
-        #   which implement MIDI, such as lighting controllers, may use designated controller numbers at their
-        #   discretion.
-        # Here, we treat all controls equally regardless of their fixed functions prescribed by the MIDI spec.
         try:
             _logger.debug("%s: MIDI message: %s", self, msg)
             if msg.type == "control_change":

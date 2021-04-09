@@ -119,6 +119,7 @@
       <w>ipproto</w>
       <w>iscsi</w>
       <w>isfinite</w>
+      <w>jmsc</w>
       <w>kibibyte</w>
       <w>kirienko</w>
       <w>koopman</w>
@@ -134,6 +135,7 @@
       <w>memcpy</w>
       <w>memoryview</w>
       <w>meth</w>
+      <w>mido</w>
       <w>mismaintenance</w>
       <w>modifyitems</w>
       <w>modprobe</w>

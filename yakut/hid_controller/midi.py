@@ -7,8 +7,9 @@ from typing import Iterable, Tuple, Callable, Dict
 from collections import defaultdict
 import dataclasses
 from . import Controller, Sample, ControllerError, ControllerNotFoundError
-import yakut
+import threading
 import mido  # type: ignore
+import yakut
 
 
 _CH_MAX = 127
@@ -30,34 +31,41 @@ class MIDIController(Controller):
     """
 
     def __init__(self, name: str) -> None:
+        self._lock = threading.RLock()
+        self._update_hook = lambda: None
+        self._analog: Dict[int, float] = {}
+        self._buttons: Dict[int, ButtonState] = defaultdict(ButtonState)
         try:
             # noinspection PyUnresolvedReferences
-            self._port: mido.ports.BaseInput = mido.open_input(name)
+            self._port: mido.ports.BaseInput = mido.open_input(name, callback=self._callback)
         except OSError as ex:
             raise ControllerNotFoundError(f"Cannot open MIDI port {name!r}") from ex
         except Exception as ex:
             raise ControllerError(str(ex)) from ex
 
         self._description = self._port.name or "?"
-
-        self._analog: Dict[int, float] = {}
-        self._buttons: Dict[int, ButtonState] = defaultdict(ButtonState)
+        _logger.info("%s: MIDI controller initialized: %r", self, name)
 
     @property
     def description(self) -> str:
         return self._description
 
     def sample(self) -> Sample:
-        if self._port.closed:
-            raise ControllerNotFoundError("MIDI port is closed")
-        return Sample(
-            analog_axes=self._analog.copy(),
-            push_buttons={axis: state.down for axis, state in self._buttons.items()},
-            toggle_switches={axis: state.count % 2 == 0 for axis, state in self._buttons.items()},
-        )
+        with self._lock:
+            if self._port.closed:
+                raise ControllerNotFoundError("MIDI port is closed")
+            return Sample(
+                axis=self._analog.copy(),
+                button={axis: state.down for axis, state in self._buttons.items()},
+                toggle={axis: state.count % 2 != 0 for axis, state in self._buttons.items()},
+            )
+
+    def set_update_hook(self, hook: Callable[[], None]) -> None:
+        self._update_hook = hook
 
     def close(self) -> None:
-        self._port.close()
+        with self._lock:
+            self._port.close()
 
     def _handle_control_change(self, channel: int, control: int, value: int) -> None:
         # Accept all channels.
@@ -84,9 +92,12 @@ class MIDIController(Controller):
     # noinspection PyUnresolvedReferences
     def _callback(self, msg: mido.Message) -> None:
         try:
-            _logger.debug("%s: MIDI message: %s", self, msg)
-            if msg.type == "control_change":
-                self._handle_control_change(msg.channel, msg.control, msg.value)
+            with self._lock:
+                _logger.debug("%s: MIDI message: %s", self, msg)
+                if msg.type == "control_change":
+                    self._handle_control_change(msg.channel, msg.control, msg.value)
+
+            self._update_hook()
         except Exception as ex:  # pragma: no cover
             _logger.exception("%s: MIDI event handler failure: %s", self, ex)
 
@@ -94,6 +105,7 @@ class MIDIController(Controller):
     def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
         # noinspection PyUnresolvedReferences
         for name in mido.get_input_names():
+            _logger.debug("Detected MIDI controller: %s", name)
             yield name, lambda: MIDIController(name)
 
 

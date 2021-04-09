@@ -181,6 +181,7 @@
       <w>pydsdlgen</w>
       <w>pygments</w>
       <w>pylint</w>
+      <w>pysdl</w>
       <w>pyserial</w>
       <w>pytest</w>
       <w>pythonasynciodebug</w>

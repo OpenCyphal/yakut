@@ -57,6 +57,15 @@ class Controller(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def set_update_hook(self, hook: Callable[[], None]) -> None:
+        """
+        The update hook is invoked shortly after the controller state is updated, possibly from a different thread.
+        If a hook is already installed, the behavior is undefined.
+        Invoking :meth:`sample` from the hook may or may not be supported.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def close(self) -> None:
         """
         Dispose the instance and the underlying resources. This method is idempotent.
@@ -81,17 +90,17 @@ class Sample:
     An atomic sample of the current controller's state.
     """
 
-    analog_axes: Mapping[int, float]
+    axis: Mapping[int, float]
     """
     Analogue axes whose values are normalized into [0, +1] for unipolar channels and [-1, +1] for bipolar channels.
     """
 
-    push_buttons: Mapping[int, bool]
+    button: Mapping[int, bool]
     """
     Each push button channel is True while the button is held down by the user, False otherwise.
     """
 
-    toggle_switches: Mapping[int, bool]
+    toggle: Mapping[int, bool]
     """
     Toggle switch channels alternate their state between True and False at each user interaction.
     """

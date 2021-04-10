@@ -45,9 +45,9 @@ def _run(controllers: List[Controller]) -> None:
         ctl.set_update_hook(update.set)
 
     for update_count in itertools.count():
-        update.clear()
         time.sleep(0.05)
         update.wait(1.0)
+        update.clear()
 
         lines = "\n".join(_render_all(controllers))
         click.clear()

@@ -6,9 +6,13 @@ from __future__ import annotations
 from typing import Iterable, Tuple, Callable, Dict, Optional, List
 import functools
 import threading
-import sdl2  # type: ignore
 import yakut
 from . import Controller, Sample, ControllerError, ControllerNotFoundError
+
+try:
+    import sdl2  # type: ignore
+except ImportError as ex:
+    raise ImportError("Please install libsdl2: http://www.libsdl.org/download-2.0.php") from ex
 
 
 class JoystickController(Controller):

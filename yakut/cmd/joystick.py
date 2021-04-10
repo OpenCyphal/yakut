@@ -26,6 +26,9 @@ def joystick() -> None:
     There is an index associated with each controller that can be referred to along with a specific axis/button name
     from the publisher command.
     Read its docs for more information and usage examples.
+
+    X-Box controllers may require a special initialization sequence under GNU/Linux:
+    https://gist.github.com/pavel-kirienko/86b9d039151405451130a0fb3896887c
     """
     controllers = [factory() for _name, factory in list_controllers()]
     _logger.info("Using %d controllers: %s", len(controllers), controllers)

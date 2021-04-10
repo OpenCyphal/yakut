@@ -5,11 +5,12 @@
 from __future__ import annotations
 from typing import Iterable, Tuple, Callable, Dict
 from collections import defaultdict
-import dataclasses
-from . import Controller, Sample, ControllerError, ControllerNotFoundError
+import functools
 import threading
+import dataclasses
 import mido  # type: ignore
 import yakut
+from . import Controller, Sample, ControllerError, ControllerNotFoundError
 
 
 _CH_MAX = 127
@@ -32,7 +33,7 @@ class MIDIController(Controller):
 
     def __init__(self, name: str) -> None:
         self._lock = threading.RLock()
-        self._update_hook = lambda: None
+        self._update_hook: Callable[[], None] = lambda: None
         self._analog: Dict[int, float] = {}
         self._buttons: Dict[int, ButtonState] = defaultdict(ButtonState)
         try:
@@ -98,15 +99,15 @@ class MIDIController(Controller):
                     self._handle_control_change(msg.channel, msg.control, msg.value)
 
             self._update_hook()
-        except Exception as ex:  # pragma: no cover
-            _logger.exception("%s: MIDI event handler failure: %s", self, ex)
+        except Exception as ex:  # pylint: disable=broad-except
+            _logger.exception("%s: MIDI event handler failure: %s", self, ex)  # pragma: no cover
 
     @staticmethod
     def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
         # noinspection PyUnresolvedReferences
         for name in mido.get_input_names():
             _logger.debug("Detected MIDI controller: %s", name)
-            yield name, lambda: MIDIController(name)
+            yield name, functools.partial(MIDIController, name)
 
 
 _logger = yakut.get_logger(__name__)

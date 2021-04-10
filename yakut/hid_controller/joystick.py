@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 from typing import Iterable, Tuple, Callable, Dict, Optional, List
-from . import Controller, Sample, ControllerError, ControllerNotFoundError
+import functools
 import threading
-import yakut
 import sdl2  # type: ignore
+import yakut
+from . import Controller, Sample, ControllerError, ControllerNotFoundError
 
 
 class JoystickController(Controller):
@@ -20,8 +21,8 @@ class JoystickController(Controller):
         if not self._handle:
             raise ControllerNotFoundError(f"Cannot open joystick {index}")
         self._id = sdl2.joystick.SDL_JoystickInstanceID(self._handle)
-        self._description = sdl2.joystick.SDL_JoystickNameForIndex(index).decode()
-        self._update_hook = lambda: None
+        self._description = str(sdl2.joystick.SDL_JoystickNameForIndex(index).decode())
+        self._update_hook: Callable[[], None] = lambda: None
 
         n_axes = sdl2.joystick.SDL_JoystickNumAxes(self._handle)
         n_hats = sdl2.joystick.SDL_JoystickNumHats(self._handle)
@@ -62,8 +63,8 @@ class JoystickController(Controller):
                 axes_and_hats.append(float(y))
 
             return Sample(
-                axis={k: v for k, v in enumerate(axes_and_hats)},
-                button={k: v for k, v in enumerate(self._buttons)},
+                axis=dict(enumerate(axes_and_hats)),
+                button=dict(enumerate(self._buttons)),
                 toggle={k: v % 2 != 0 for k, v in enumerate(self._counters)},
             )
 
@@ -121,13 +122,13 @@ class JoystickController(Controller):
             for idx in range(num_joys):
                 name = sdl2.joystick.SDL_JoystickNameForIndex(idx).decode()
                 _logger.debug("Detected joystick %d of %d: %r", idx + 1, num_joys, name)
-                yield name, lambda: construct(idx)
+                yield name, functools.partial(construct, idx)
 
 
 _exception: Optional[Exception] = None
 _lock = threading.RLock()
 _init_done = threading.Condition()
-_registry: Dict[sdl2.SDL_JoystickID : Callable[[sdl2.SDL_Event], None]] = {}
+_registry: Dict[sdl2.SDL_JoystickID, Callable[[sdl2.SDL_Event], None]] = {}
 
 
 def _dispatch_joy(joystick: sdl2.SDL_JoystickID, event: sdl2.SDL_Event) -> None:
@@ -140,7 +141,7 @@ def _dispatch_joy(joystick: sdl2.SDL_JoystickID, event: sdl2.SDL_Event) -> None:
 
 def _run_sdl2() -> None:
     # Shall we require SDL2 somewhere else in this app, this logic will have to be extracted into a shared component.
-    global _exception
+    global _exception  # pylint: disable=global-statement
     try:
         import ctypes
 
@@ -175,7 +176,7 @@ def _run_sdl2() -> None:
             else:
                 _logger.debug("Event dropped: %r", event)
 
-    except Exception as ex:
+    except Exception as ex:  # pylint: disable=broad-except
         _exception = ex
         _logger.exception("SDL2 worker thread failed: %s", ex)
 

@@ -15,7 +15,7 @@ from ._iface import Iface
 from ._ui import refresh_screen
 
 if TYPE_CHECKING:
-    import pyuavcan.application
+    import pyuavcan.application  # pylint: disable=ungrouped-imports
 
 
 @yakut.subcommand()

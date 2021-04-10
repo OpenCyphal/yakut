@@ -12,8 +12,8 @@ import yakut
 from . import AppDescriptor
 
 if TYPE_CHECKING:
-    import pyuavcan.application
-    import pyuavcan.application.file
+    import pyuavcan.application  # pylint: disable=ungrouped-imports
+    import pyuavcan.application.file  # pylint: disable=ungrouped-imports
 
 _logger = yakut.get_logger(__name__)
 

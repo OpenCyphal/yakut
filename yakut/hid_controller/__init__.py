@@ -118,7 +118,7 @@ def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
 
     def handle_import_error(module_name: str, culprit: Exception) -> None:
         _logger.warning(
-            "Could not import controller module %r; this kind of controllers may not be usable. Error: %s",
+            "Could not import controller module %r; controllers of this kind may not be usable. Error: %s",
             module_name,
             str(culprit) or repr(culprit),
         )
@@ -130,7 +130,12 @@ def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
         key=lambda x: not isinstance(x, NullController),  # Ensure the null controller comes first.
     ):
         prefix = ty.__name__[: -len(base.__name__)].lower()
-        for name, factory in ty.list_controllers():
+        try:
+            options = list(ty.list_controllers())
+        except Exception as ex:
+            _logger.exception("Could not list the available controllers of kind %r: %s", prefix, ex)
+            options = []
+        for name, factory in options:
             yield f"{prefix}/{name}", factory
 
 

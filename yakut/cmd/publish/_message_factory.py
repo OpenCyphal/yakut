@@ -13,12 +13,15 @@ import yakut
 from yakut import hid_controller
 
 
-Sampler = Callable[[], hid_controller.Sample]
+__all__ = ["MessageFactory", "ControlSampler", "ControlSamplerFactory"]
+
+
+ControlSampler = Callable[[], hid_controller.Sample]
 """
 A function that samples a HID controller and returns its current state.
 """
 
-ControlSamplerFactory = Callable[[str], Optional[Sampler]]
+ControlSamplerFactory = Callable[[str], Optional[ControlSampler]]
 """
 Mapping from controls selector (which is a string) to the sampling function for that control.
 The value is None if no such control exists.
@@ -26,23 +29,29 @@ This function is used during the initialization only; afterwards, the sampler is
 """
 
 
+class ExpressionError(ValueError):
+    """
+    Represents an invalid field expression given to the message factory.
+    """
+
+
 class MessageFactory:
     def __init__(
         self,
         dtype: Type[pyuavcan.dsdl.CompositeObject],
-        field_spec: str,
+        expression: str,
         control_sampler_factory: ControlSamplerFactory,
     ) -> None:
         self._dtype = dtype
-        loader = construct_yaml_loader(control_sampler_factory)
-        self._ast = loader(field_spec)
+        loader = construct_parser(control_sampler_factory)
+        self._ast = loader(expression)
         _logger.debug("%s: Constructed OK", self)
 
     def build(self) -> pyuavcan.dsdl.CompositeObject:
         started_at = time.monotonic()
         result = evaluate(self._ast)
         elapsed = time.monotonic() - started_at
-        _logger.debug("%s: Computed in %.3f sec: %r", self, elapsed, result)
+        _logger.debug("%s: Evaluated in %.3f sec: %r", self, elapsed, result)
         obj = pyuavcan.dsdl.update_from_builtin(self._dtype(), result)
         return obj
 
@@ -53,7 +62,12 @@ class MessageFactory:
 
 
 class DynamicExpression:
-    def __init__(self, control_sampler: Sampler, compiled_expression: CodeType) -> None:
+    """
+    The controls are sampled every time :meth:`evaluate` is called.
+    Non-existent controls will be read as zeros.
+    """
+
+    def __init__(self, control_sampler: ControlSampler, compiled_expression: CodeType) -> None:
         self._control_sampler = control_sampler
         self._code = compiled_expression
         self._context = DynamicExpression._make_evaluation_context()
@@ -61,7 +75,7 @@ class DynamicExpression:
     def evaluate(self) -> Any:
         sample = self._control_sampler()
         _logger.debug("%s: Control sample: %r", self, sample)
-        for name, value in dataclasses.astuple(sample):
+        for name, value in dataclasses.asdict(sample).items():
             self._context[name] = defaultdict(int, value) if isinstance(value, dict) else value
         started_at = time.monotonic()
         result = eval(self._code, self._context)
@@ -97,7 +111,7 @@ def evaluate(obj: Any) -> Any:
     raise TypeError(f"Unexpected object type: {type(obj).__name__}")  # pragma: no cover
 
 
-def construct_yaml_loader(control_sampler_factory: ControlSamplerFactory) -> Callable[[str], Any]:
+def construct_parser(control_sampler_factory: ControlSamplerFactory) -> Callable[[str], Any]:
     """
     Make the YAML loader that can correctly parse dynamic expressions.
     The loader accepts YAML string and returns the parsed object.
@@ -119,7 +133,7 @@ def construct_yaml_loader(control_sampler_factory: ControlSamplerFactory) -> Cal
         assert isinstance(tag, str), "Internal error"
         _logger.debug("Constructing dynamic expression from YAML node %r with tag %r", node, tag)
         if not isinstance(node, ruamel.yaml.ScalarNode):
-            raise ValueError(f"Expression must be a YAML scalar, not {type(node).__name__}")
+            raise ExpressionError(f"Expression must be a YAML scalar, not {type(node).__name__}")
 
         controller_selector = tag.lstrip("!")  # Remove YAML-related overheads.
         expression_text = str(node.value)
@@ -128,12 +142,12 @@ def construct_yaml_loader(control_sampler_factory: ControlSamplerFactory) -> Cal
         try:
             compiled_expression = compile(expression_text, "<dynamic_expression>", "eval")
         except Exception as ex:
-            raise ValueError(f"Could not compile dynamic expression:\n{expression_text!r}\n{ex}") from ex
+            raise ExpressionError(f"Could not compile dynamic expression:\n{expression_text!r}\n{ex}") from ex
         _logger.debug("Compiled: %r", compiled_expression)
 
         control_sampler = control_sampler_factory(controller_selector)
         if control_sampler is None:
-            raise ValueError(f"There is no controller that matches selector {controller_selector!r}")
+            raise ExpressionError(f"There is no controller that matches selector {controller_selector!r}")
         _logger.debug("Control sampler: %r", control_sampler)
 
         return DynamicExpression(

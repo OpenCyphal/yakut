@@ -109,6 +109,7 @@ def construct_yaml_loader(control_sampler_factory: ControlSamplerFactory) -> Cal
     # Normally, we should be using yakut.yaml, but this component requires very advanced functionality that is not
     # supported by the facade, so we have to access the underlying library directly.
     import ruamel.yaml
+    import ruamel.yaml.constructor
 
     def construct_dynamic_expression(
         _constructor: ruamel.yaml.Constructor,
@@ -140,7 +141,12 @@ def construct_yaml_loader(control_sampler_factory: ControlSamplerFactory) -> Cal
             compiled_expression=compiled_expression,
         )
 
+    # Create a new class to prevent state sharing through class attributes. https://stackoverflow.com/questions/67041211
+    class ConstructorWrapper(ruamel.yaml.constructor.RoundTripConstructor):
+        pass
+
     loader = ruamel.yaml.YAML()
+    loader.Constructor = ConstructorWrapper
     loader.constructor.add_multi_constructor("", construct_dynamic_expression)
     return loader.load
 

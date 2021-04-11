@@ -118,8 +118,8 @@ class JoystickController(Controller):
             with _lock:
                 return JoystickController(index)
 
-        with _init_done:
-            _init_done.wait()
+        if not _init_done.wait(10.0):  # pragma: no cover
+            raise _exception or ControllerError("The worker thread has failed to initialize")
 
         with _lock:
             num_joys = sdl2.joystick.SDL_NumJoysticks()
@@ -131,7 +131,7 @@ class JoystickController(Controller):
 
 _exception: Optional[Exception] = None
 _lock = threading.RLock()
-_init_done = threading.Condition()
+_init_done = threading.Event()
 _registry: Dict[sdl2.SDL_JoystickID, Callable[[sdl2.SDL_Event], None]] = {}
 
 
@@ -161,8 +161,7 @@ def _run_sdl2() -> None:
         sdl2.SDL_SetHint(sdl2.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
 
         _logger.debug("SDL2 initialized successfully, entering the event loop")
-        with _init_done:
-            _init_done.notify()
+        _init_done.set()
 
         event = sdl2.SDL_Event()
         while True:

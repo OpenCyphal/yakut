@@ -8,6 +8,7 @@ import sys
 from typing import Iterable, Tuple, Callable
 import dataclasses
 import pyuavcan.util
+import yakut
 
 if sys.version_info >= (3, 9):
     from collections.abc import Mapping
@@ -109,12 +110,28 @@ class Sample:
 def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
     """
     Use this function for listing available devices and constructing new instances of :class:`Controller`.
+    The :class:`null.NullController` is always available and listed first (i.e., at index 0, as the name suggests).
 
     :return: Iterable of tuples of (unique name, factory), one per available device.
     """
-    pyuavcan.util.import_submodules(sys.modules[__name__])
+    from .null import NullController
+
+    def handle_import_error(module_name: str, culprit: Exception) -> None:
+        _logger.warning(
+            "Could not import controller module %r; this kind of controllers may not be usable. Error: %s",
+            module_name,
+            str(culprit) or repr(culprit),
+        )
+
+    pyuavcan.util.import_submodules(sys.modules[__name__], handle_import_error)
     base = Controller
-    for ty in pyuavcan.util.iter_descendants(base):
+    for ty in sorted(
+        pyuavcan.util.iter_descendants(base),
+        key=lambda x: not isinstance(x, NullController),  # Ensure the null controller comes first.
+    ):
         prefix = ty.__name__[: -len(base.__name__)].lower()
         for name, factory in ty.list_controllers():
             yield f"{prefix}/{name}", factory
+
+
+_logger = yakut.get_logger(__name__)

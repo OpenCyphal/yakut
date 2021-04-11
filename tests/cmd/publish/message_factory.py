@@ -3,8 +3,8 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 import math
-import numpy as np
 from typing import Callable, Optional, Any
+import numpy as np
 import pytest
 from yakut import controller
 
@@ -57,7 +57,7 @@ def _unittest_parser() -> None:
     assert de.evaluate() == pytest.approx(math.sin(0.0 + 1.0))
     de = ast["bar"]
     assert isinstance(de, DynamicExpression)
-    assert de.evaluate() == False
+    assert not de.evaluate()
 
     # Errors.
     with pytest.raises(ExpressionError, match=r"(?i).*YAML scalar.*"):

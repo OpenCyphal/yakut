@@ -44,12 +44,12 @@ class MIDIController(Controller):
         except Exception as ex:
             raise ControllerError(str(ex)) from ex
 
-        self._description = self._port.name or "?"
+        self._name = self._port.name or "?"
         _logger.info("%s: MIDI controller initialized: %r", self, name)
 
     @property
-    def description(self) -> str:
-        return self._description
+    def name(self) -> str:
+        return self._name
 
     def sample(self) -> Sample:
         with self._lock:

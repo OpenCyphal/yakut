@@ -25,7 +25,7 @@ class JoystickController(Controller):
         if not self._handle:
             raise ControllerNotFoundError(f"Cannot open joystick {index}")
         self._id = sdl2.joystick.SDL_JoystickInstanceID(self._handle)
-        self._description = str(sdl2.joystick.SDL_JoystickNameForIndex(index).decode())
+        self._name = str(sdl2.joystick.SDL_JoystickNameForIndex(index).decode())
         self._update_hook: Callable[[], None] = lambda: None
 
         n_axes = sdl2.joystick.SDL_JoystickNumAxes(self._handle)
@@ -53,8 +53,8 @@ class JoystickController(Controller):
         )
 
     @property
-    def description(self) -> str:
-        return self._description
+    def name(self) -> str:
+        return self._name
 
     def sample(self) -> Sample:
         with _lock:

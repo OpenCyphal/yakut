@@ -37,9 +37,9 @@ class Controller(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def description(self) -> str:
+    def name(self) -> str:
         """
-        Human-readable description of this controller. Examples:
+        Human-readable name of this controller. Examples:
 
         - ``FAD.9:FAD.9 MIDI 1 24:0``
         - ``Xbox 360 Controller``
@@ -74,7 +74,7 @@ class Controller(abc.ABC):
         raise NotImplementedError
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.description!r})"
+        return f"{type(self).__name__}({self.name!r})"
 
     @staticmethod
     def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:

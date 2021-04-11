@@ -14,14 +14,14 @@ class NullController(Controller):
     It always exists in exactly one instance and all its axes/buttons/etc. always read as zero/false.
     """
 
-    DESCRIPTION = "null"
+    NAME = "null"
 
     def __init__(self) -> None:
         _logger.info("%s: Initialized", self)
 
     @property
-    def description(self) -> str:
-        return NullController.DESCRIPTION
+    def name(self) -> str:
+        return NullController.NAME
 
     def sample(self) -> Sample:
         return Sample(axis={}, button={}, toggle={})
@@ -34,7 +34,7 @@ class NullController(Controller):
 
     @staticmethod
     def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
-        yield NullController.DESCRIPTION, NullController
+        yield NullController.NAME, NullController
 
 
 _logger = yakut.get_logger(__name__)

@@ -57,7 +57,7 @@ def _run(controllers: List[Controller]) -> None:
 
 def _render_all(controllers: List[Controller]) -> Iterable[str]:
     for index, ctl in enumerate(controllers):
-        yield click.style(f"{index} ", fg="bright_cyan") + click.style(ctl.description, fg="bright_white", bg="blue")
+        yield click.style(f"{index} ", fg="bright_cyan") + click.style(ctl.name, fg="bright_white", bg="blue")
         sample = ctl.sample()
 
         if sample.axis:

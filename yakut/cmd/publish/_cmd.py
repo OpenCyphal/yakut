@@ -1,18 +1,18 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2021 UAVCAN Consortium
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
 import math
-import typing
+from typing import Tuple, List, Sequence
 import asyncio
 import logging
 import contextlib
 import click
 import pyuavcan
 import yakut
-from yakut.yaml import YAMLLoader
 from yakut.helpers import EnumParam
+from yakut.yaml import YAMLLoader
 
 
 _MIN_SEND_TIMEOUT = 0.1
@@ -27,8 +27,8 @@ _logger = yakut.get_logger(__name__)
 def _validate_message_spec(
     ctx: click.Context,
     param: click.Parameter,
-    value: typing.Tuple[str, ...],
-) -> typing.List[typing.Tuple[str, str]]:
+    value: Tuple[str, ...],
+) -> List[Tuple[str, str]]:
     if len(value) % 2 != 0:
         raise click.BadParameter(
             f"Message specifier shall have an even number of paired arguments (found {len(value)} arguments)",
@@ -78,7 +78,7 @@ The send timeout equals the period as long as it is not less than {_MIN_SEND_TIM
 @yakut.pass_purser
 def publish(
     purser: yakut.Purser,
-    message: typing.Sequence[typing.Tuple[str, str]],
+    message: Sequence[Tuple[str, str]],
     period: float,
     count: int,
     priority: pyuavcan.transport.Priority,
@@ -166,7 +166,7 @@ def publish(
 
 
 @yakut.asynchronous
-async def _run(node: object, count: int, period: float, publications: typing.Sequence[Publication]) -> None:
+async def _run(node: object, count: int, period: float, publications: Sequence[Publication]) -> None:
     from pyuavcan.application import Node
 
     assert isinstance(node, Node)

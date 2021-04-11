@@ -2,7 +2,8 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
-from typing import Callable, Optional
+import math
+from typing import Callable, Optional, Any
 import pytest
 from yakut import hid_controller
 
@@ -22,7 +23,7 @@ def _unittest_parser() -> None:
 
     # Make loader and parse field spec.
     loader = construct_parser(make_control_sampler)
-    ast = loader("{foo: !7 'axis[0] + 1.0', bar: !7 'toggle[1] and button[2]'}")
+    ast = loader("{foo: !7 'sin(axis[0] + 1.0)', bar: !7 'toggle[1] and button[2]'}")
     print("AST:", ast)
     assert list(ast) == ["foo", "bar"]
     print("foo:", ast["foo"])
@@ -31,7 +32,7 @@ def _unittest_parser() -> None:
     # Evaluate expressions.
     de = ast["foo"]
     assert isinstance(de, DynamicExpression)
-    assert de.evaluate() == pytest.approx(axis[0] + 1.0)
+    assert de.evaluate() == pytest.approx(math.sin(axis[0] + 1.0))
     de = ast["bar"]
     assert isinstance(de, DynamicExpression)
     assert de.evaluate() == toggle[1] and button[2]
@@ -41,7 +42,7 @@ def _unittest_parser() -> None:
     toggle[1] = True
     de = ast["foo"]
     assert isinstance(de, DynamicExpression)
-    assert de.evaluate() == pytest.approx(axis[0] + 1.0)
+    assert de.evaluate() == pytest.approx(math.sin(axis[0] + 1.0))
     de = ast["bar"]
     assert isinstance(de, DynamicExpression)
     assert de.evaluate() == toggle[1] and button[2]
@@ -52,7 +53,7 @@ def _unittest_parser() -> None:
     button.clear()
     de = ast["foo"]
     assert isinstance(de, DynamicExpression)
-    assert de.evaluate() == pytest.approx(1.0)
+    assert de.evaluate() == pytest.approx(math.sin(0.0 + 1.0))
     de = ast["bar"]
     assert isinstance(de, DynamicExpression)
     assert de.evaluate() == False

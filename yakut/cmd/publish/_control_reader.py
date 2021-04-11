@@ -17,7 +17,7 @@ class ControlReader:
     """
 
     def __init__(self) -> None:
-        self._sources: Dict[str, Source] = {}
+        self._sources: Dict[str, _Source] = {}
 
     def connect(self, selector: str) -> bool:
         """
@@ -42,7 +42,7 @@ class ControlReader:
         try:
             controller = factory()
             sample = controller.sample()
-            self._sources[selector] = Source(controller, sample)
+            self._sources[selector] = _Source(controller, sample)
         except hid_controller.ControllerNotFoundError:
             return False
         return True
@@ -68,7 +68,7 @@ class ControlReader:
 
 
 @dataclasses.dataclass()
-class Source:
+class _Source:
     controller: hid_controller.Controller
     last_sample: hid_controller.Sample
 

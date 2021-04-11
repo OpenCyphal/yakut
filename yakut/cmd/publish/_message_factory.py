@@ -6,6 +6,7 @@ from __future__ import annotations
 import time
 from types import CodeType
 from typing import Callable, Dict, Type, Any, Optional
+from collections import defaultdict
 import dataclasses
 import pyuavcan
 import yakut
@@ -25,7 +26,7 @@ This function is used during the initialization only; afterwards, the sampler is
 """
 
 
-class MessageBuilder:
+class MessageFactory:
     def __init__(
         self,
         dtype: Type[pyuavcan.dsdl.CompositeObject],
@@ -46,7 +47,9 @@ class MessageBuilder:
         return obj
 
     def __repr__(self) -> str:
-        return pyuavcan.util.repr_attributes(self, self._dtype, self._ast)
+        out = pyuavcan.util.repr_attributes(self, self._dtype, self._ast)
+        assert isinstance(out, str)
+        return out
 
 
 class DynamicExpression:
@@ -59,7 +62,7 @@ class DynamicExpression:
         sample = self._control_sampler()
         _logger.debug("%s: Control sample: %r", self, sample)
         for name, value in dataclasses.astuple(sample):
-            self._context[name] = value
+            self._context[name] = defaultdict(int, value) if isinstance(value, dict) else value
         started_at = time.monotonic()
         result = eval(self._code, self._context)
         elapsed = time.monotonic() - started_at

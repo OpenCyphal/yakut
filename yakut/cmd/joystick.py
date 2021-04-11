@@ -9,7 +9,7 @@ from typing import List, Iterable
 import threading
 import click
 import yakut
-from yakut.hid_controller import list_controllers, Controller
+from yakut.controller import list_controllers, Controller
 
 
 _logger = yakut.get_logger(__name__)

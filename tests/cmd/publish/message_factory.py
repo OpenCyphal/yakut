@@ -6,7 +6,7 @@ import math
 import numpy as np
 from typing import Callable, Optional, Any
 import pytest
-from yakut import hid_controller
+from yakut import controller
 
 
 def _unittest_parser() -> None:
@@ -16,10 +16,10 @@ def _unittest_parser() -> None:
     button = {2: True}
     toggle = {1: False}
 
-    def make_control_sampler(selector: str) -> Optional[Callable[[], hid_controller.Sample]]:
+    def make_control_sampler(selector: str) -> Optional[Callable[[], controller.Sample]]:
         print("Constructing control sampler with selector:", selector)
         if selector == "7":
-            return lambda: hid_controller.Sample(axis=axis, button=button, toggle=toggle)
+            return lambda: controller.Sample(axis=axis, button=button, toggle=toggle)
         return None
 
     # Make loader and parse field spec.
@@ -80,10 +80,10 @@ def _unittest_message_factory(compiled_dsdl: Any) -> None:
     button = {2: True}
     toggle = {1: True}
 
-    def make_control_sampler(selector: str) -> Optional[Callable[[], hid_controller.Sample]]:
+    def make_control_sampler(selector: str) -> Optional[Callable[[], controller.Sample]]:
         print("Constructing control sampler with selector:", selector)
         if selector == "7":
-            return lambda: hid_controller.Sample(axis=axis, button=button, toggle=toggle)
+            return lambda: controller.Sample(axis=axis, button=button, toggle=toggle)
         assert False
 
     expression = "{value: !7 '[axis[0], axis[1], button[0], button[2], toggle[0], toggle[1]]'}"

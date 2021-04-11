@@ -7,7 +7,7 @@ from typing import Dict, List, Set
 from copy import copy
 import dataclasses
 import yakut
-from yakut import hid_controller
+from yakut.controller import Controller, Sample, list_controllers, ControllerNotFoundError
 
 
 class ControlReader:
@@ -39,13 +39,13 @@ class ControlReader:
             _logger.debug("%s: Controller that matches selector %r is already connected", self, selector)
             return True
 
-        for index, (name, factory) in enumerate(hid_controller.list_controllers()):
+        for index, (name, factory) in enumerate(list_controllers()):
             keys = {str(index), name}
             if selector in keys:
                 _logger.info("%s: Connecting new controller matching selector %r", self, selector)
                 try:
                     controller = factory()
-                except hid_controller.ControllerNotFoundError:
+                except ControllerNotFoundError:
                     _logger.debug("%s: The controller was disconnected during initialization", self)
                     return False
                 source = _Source(controller, controller.sample())
@@ -66,7 +66,7 @@ class ControlReader:
         for s in self._sources:
             s.last_sample = s.controller.sample()
 
-    def read(self, selector: str) -> hid_controller.Sample:
+    def read(self, selector: str) -> Sample:
         """
         :raises: :class:`LookupError` if the controller was not initialized previously using :meth:`connect`.
         """
@@ -83,8 +83,8 @@ class ControlReader:
 
 @dataclasses.dataclass()
 class _Source:
-    controller: hid_controller.Controller
-    last_sample: hid_controller.Sample
+    controller: Controller
+    last_sample: Sample
 
 
 _logger = yakut.get_logger(__name__)

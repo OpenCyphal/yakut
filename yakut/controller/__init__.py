@@ -132,8 +132,8 @@ def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
         prefix = ty.__name__[: -len(base.__name__)].lower()
         try:
             options = list(ty.list_controllers())
-        except Exception as ex:
-            _logger.exception("Could not list the available controllers of kind %r: %s", prefix, ex)
+        except Exception as ex:  # pylint: disable=broad-except
+            _logger.warning("Could not list controllers of kind %r: %s", prefix, ex)
             options = []
         for name, factory in options:
             yield f"{prefix}/{name}", factory

@@ -11,13 +11,13 @@ from collections import defaultdict
 import dataclasses
 import pyuavcan
 import yakut
-from yakut import hid_controller
+from yakut.controller import Sample
 
 
 __all__ = ["MessageFactory", "ControlSampler", "ControlSamplerFactory"]
 
 
-ControlSampler = Callable[[], hid_controller.Sample]
+ControlSampler = Callable[[], Sample]
 """
 A function that samples a HID controller and returns its current state.
 """

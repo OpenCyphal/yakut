@@ -174,13 +174,13 @@ def construct_parser(control_sampler_factory: ControlSamplerFactory) -> Callable
         )
 
     # Create a new class to prevent state sharing through class attributes. https://stackoverflow.com/questions/67041211
-    class ConstructorWrapper(ruamel.yaml.constructor.RoundTripConstructor):
+    class ConstructorWrapper(ruamel.yaml.constructor.RoundTripConstructor):  # type: ignore
         pass
 
     loader = ruamel.yaml.YAML()
     loader.Constructor = ConstructorWrapper
     loader.constructor.add_multi_constructor("", construct_dynamic_expression)
-    return loader.load
+    return loader.load  # type: ignore
 
 
 _logger = yakut.get_logger(__name__)

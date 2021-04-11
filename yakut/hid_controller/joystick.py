@@ -154,10 +154,7 @@ def _run_sdl2() -> None:
         if err != 0:
             raise ControllerError(f"Could not initialize SDL2: {sdl2.SDL_GetError()!r}")
 
-        err = sdl2.SDL_JoystickEventState(sdl2.SDL_ENABLE)
-        if err != 0:  # This is recommended in the docs but is not critical.
-            _logger.info("Could not set up joystick event handling policy: %r", sdl2.SDL_GetError())
-
+        sdl2.SDL_JoystickEventState(sdl2.SDL_ENABLE)
         sdl2.SDL_SetHint(sdl2.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
 
         _logger.debug("SDL2 initialized successfully, entering the event loop")

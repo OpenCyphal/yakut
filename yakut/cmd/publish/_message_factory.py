@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 import time
+import functools
 from types import CodeType
 from typing import Callable, Dict, Type, Any, Optional
 from collections import defaultdict
@@ -70,7 +71,7 @@ class DynamicExpression:
     def __init__(self, control_sampler: ControlSampler, compiled_expression: CodeType) -> None:
         self._control_sampler = control_sampler
         self._code = compiled_expression
-        self._context = DynamicExpression._make_evaluation_context()
+        self._context = construct_expression_context().copy()
 
     def evaluate(self) -> Any:
         sample = self._control_sampler()
@@ -88,15 +89,32 @@ class DynamicExpression:
         assert isinstance(out, str)
         return out
 
-    @staticmethod
-    def _make_evaluation_context() -> Dict[str, Any]:
-        import os
-        import math
-        import inspect
 
-        out = {name: member for name, member in inspect.getmembers(math) if not name.startswith("_")}
-        out["os"] = os
-        return out
+@functools.lru_cache(None)
+def construct_expression_context() -> Dict[str, Any]:
+    import os
+    import math
+    import random
+    import inspect
+
+    modules = [
+        (random, True),
+        (time, True),
+        (math, True),
+        (os, False),
+        (pyuavcan, False),
+    ]
+
+    out: Dict[str, Any] = {}
+    for mod, wildcard in modules:
+        out[mod.__name__] = mod
+        if wildcard:
+            out.update(
+                {name: member for name, member in inspect.getmembers(mod) if not name.startswith("_")},
+            )
+
+    _logger.debug("Expression context contains %d items (on the next line):\n%s", len(out), out)
+    return out
 
 
 def evaluate(obj: Any) -> Any:

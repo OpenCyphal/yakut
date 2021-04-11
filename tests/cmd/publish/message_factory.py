@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 import math
+import numpy as np
 from typing import Callable, Optional, Any
 import pytest
 from yakut import hid_controller
@@ -67,3 +68,35 @@ def _unittest_parser() -> None:
 
     with pytest.raises(ExpressionError, match=r"(?i).*controller.*selector.*"):
         loader("baz: !999 axis[0]")
+
+
+def _unittest_message_factory(compiled_dsdl: Any) -> None:
+    from yakut.cmd.publish._message_factory import MessageFactory
+    from uavcan.primitive.array import Real64_1_0
+
+    _ = compiled_dsdl
+
+    axis = {0: 0.5, 5: -0.7}
+    button = {2: True}
+    toggle = {1: True}
+
+    def make_control_sampler(selector: str) -> Optional[Callable[[], hid_controller.Sample]]:
+        print("Constructing control sampler with selector:", selector)
+        if selector == "7":
+            return lambda: hid_controller.Sample(axis=axis, button=button, toggle=toggle)
+        assert False
+
+    expression = "{value: !7 '[axis[0], axis[1], button[0], button[2], toggle[0], toggle[1]]'}"
+    mf = MessageFactory(Real64_1_0, expression, make_control_sampler)
+    print(mf)
+
+    msg = mf.build()
+    assert isinstance(msg, Real64_1_0)
+    assert np.allclose(msg.value, [0.5, 0.0, 0, 1, 0, 1])
+
+    axis.clear()
+    button.clear()
+    toggle.clear()
+    msg = mf.build()
+    assert isinstance(msg, Real64_1_0)
+    assert np.allclose(msg.value, [0.0, 0.0, 0, 0, 0, 0])

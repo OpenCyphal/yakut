@@ -46,7 +46,7 @@ for:
         - job_group: tests
           APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
     install:
-      - 'sudo apt-get update'
+      - 'sudo apt-get --ignore-missing update'
       - 'export extras_pkg="linux-*-extra-$(uname -r)"'
       - 'sudo apt-get install -y $extras_pkg ncat'
       - 'sudo apt-get install -y libsdl2-2.0-0'   # For PySDL2. On Windows/macOS the binaries are pulled from PyPI.

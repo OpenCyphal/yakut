@@ -130,14 +130,14 @@ def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
         pyuavcan.util.iter_descendants(base),
         key=lambda x: (x is not NullController, x.__name__),
     ):
-        prefix = ty.__name__[: -len(base.__name__)].lower()
         try:
             options = list(ty.list_controllers())
         except Exception as ex:  # pylint: disable=broad-except
-            _logger.warning("Could not list controllers of kind %r: %s", prefix, ex)
+            _logger.warning("Could not list controllers of kind %r: %s", ty, ex)
             options = []
         for name, factory in options:
-            yield f"{prefix}/{name}", factory
+            _logger.debug("Detected controller from %s: %r", ty.__name__, name)
+            yield name, factory
 
 
 _logger = yakut.get_logger(__name__)

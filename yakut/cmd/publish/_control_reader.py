@@ -96,16 +96,16 @@ def _unittest_null() -> None:
     cr.capture_all()  # No-op because no controllers connected.
 
     assert cr.connect("0")
-    assert cr.selectors == {"0", "null", "null/null"}
+    assert cr.selectors == {"0", "null"}
 
     assert cr.connect("0")  # Do nothing
-    assert cr.selectors == {"0", "null", "null/null"}
+    assert cr.selectors == {"0", "null"}
 
     assert cr.connect("null")  # Do nothing
-    assert cr.selectors == {"0", "null", "null/null"}
+    assert cr.selectors == {"0", "null"}
 
     assert not cr.connect("999")  # Not found
-    assert cr.selectors == {"0", "null", "null/null"}
+    assert cr.selectors == {"0", "null"}
 
     cr.capture_all()
 

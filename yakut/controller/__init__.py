@@ -125,9 +125,10 @@ def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
 
     pyuavcan.util.import_submodules(sys.modules[__name__], handle_import_error)
     base = Controller
+    # Order controller kinds by class name, but ensure that NullController always comes first.
     for ty in sorted(
         pyuavcan.util.iter_descendants(base),
-        key=lambda x: not isinstance(x, NullController),  # Ensure the null controller comes first.
+        key=lambda x: (x is not NullController, x.__name__),
     ):
         prefix = ty.__name__[: -len(base.__name__)].lower()
         try:

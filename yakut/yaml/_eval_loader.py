@@ -2,7 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
-from typing import Any, Dict, Optional, Callable, Union
+from typing import Any, Dict, Callable
 import time
 import ruamel.yaml
 import ruamel.yaml.constructor

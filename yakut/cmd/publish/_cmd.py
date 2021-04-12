@@ -12,7 +12,7 @@ import click
 import pyuavcan
 import yakut
 from yakut.helpers import EnumParam
-from yakut.yaml import YAMLLoader
+from yakut.yaml import Loader
 
 
 _MIN_SEND_TIMEOUT = 0.1
@@ -188,7 +188,7 @@ async def _run(node: object, count: int, period: float, publications: Sequence[P
 
 
 class Publication:
-    _YAML_LOADER = YAMLLoader()
+    _YAML_LOADER = Loader()
 
     def __init__(
         self,

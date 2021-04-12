@@ -8,7 +8,7 @@ import decimal
 import ruamel.yaml
 
 
-class YAMLDumper:
+class Dumper:
     """
     YAML generation facade.
     Natively represents decimal.Decimal as floats in the output.
@@ -51,7 +51,7 @@ _POINT_ZERO_DECIMAL = decimal.Decimal("0.0")
 def _unittest_yaml() -> None:
     import pytest
 
-    ref = YAMLDumper(explicit_start=True).dumps(
+    ref = Dumper(explicit_start=True).dumps(
         {
             "abc": decimal.Decimal("-inf"),
             "def": [decimal.Decimal("nan"), {"qaz": decimal.Decimal("789")}],

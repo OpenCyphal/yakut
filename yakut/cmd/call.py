@@ -21,10 +21,10 @@ _logger = yakut.get_logger(__name__)
 
 
 def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: str) -> typing.Any:
-    from yakut.yaml import YAMLLoader
+    from yakut.yaml import Loader
 
     try:
-        fields = YAMLLoader().load(value)
+        fields = Loader().load(value)
     except Exception as ex:
         raise click.BadParameter(f"Could not parse the request object fields: {ex}", ctx=ctx, param=param)
     return fields

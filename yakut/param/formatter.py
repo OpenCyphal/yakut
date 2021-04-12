@@ -51,9 +51,9 @@ such as computer algebra systems or spreadsheet processors.
 
 
 def _make_yaml_formatter() -> Formatter:
-    from yakut.yaml import YAMLDumper
+    from yakut.yaml import Dumper
 
-    dumper = YAMLDumper(explicit_start=True)
+    dumper = Dumper(explicit_start=True)
     return dumper.dumps
 
 

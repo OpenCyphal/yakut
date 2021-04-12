@@ -7,7 +7,7 @@ import time
 import ruamel.yaml
 import ruamel.yaml.constructor
 import yakut
-from ._loader import YAMLLoader
+from ._loader import Loader
 
 
 class EmbeddedExpressionError(ValueError):
@@ -16,7 +16,7 @@ class EmbeddedExpressionError(ValueError):
     """
 
 
-class EvaluableYAMLLoader(YAMLLoader):
+class EvaluableLoader(Loader):
     """
     This is like regular loader except that it feeds scalars tagged as ``!$`` into :func:`eval`
     and substitutes them with the evaluation result.
@@ -116,7 +116,7 @@ _logger = yakut.get_logger(__name__)
 def _unittest_eval() -> None:
     import pytest
 
-    loader = EvaluableYAMLLoader({"one": 1, "two": 2})
+    loader = EvaluableLoader({"one": 1, "two": 2})
     out = loader.load(
         "{a: 456, b: !$ one + 5, c: [!$ two, !$ foo - two]}",
         foo=3,

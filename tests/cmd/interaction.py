@@ -83,7 +83,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "--timeout=5",
         timeout=10.0,
     )
-    parsed = yakut.yaml.YAMLLoader().load(stdout)
+    parsed = yakut.yaml.Loader().load(stdout)
     assert parsed[430]["protocol_version"] == {
         "major": pyuavcan.UAVCAN_SPECIFICATION_VERSION[0],
         "minor": pyuavcan.UAVCAN_SPECIFICATION_VERSION[1],

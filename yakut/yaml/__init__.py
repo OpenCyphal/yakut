@@ -8,8 +8,8 @@ because it's kinda stuck in the past (no ordered dicts, no support for YAML v1.2
 rest of the code from breaking changes in the YAML library API or from migration to another library.
 """
 
-from ._dumper import YAMLDumper as YAMLDumper
-from ._loader import YAMLLoader as YAMLLoader
+from ._dumper import Dumper as Dumper
+from ._loader import Loader as Loader
 
-from ._eval_loader import EvaluableYAMLLoader as EvaluableYAMLLoader
+from ._eval_loader import EvaluableLoader as EvaluableLoader
 from ._eval_loader import EmbeddedExpressionError as EmbeddedExpressionError

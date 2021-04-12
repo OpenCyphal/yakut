@@ -8,7 +8,7 @@ import ruamel.yaml
 import ruamel.yaml.constructor
 
 
-class YAMLLoader:
+class Loader:
     """
     YAML parsing facade.
     """
@@ -22,15 +22,15 @@ class YAMLLoader:
 
 def _unittest_yaml() -> None:
     import pytest
-    from ._dumper import YAMLDumper
+    from ._dumper import Dumper
 
-    ref = YAMLDumper(explicit_start=True).dumps(
+    ref = Dumper(explicit_start=True).dumps(
         {
             "abc": decimal.Decimal("-inf"),
             "def": [decimal.Decimal("nan"), {"qaz": decimal.Decimal("789")}],
         }
     )
-    assert YAMLLoader().load(ref) == {
+    assert Loader().load(ref) == {
         "abc": -float("inf"),
         "def": [pytest.approx(float("nan"), nan_ok=True), {"qaz": pytest.approx(789)}],
     }

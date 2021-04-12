@@ -152,9 +152,9 @@ def node_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[
             factory.heartbeat_priority = value
 
     def validate(ctx: click.Context, param: click.Parameter, value: str) -> NodeFactory:
-        from yakut.yaml import YAMLLoader
+        from yakut.yaml import Loader
 
-        fields = YAMLLoader().load(value)
+        fields = Loader().load(value)
         if not isinstance(fields, dict):
             raise click.BadParameter(f"Expected a dict, got {type(fields).__name__}", ctx=ctx, param=param)
 

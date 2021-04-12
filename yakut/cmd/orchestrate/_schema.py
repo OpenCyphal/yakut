@@ -5,7 +5,7 @@
 from __future__ import annotations
 import dataclasses
 from typing import Dict, Sequence, Any, List
-from yakut.yaml import YAMLLoader
+from yakut.yaml import Loader
 from ._env import encode, flatten_registers, NAME_SEP, EnvironmentVariableError
 
 
@@ -64,7 +64,7 @@ class External:
 
 def load_ast(text: str) -> Any:
     try:
-        return YAMLLoader().load(text)
+        return Loader().load(text)
     except Exception as ex:
         raise SchemaError(f"Syntax error: {ex}") from ex
 

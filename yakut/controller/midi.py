@@ -56,9 +56,9 @@ class MIDIController(Controller):
             if self._port.closed:
                 raise ControllerNotFoundError("MIDI port is closed")
             return Sample(
-                axis=self._analog.copy(),
-                button={axis: state.down for axis, state in self._buttons.items()},
-                toggle={axis: state.count % 2 != 0 for axis, state in self._buttons.items()},
+                axis=defaultdict(float, self._analog),
+                button=defaultdict(bool, ((axis, state.down) for axis, state in self._buttons.items())),
+                toggle=defaultdict(bool, ((axis, state.count % 2 != 0) for axis, state in self._buttons.items())),
             )
 
     def set_update_hook(self, hook: Callable[[], None]) -> None:

@@ -6,7 +6,6 @@ from __future__ import annotations
 import math
 from typing import Tuple, List, Sequence, Callable, Any, Dict
 import logging
-import functools
 import contextlib
 import click
 import pyuavcan
@@ -101,14 +100,10 @@ def publish(
     The second element specifies the values of the message fields in YAML format (or JSON, which is a subset of YAML).
     Missing fields will be left at their default values;
     therefore, to publish a default-initialized message, the field specifier should be an empty dict: `{}`.
-    For more info about the format see PyUAVCAN documentation on builtin-based representations.
+    For more info about the format see DSDL API docs at https://pyuavcan.readthedocs.io.
 
     The number of such pairs can be arbitrary; all defined messages will be published synchronously.
     If no such pairs are specified, only the heartbeat will be published, unless the local node is anonymous.
-
-    Forward or backward slashes can be used instead of ".";
-    version numbers can be also separated using underscores.
-    This is done to allow the user to rely on filesystem autocompletion when typing the command.
 
     Examples:
 
@@ -185,7 +180,6 @@ def publish(
                         _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
 
 
-@functools.lru_cache(None)
 def _get_user_expression_evaluation_context() -> Dict[str, Any]:
     import os
     import time

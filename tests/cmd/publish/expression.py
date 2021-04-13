@@ -9,14 +9,13 @@ import typing
 from pytest import approx
 from tests.dsdl import OUTPUT_DIR
 from tests.subprocess import execute_cli, Subprocess
-from tests.transport import SERIAL_BROKER_PORT
 
 
-def _unittest_publish_expression_a(compiled_dsdl: typing.Any) -> None:
+def _unittest_publish_expression_a(compiled_dsdl: typing.Any, serial_broker: str) -> None:
     _ = compiled_dsdl
     env = {
         "YAKUT_PATH": str(OUTPUT_DIR),
-        "UAVCAN__SERIAL__IFACE": f"socket://127.0.0.1:{SERIAL_BROKER_PORT}",
+        "UAVCAN__SERIAL__IFACE": serial_broker,
         "UAVCAN__NODE__ID": "1234",
     }
 

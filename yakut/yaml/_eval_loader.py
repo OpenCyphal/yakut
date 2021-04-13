@@ -22,7 +22,10 @@ class EvaluableLoader(Loader):
     and substitutes them with the evaluation result.
     """
 
-    EVAL_TAG = "!$"
+    EXPRESSION_TAG = "!$"
+    """
+    Evaluable expressions are tagged with this YAML tag.
+    """
 
     def __init__(self, evaluation_context: Dict[str, Any]) -> None:
         """
@@ -37,7 +40,7 @@ class EvaluableLoader(Loader):
             """
 
         self._impl.Constructor = ConstructorWrapper
-        self._impl.constructor.add_constructor(self.EVAL_TAG, construct_embedded_expression)
+        self._impl.constructor.add_constructor(self.EXPRESSION_TAG, construct_embedded_expression)
         self._impl.constructor.add_multi_constructor("", catch_unknown_tags)
 
     @property
@@ -99,7 +102,7 @@ class EmbeddedExpression:
         started_at = time.monotonic()
         result = eval(self._code, evaluation_context)
         elapsed = time.monotonic() - started_at
-        _logger.debug("Expression evaluated successfully in %.3f sec: %s", elapsed, self)
+        _logger.debug("Expression evaluated successfully in %.3f sec: %s --> %r", elapsed, self, result)
         return result
 
     def __repr__(self) -> str:

@@ -4,16 +4,17 @@
 
 from __future__ import annotations
 import math
-from typing import Tuple, List, Sequence
-import asyncio
+from typing import Tuple, List, Sequence, Callable, Any, Dict, TYPE_CHECKING
 import logging
+import functools
 import contextlib
 import click
 import pyuavcan
 import yakut
 from yakut.helpers import EnumParam
-from yakut.yaml import Loader
-
+from yakut.yaml import EvaluableLoader
+from yakut.util import construct_port_id_and_type
+from ._executor import Executor, Publication
 
 _MIN_SEND_TIMEOUT = 0.1
 """
@@ -132,30 +133,56 @@ def publish(
         return
 
     send_timeout = max(_MIN_SEND_TIMEOUT, period)
+    loader = EvaluableLoader(_get_user_expression_evaluation_context())
+
+    def make_publication_factory(
+        subject_spec: str, field_spec: str
+    ) -> Callable[[pyuavcan.presentation.Presentation], Publication]:
+        subject_id, dtype = construct_port_id_and_type(subject_spec)
+        # Catch errors as early as possible.
+        if issubclass(dtype, pyuavcan.dsdl.ServiceObject):
+            raise click.BadParameter(f"Subject spec {subject_spec!r} refers to a service type")
+        # noinspection PyTypeChecker
+        if subject_id is None and pyuavcan.dsdl.get_fixed_port_id(dtype) is None:
+            raise click.UsageError(
+                f"Subject-ID is not provided and {pyuavcan.dsdl.get_model(dtype)} does not have a fixed one"
+            )
+        try:
+            evaluator = loader.load_unevaluated(field_spec)
+        except ValueError as ex:
+            raise click.BadParameter(f"Invalid field spec {field_spec!r}: {ex}") from None
+        _logger.debug("Publication spec appears valid: %r", subject_spec)
+        return lambda presentation: Publication(
+            subject_id=subject_id,
+            dtype=dtype,
+            evaluator=evaluator,
+            presentation=presentation,
+            priority=priority,
+            send_timeout=send_timeout,
+        )
+
+    # This is to perform as much processing as possible before constructing the node.
+    # Catching errors early allows us to avoid disturbing the network and peripherals unnecessarily.
+    publication_factories = [make_publication_factory(*m) for m in message]
+
     node = purser.get_node("publish", allow_anonymous=True)
-    assert isinstance(node, Node)
-    with contextlib.closing(node):
-        publications = [
-            Publication(
-                subject_spec=subj,
-                field_spec=fields,
-                presentation=node.presentation,
-                priority=priority,
-                send_timeout=send_timeout,
-            )
-            for subj, fields in message
-        ]
-        if _logger.isEnabledFor(logging.INFO):
-            _logger.info(
-                "Ready to start publishing with period %.3fs, send timeout %.3fs, count %d, at %s:\n%s",
-                period,
-                send_timeout,
-                count,
-                priority,
-                "\n".join(map(str, publications)) or "<nothing>",
-            )
-        try:  # Even if the publication set is empty, we still have to publish the heartbeat.
-            _run(node, count=count, period=period, publications=publications)
+    executor = Executor(
+        node=node,
+        loader=loader,
+        publications=(f(node.presentation) for f in publication_factories),
+    )
+    with contextlib.closing(executor):
+        _logger.info(
+            "Publishing %d subjects with period %.3fs, send timeout %.3fs, count %d, priority %s",
+            len(publication_factories),
+            period,
+            send_timeout,
+            count,
+            priority.name,
+        )
+        # Even if the publication set is empty, we still have to publish the heartbeat.
+        try:
+            executor.run(count=count, period=period)
         finally:
             if _logger.isEnabledFor(logging.INFO):
                 _logger.info("%s", node.presentation.transport.sample_statistics())
@@ -165,55 +192,29 @@ def publish(
                         _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
 
 
-@yakut.asynchronous
-async def _run(node: object, count: int, period: float, publications: Sequence[Publication]) -> None:
-    from pyuavcan.application import Node
+@functools.lru_cache(None)
+def _get_user_expression_evaluation_context() -> Dict[str, Any]:
+    import os
+    import math
+    import time
+    import random
+    import inspect
 
-    assert isinstance(node, Node)
-    node.start()
+    modules = [
+        (random, True),
+        (time, True),
+        (math, True),
+        (os, False),
+        (pyuavcan, False),
+    ]
 
-    sleep_until = asyncio.get_event_loop().time()
-    for c in range(count):
-        out = await asyncio.gather(*[p.publish() for p in publications])
-        assert len(out) == len(publications)
-        assert all(isinstance(x, bool) for x in out)
-        if not all(out):
-            timed_out = [publications[idx] for idx, res in enumerate(out) if not res]
-            _logger.error("The following publications have timed out:\n%s", "\n".join(map(str, timed_out)))
+    out: Dict[str, Any] = {}
+    for mod, wildcard in modules:
+        out[mod.__name__] = mod
+        if wildcard:
+            out.update(
+                {name: member for name, member in inspect.getmembers(mod) if not name.startswith("_")},
+            )
 
-        sleep_until += period
-        sleep_duration = sleep_until - asyncio.get_event_loop().time()
-        _logger.info("Published group %6d of %6d; sleeping for %.3f seconds", c + 1, count, sleep_duration)
-        await asyncio.sleep(sleep_duration)
-
-
-class Publication:
-    _YAML_LOADER = Loader()
-
-    def __init__(
-        self,
-        subject_spec: str,
-        field_spec: str,
-        presentation: pyuavcan.presentation.Presentation,
-        priority: pyuavcan.transport.Priority,
-        send_timeout: float,
-    ):
-        from yakut.util import construct_port_id_and_type
-
-        subject_id, dtype = construct_port_id_and_type(subject_spec)
-        content = self._YAML_LOADER.load(field_spec)
-
-        self._message = pyuavcan.dsdl.update_from_builtin(dtype(), content)
-        self._publisher = presentation.make_publisher(dtype, subject_id)
-        self._publisher.priority = priority
-        self._publisher.send_timeout = send_timeout
-
-    async def publish(self) -> bool:
-        out = await self._publisher.publish(self._message)
-        assert isinstance(out, bool)
-        return out
-
-    def __repr__(self) -> str:
-        out = pyuavcan.util.repr_attributes(self, self._message, self._publisher)
-        assert isinstance(out, str)
-        return out
+    _logger.debug("Expression context contains %d items (on the next line):\n%s", len(out), list(out))
+    return out

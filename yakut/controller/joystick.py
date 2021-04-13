@@ -125,7 +125,6 @@ class JoystickController(Controller):
             num_joys = sdl2.joystick.SDL_NumJoysticks()
             for idx in range(num_joys):
                 name = sdl2.joystick.SDL_JoystickNameForIndex(idx).decode()
-                _logger.debug("Detected joystick %d of %d: %r", idx + 1, num_joys, name)
                 yield name, functools.partial(construct, idx)
 
 

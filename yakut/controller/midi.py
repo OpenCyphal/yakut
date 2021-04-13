@@ -106,7 +106,6 @@ class MIDIController(Controller):
     def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
         # noinspection PyUnresolvedReferences
         for name in mido.get_input_names():
-            _logger.debug("Detected MIDI controller: %s", name)
             yield name, functools.partial(MIDIController, name)
 
 

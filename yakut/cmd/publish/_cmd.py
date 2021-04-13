@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import math
-from typing import Tuple, List, Sequence, Callable, Any, Dict, TYPE_CHECKING
+from typing import Tuple, List, Sequence, Callable, Any, Dict
 import logging
 import functools
 import contextlib
@@ -116,13 +116,6 @@ def publish(
         yakut pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
         yakut pub 33:uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
     """
-    try:
-        from pyuavcan.application import Node
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.UsageError(make_usage_suggestion(ex.name))
-
     _logger.debug("period=%s, count=%s, priority=%s, message=%s", period, count, priority, message)
     assert all((isinstance(a, str) and isinstance(b, str)) for a, b in message)
     assert isinstance(period, float) and isinstance(count, int) and isinstance(priority, pyuavcan.transport.Priority)
@@ -195,7 +188,6 @@ def publish(
 @functools.lru_cache(None)
 def _get_user_expression_evaluation_context() -> Dict[str, Any]:
     import os
-    import math
     import time
     import random
     import inspect

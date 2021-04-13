@@ -103,7 +103,7 @@ class Publication:
         started_at = time.monotonic()
         # We could make the evaluated expression call a specific function to conditionally cancel publication.
         content = self._evaluator(dtype=self._dtype)
-        self._next_message = pyuavcan.dsdl.update_from_builtin(self._dtype(), content)
+        self._next_message = pyuavcan.dsdl.update_from_builtin(self._dtype(), content if content is not None else {})
         _logger.debug("%s: %s (constructed in %.3f sec)", self, self._next_message, time.monotonic() - started_at)
 
     async def publish(self) -> bool:

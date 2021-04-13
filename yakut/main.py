@@ -79,7 +79,7 @@ class Purser:
             self._transport = self._f_transport()
         if self._transport is not None:
             return self._transport
-        click.get_current_context().fail("Transport not configured")
+        click.get_current_context().fail("Transport not configured, or the standard DSDL namespace is not compiled")
 
     def get_node(self, name_suffix: str, allow_anonymous: bool) -> "pyuavcan.application.Node":
         if self._node is None:  # pragma: no branch

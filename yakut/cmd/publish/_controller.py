@@ -54,7 +54,9 @@ class ControllerReader:
             src = self._sources[selector]
         except LookupError:
             raise ControllerNotFoundError(f"No controller at index {selector}") from None
-        return src.read()
+        out = src.read()
+        assert isinstance(out, Sample)
+        return out
 
     def close(self) -> None:
         for s in self._sources:

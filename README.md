@@ -28,6 +28,11 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
+### GNU/Linux
+
+In order to use MIDI controllers you may need to manually install SDL2.
+In most distros the package name begins with `libsdl2`.
+
 ### Common issues
 
 If you are experiencing illegal instruction faults on aarch64, upgrade NumPy and Cython: `pip install -U numpy cython`.
@@ -179,6 +184,48 @@ yakut pub 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' uavcan.diagnostic.Re
 ```
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
+
+The above example publishes constant values which is rarely useful.
+You can define arbitrary Python expressions that are evaluated by Yakut before publication.
+Such expressions are entered as strings marked with YAML tag `!$`.
+There may be an arbitrary number of such expressions in a YAML string,
+and their results may be arbitrary as long as the final structure can initialize the specified message type.
+In the following example, we define an array of three elements, where the first and last elements are evaluated
+dynamically (try it):
+
+```bash
+yakut pub 33:uavcan.primitive.array.Real64.1.0 'value: [!$ 1+n+t*0.1, 123456, !$ time()]'
+```
+
+At least the following symbols are available for use in expressions (see `yakut pub --help` for the full list):
+
+- Variables:
+
+  - `n :int` --- message index starting from 0.
+
+  - `t :float` --- time delta since first message.
+
+- HID controller access functions (more on this below):
+
+  - `A(controller, axis :int) -> float` --- read controller axis value normalized into `[-1, +1]` or `[0, +1]`,
+    depending on the type of controller (unipolar or reversible).
+
+  - `B(controller, button :int) -> bool` --- read controller push button state (true if currently pressed).
+
+  - `T(controller, toggle :int) -> bool` --- read controller toggle switch state.
+
+- The following Python standard library modules are wildcard-imported:
+  - [random](https://docs.python.org/library/random.html) (e.g., `random()`)
+  - [time](https://docs.python.org/library/time.html) (e.g., `monotonic()`)
+  - [math](https://docs.python.org/library/math.html) (e.g., `sin(x)`)
+
+- The following modules are imported:
+  - [pyuavcan](https://github.com/UAVCAN/pyuavcan/)
+
+[![yakut joystick](https://img.youtube.com/vi/YPr98KM1RFM/maxresdefault.jpg)](https://www.youtube.com/watch?v=YPr98KM1RFM)
+
+[![yakut publish](https://img.youtube.com/vi/DSsI882ZYh0/maxresdefault.jpg)](https://www.youtube.com/watch?v=DSsI882ZYh0)
+
 
 ### Subscribing to subjects
 

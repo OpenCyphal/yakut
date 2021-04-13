@@ -1,7 +1,9 @@
 <component name="ProjectDictionaryState">
   <dictionary name="pavel">
     <words>
+      <w>:chroma</w>
       <w>aabbccddeeff</w>
+      <w>aarch</w>
       <w>abcd</w>
       <w>abcde</w>
       <w>abcdef</w>
@@ -139,8 +141,10 @@
       <w>meth</w>
       <w>mido</w>
       <w>mismaintenance</w>
+      <w>mjpg</w>
       <w>modifyitems</w>
       <w>modprobe</w>
+      <w>mpjpeg</w>
       <w>mult</w>
       <w>multiframe</w>
       <w>mypy</w>
@@ -288,6 +292,7 @@
       <w>usec</w>
       <w>usercustomize</w>
       <w>vcan</w>
+      <w>vcodec</w>
       <w>versioning</w>
       <w>veyor</w>
       <w>virtualization</w>

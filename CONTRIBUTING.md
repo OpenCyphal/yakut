@@ -51,6 +51,26 @@ Alternatively, you can just compile DSDL manually directly in the project root.
 Configure the IDE to run Black on save.
 See the Black documentation for integration instructions.
 
+### Capturing video for documentation
+
+Capture desktop region:
+
+```bash
+ffmpeg -video_size 1920x1500 -framerate 10 -f x11grab -i :0.0+3840,117 output.mp4 -y
+```
+
+Convert captured video to GIF:
+
+```bash
+ffmpeg -i output.mp4 output.gif
+```
+
+Stream webcam via MJPEG using VLC (open the stream using web browser or VLC):
+
+```bash
+cvlc v4l2:///dev/video0 :chroma=mjpg :live-caching=10 --sout '#transcode{vcodec=mjpg}:std{access=http{mime=multipart/x-mixed-replace;boundary=-7b3cc56e5f51db803f790dad720ed50a},mux=mpjpeg,dst=0.0.0.0:8080}' --network-caching=0
+```
+
 ## Releasing
 
 The tool is versioned by following [Semantic Versioning](https://semver.org).

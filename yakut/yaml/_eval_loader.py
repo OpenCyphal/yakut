@@ -78,7 +78,7 @@ class EvaluableLoader(Loader):
                     return {key: traverse(value) for key, value in obj.items()}
                 if isinstance(obj, (list, tuple, set)):
                     return list(map(traverse, obj))
-                if isinstance(obj, (bool, int, float)) or obj is None:
+                if isinstance(obj, (bool, int, float, str, bytes)) or obj is None:
                     return obj
                 if isinstance(obj, EmbeddedExpression):
                     return obj.evaluate(ctx)

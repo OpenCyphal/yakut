@@ -30,7 +30,9 @@ class Executor:
         self._publications = list(publications)
 
         self._loader = loader
-        self._loader.evaluation_context["j"] = self._sample_controller
+        self._loader.evaluation_context["A"] = lambda sel, idx: self._sample_controller(sel).axis[idx]
+        self._loader.evaluation_context["B"] = lambda sel, idx: self._sample_controller(sel).button[idx]
+        self._loader.evaluation_context["T"] = lambda sel, idx: self._sample_controller(sel).toggle[idx]
 
     @yakut.asynchronous
     async def run(self, count: int, period: float) -> None:

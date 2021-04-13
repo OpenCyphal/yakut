@@ -62,11 +62,11 @@ def _unittest_publish_expression_a(compiled_dsdl: typing.Any, serial_broker: str
     ]
 
 
-def _unittest_publish_expression_b(compiled_dsdl: typing.Any) -> None:
+def _unittest_publish_expression_b(compiled_dsdl: typing.Any, serial_broker: str) -> None:
     _ = compiled_dsdl
     env = {
         "YAKUT_PATH": str(OUTPUT_DIR),
-        "UAVCAN__SERIAL__IFACE": f"socket://127.0.0.1:{SERIAL_BROKER_PORT}",
+        "UAVCAN__SERIAL__IFACE": serial_broker,
         "UAVCAN__NODE__ID": "1234",
     }
 

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 from typing import Iterable, Tuple, Callable
+from collections import defaultdict
 import yakut
 from . import Controller, Sample
 
@@ -24,7 +25,7 @@ class NullController(Controller):
         return NullController.NAME
 
     def sample(self) -> Sample:
-        return Sample(axis={}, button={}, toggle={})
+        return Sample(axis=defaultdict(float), button=defaultdict(bool), toggle=defaultdict(bool))
 
     def set_update_hook(self, hook: Callable[[], None]) -> None:
         _logger.debug("%s: Update hook ignored because the null controller is never updated: %r", self, hook)

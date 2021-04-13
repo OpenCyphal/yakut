@@ -19,6 +19,12 @@ _logger = yakut.get_logger(__name__)
 
 
 class Executor:
+    SYM_INDEX = "n"
+    SYM_TIME = "t"
+    SYM_CTRL_AXIS = "A"
+    SYM_CTRL_BUTTON = "B"
+    SYM_CTRL_TOGGLE = "T"
+
     def __init__(
         self,
         node: pyuavcan.application.Node,
@@ -30,9 +36,9 @@ class Executor:
         self._publications = list(publications)
 
         self._loader = loader
-        self._loader.evaluation_context["A"] = lambda sel, idx: self._sample_controller(sel).axis[idx]
-        self._loader.evaluation_context["B"] = lambda sel, idx: self._sample_controller(sel).button[idx]
-        self._loader.evaluation_context["T"] = lambda sel, idx: self._sample_controller(sel).toggle[idx]
+        self._loader.evaluation_context[Executor.SYM_CTRL_AXIS] = lambda s, i: self._sample_controller(s).axis[i]
+        self._loader.evaluation_context[Executor.SYM_CTRL_BUTTON] = lambda s, i: self._sample_controller(s).button[i]
+        self._loader.evaluation_context[Executor.SYM_CTRL_TOGGLE] = lambda s, i: self._sample_controller(s).toggle[i]
 
     @yakut.asynchronous
     async def run(self, count: int, period: float) -> None:
@@ -41,8 +47,8 @@ class Executor:
         started_at: Optional[float] = None
         for index in range(count):
             # Update the expression states. Notice that the controls are sampled once atomically.
-            self._loader.evaluation_context["i"] = index
-            self._loader.evaluation_context["t"] = period * index
+            self._loader.evaluation_context[Executor.SYM_INDEX] = index
+            self._loader.evaluation_context[Executor.SYM_TIME] = period * index
             if self._ctl:
                 self._ctl.sample_and_hold()
 

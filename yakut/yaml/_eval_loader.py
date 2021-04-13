@@ -38,6 +38,14 @@ class EvaluableLoader(Loader):
 
         self._impl.Constructor = ConstructorWrapper
         self._impl.constructor.add_constructor(self.EVAL_TAG, construct_embedded_expression)
+        self._impl.constructor.add_multi_constructor("", catch_unknown_tags)
+
+    @property
+    def evaluation_context(self) -> Dict[str, Any]:
+        """
+        This property allows the user to modify the evaluation context after the instance is constructed.
+        """
+        return self._evaluation_context
 
     def load(self, text: str, **evaluation_context: Any) -> Any:
         """
@@ -110,6 +118,10 @@ def construct_embedded_expression(_constructor: ruamel.yaml.Constructor, node: r
     return out
 
 
+def catch_unknown_tags(_constructor: ruamel.yaml.Constructor, tag: str, node: ruamel.yaml.Node) -> None:
+    raise ValueError(f"Unsupported YAML tag {tag!r} encountered in node {node!r}")
+
+
 _logger = yakut.get_logger(__name__)
 
 
@@ -124,8 +136,17 @@ def _unittest_eval() -> None:
     print(out)
     assert out == {"a": 456, "b": 6, "c": [2, 1]}
 
+    evaluator = loader.load_unevaluated("!$ '[one, two, three]'")
+    assert evaluator(three=3) == [1, 2, 3]
+    loader.evaluation_context["one"] = 11
+    loader.evaluation_context["two"] = 222
+    assert evaluator(three=-3) == [11, 222, -3]
+
     with pytest.raises(EmbeddedExpressionError, match=r"(?i).*YAML string.*"):
         loader.load("baz: !$ []")
 
     with pytest.raises(EmbeddedExpressionError, match=r"(?i).*expression.*"):
         loader.load("baz: !$ 0syntax error")
+
+    with pytest.raises(ValueError, match=r"(?i).*YAML tag.*"):
+        loader.load("baz: !bad 123")

@@ -1,7 +1,9 @@
 <component name="ProjectDictionaryState">
   <dictionary name="pavel">
     <words>
+      <w>:chroma</w>
       <w>aabbccddeeff</w>
+      <w>aarch</w>
       <w>abcd</w>
       <w>abcde</w>
       <w>abcdef</w>
@@ -119,13 +121,17 @@
       <w>ipproto</w>
       <w>iscsi</w>
       <w>isfinite</w>
+      <w>jmsc</w>
       <w>kibibyte</w>
       <w>kirienko</w>
       <w>koopman</w>
       <w>levelname</w>
+      <w>libasound</w>
       <w>libcanard</w>
       <w>libpcap</w>
+      <w>libsdl</w>
       <w>libuavcan</w>
+      <w>linalg</w>
       <w>linkcode</w>
       <w>lnid</w>
       <w>lsmod</w>
@@ -134,9 +140,12 @@
       <w>memcpy</w>
       <w>memoryview</w>
       <w>meth</w>
+      <w>mido</w>
       <w>mismaintenance</w>
+      <w>mjpg</w>
       <w>modifyitems</w>
       <w>modprobe</w>
+      <w>mpjpeg</w>
       <w>mult</w>
       <w>multiframe</w>
       <w>mypy</w>
@@ -179,6 +188,7 @@
       <w>pydsdlgen</w>
       <w>pygments</w>
       <w>pylint</w>
+      <w>pysdl</w>
       <w>pyserial</w>
       <w>pytest</w>
       <w>pythonasynciodebug</w>
@@ -218,6 +228,7 @@
       <w>reuseport</w>
       <w>roundtrip</w>
       <w>rtfd</w>
+      <w>rtmidi</w>
       <w>rtps</w>
       <w>ruamel</w>
       <w>runas</w>
@@ -227,9 +238,11 @@
       <w>sert</w>
       <w>serv</w>
       <w>setcap</w>
+      <w>setpoint</w>
       <w>setsockopt</w>
       <w>sheremet</w>
       <w>signedness</w>
+      <w>sinewave</w>
       <w>sitecustomize</w>
       <w>sitl</w>
       <w>slcan</w>
@@ -282,6 +295,7 @@
       <w>usec</w>
       <w>usercustomize</w>
       <w>vcan</w>
+      <w>vcodec</w>
       <w>versioning</w>
       <w>veyor</w>
       <w>virtualization</w>

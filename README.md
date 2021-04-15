@@ -28,6 +28,11 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
+### GNU/Linux
+
+In order to use MIDI controllers you may need to manually install SDL2.
+In most distros the package name begins with `libsdl2`.
+
 ### Common issues
 
 If you are experiencing illegal instruction faults on aarch64, upgrade NumPy and Cython: `pip install -U numpy cython`.
@@ -52,6 +57,8 @@ Any subcommand like `yakut compile` can be used in an abbreviated form like `yak
 as long as the resulting abbreviation is unambiguous.
 
 There is a dedicated `--help` option for every subcommand.
+
+Yakut may also be invoked via its alias **`y`** as long as this name does not conflict with another installed program.
 
 ## Compiling DSDL
 
@@ -167,23 +174,11 @@ consider configuring it as the default via environment variables as shown earlie
 
 Next there are practical examples (configuring the transport is left as an exercise to the reader).
 
-### Publishing messages
-
-Publishing two messages synchronously twice (four messages total);
-notice how we specify the subject-ID before the data type name:
-
-```bash
-export UAVCAN__UDP__IFACE=127.63.0.0
-export UAVCAN__NODE__ID=42
-yakut pub 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"' -N2
-```
-
-We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
-
 ### Subscribing to subjects
 
-Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0`
-to receive messages published by the above command:
+Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0` as shown below;
+notice how we specify the subject-ID before the data type name.
+You will see output if there is a publisher on this subject (more on this in the next section).
 
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
@@ -206,6 +201,58 @@ $ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
     source_node_id: 42
   radian: 2.309999942779541
 ```
+
+### Publishing messages
+
+Publishing two messages synchronously twice (four messages total):
+
+```bash
+export UAVCAN__UDP__IFACE=127.63.0.0
+export UAVCAN__NODE__ID=42
+yakut pub -N2 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' \
+                 uavcan.diagnostic.Record.1.1    'text: "2.31 rad"'
+```
+
+We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
+
+The above example publishes constant values which is rarely useful.
+You can define arbitrary Python expressions that are evaluated by Yakut before publication.
+Such expressions are entered as strings marked with [YAML tag](https://yaml.org/spec/1.2/spec.html#id2761292) `!$`.
+There may be an arbitrary number of such expressions in a YAML document,
+and their results may be arbitrary as long as the final structure can initialize the specified message.
+The following example will publish a sinewave with frequency 1 Hz, amplitude 10 meters:
+
+```bash
+yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2) * 10"}'
+```
+
+Notice that we make use of variables like `t` or standard functions like `sin` in the expression.
+You will see the full list of available symbols and functions if you run `yakut pub --help`.
+
+One particularly important capability of this command is the ability to read data from connected
+joysticks or MIDI controllers.
+It allows the user to control UAVCAN processes or equipment in real time, simulate sensor feeds, etc.
+Function `A(x,y)` returns the normalized value of channel `y` from connected controller `x`
+(for full details see `yakut pub --help`);
+likewise, there is `B(x,y)` for push buttons and `T(x,y)` for toggle switches.
+The next example shows how to publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state,
+allowing the user to control these parameters interactively:
+
+```bash
+yakut pub -T 0.1 \
+    5:uavcan.si.unit.angular_velocity.Vector3.1.0 'radian_per_second: !$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
+    6:uavcan.si.unit.power.Scalar.1.0 'watt: !$ A(2,10)*1e3' \
+    7:uavcan.primitive.scalar.Bit.1.0 'value: !$ T(1,5)'
+```
+
+The list of available controllers and how their axes are mapped can be seen using `yakut joystick`,
+as shown in the video:
+
+[![yakut joystick](https://img.youtube.com/vi/YPr98KM1RFM/maxresdefault.jpg)](https://www.youtube.com/watch?v=YPr98KM1RFM)
+
+Here is an example where a MIDI controller is used to interactively change the frequency and amplitude of a sinewave:
+
+[![yakut publish](https://img.youtube.com/vi/DSsI882ZYh0/maxresdefault.jpg)](https://www.youtube.com/watch?v=DSsI882ZYh0)
 
 ### Invoking RPC-services
 

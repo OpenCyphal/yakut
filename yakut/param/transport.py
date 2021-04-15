@@ -121,7 +121,7 @@ def construct_transport(expression: str) -> Transport:
 
 
 def _evaluate_transport_expr(expression: str, context: Dict[str, Any]) -> List[Transport]:
-    out = eval(expression, context)  # pylint: disable=eval-used
+    out = eval(expression, context)
     if isinstance(out, Transport):
         return [out]
     if isinstance(out, (list, tuple)) and all(isinstance(x, Transport) for x in out):

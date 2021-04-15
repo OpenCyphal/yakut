@@ -34,8 +34,6 @@ def _unittest_publish(compiled_dsdl: typing.Any) -> None:
         "pub",
         "4444:uavcan.si.unit.force.Scalar.1.0",
         "{}",
-        "--count",
-        "0",
         timeout=5.0,
         ensure_success=False,
         environment_variables=env,

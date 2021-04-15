@@ -1,20 +1,14 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2021 UAVCAN Consortium
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
-"""
-The YAML library we use is API-unstable at the time of writing. We can't just use the de-facto standard PyYAML
-because it's kinda stuck in the past (no ordered dicts, no support for YAML v1.2). This facade shields the
-rest of the code from breaking changes in the YAML library API or from migration to another library.
-"""
-
 import io
-import typing
+from typing import Any, TextIO
 import decimal
 import ruamel.yaml
 
 
-class YAMLDumper:
+class Dumper:
     """
     YAML generation facade.
     Natively represents decimal.Decimal as floats in the output.
@@ -28,25 +22,13 @@ class YAMLDumper:
         self._impl.default_flow_style = None  # Choose between block/inline automatically
         self._impl.width = 2 ** 31  # Unlimited width
 
-    def dump(self, data: typing.Any, stream: typing.TextIO) -> None:
+    def dump(self, data: Any, stream: TextIO) -> None:
         self._impl.dump(data, stream)
 
-    def dumps(self, data: typing.Any) -> str:
+    def dumps(self, data: Any) -> str:
         s = io.StringIO()
         self.dump(data, s)
         return s.getvalue()
-
-
-class YAMLLoader:
-    """
-    YAML parsing facade.
-    """
-
-    def __init__(self) -> None:
-        self._impl = ruamel.yaml.YAML()
-
-    def load(self, text: str) -> typing.Any:
-        return self._impl.load(text)
 
 
 def _represent_decimal(self: ruamel.yaml.BaseRepresenter, data: decimal.Decimal) -> ruamel.yaml.ScalarNode:
@@ -69,15 +51,10 @@ _POINT_ZERO_DECIMAL = decimal.Decimal("0.0")
 def _unittest_yaml() -> None:
     import pytest
 
-    ref = YAMLDumper(explicit_start=True).dumps(
+    ref = Dumper(explicit_start=True).dumps(
         {
             "abc": decimal.Decimal("-inf"),
-            "def": [
-                decimal.Decimal("nan"),
-                {
-                    "qaz": decimal.Decimal("789"),
-                },
-            ],
+            "def": [decimal.Decimal("nan"), {"qaz": decimal.Decimal("789")}],
         }
     )
     assert (
@@ -89,12 +66,3 @@ def:
 - {qaz: 789.0}
 """
     )
-    assert YAMLLoader().load(ref) == {
-        "abc": -float("inf"),
-        "def": [
-            pytest.approx(float("nan"), nan_ok=True),
-            {
-                "qaz": pytest.approx(789),
-            },
-        ],
-    }

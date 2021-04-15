@@ -131,6 +131,7 @@
       <w>libpcap</w>
       <w>libsdl</w>
       <w>libuavcan</w>
+      <w>linalg</w>
       <w>linkcode</w>
       <w>lnid</w>
       <w>lsmod</w>
@@ -237,9 +238,11 @@
       <w>sert</w>
       <w>serv</w>
       <w>setcap</w>
+      <w>setpoint</w>
       <w>setsockopt</w>
       <w>sheremet</w>
       <w>signedness</w>
+      <w>sinewave</w>
       <w>sitecustomize</w>
       <w>sitl</w>
       <w>slcan</w>

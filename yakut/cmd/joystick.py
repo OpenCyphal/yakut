@@ -25,7 +25,8 @@ def joystick() -> None:
 
     There is an index associated with each controller that can be referred to along with a specific axis/button name
     from the publisher command (read its docs for more information and usage examples).
-    There is also a virtual controller named "null" always available at index 0 with no axes/buttons.
+    There is also a virtual controller named "null" always available at index 0 with no axes/buttons;
+    all of its channels always read out as zero/false.
 
     X-Box controllers may require a special initialization sequence under GNU/Linux:
     https://gist.github.com/pavel-kirienko/86b9d039151405451130a0fb3896887c

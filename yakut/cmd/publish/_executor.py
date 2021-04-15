@@ -8,11 +8,11 @@ import time
 import asyncio
 import pyuavcan
 import yakut
-from yakut.yaml import EvaluableLoader
-from ._controller import ControllerReader, Sample
 
 if TYPE_CHECKING:
     import pyuavcan.application  # pylint: disable=ungrouped-imports
+    from ._controller import ControllerReader, Sample
+    from yakut.yaml import EvaluableLoader  # pylint: disable=ungrouped-imports
 
 
 _logger = yakut.get_logger(__name__)
@@ -24,6 +24,7 @@ class Executor:
     SYM_CTRL_AXIS = "A"
     SYM_CTRL_BUTTON = "B"
     SYM_CTRL_TOGGLE = "T"
+    SYM_DTYPE = "dtype"
 
     def __init__(
         self,
@@ -77,6 +78,8 @@ class Executor:
 
     def _sample_controller(self, selector: Any) -> Sample:
         if not self._ctl:
+            from ._controller import ControllerReader
+
             _logger.debug("Constructing the controller reader...")
             started_at = time.monotonic()
             self._ctl = ControllerReader()
@@ -100,6 +103,9 @@ class Publication:
         self._publisher.priority = priority
         self._publisher.send_timeout = send_timeout
         self._next_message: Optional[pyuavcan.dsdl.CompositeObject] = None
+        self._evaluation_context = {
+            Executor.SYM_DTYPE: self._dtype,
+        }
 
     def construct_next_message(self) -> None:
         """
@@ -108,9 +114,14 @@ class Publication:
         """
         started_at = time.monotonic()
         # We could make the evaluated expression call a specific function to conditionally cancel publication.
-        content = self._evaluator(dtype=self._dtype)
+        content = self._evaluator(**self._evaluation_context)
         self._next_message = pyuavcan.dsdl.update_from_builtin(self._dtype(), content if content is not None else {})
-        _logger.debug("%s: %s (constructed in %.3f sec)", self, self._next_message, time.monotonic() - started_at)
+        _logger.info(
+            "%s: Next message (constructed in %.3f sec) shown on the next line:\n%s",
+            self,
+            time.monotonic() - started_at,
+            self._next_message,
+        )
 
     async def publish(self) -> bool:
         if self._next_message is not None:

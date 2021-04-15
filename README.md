@@ -200,24 +200,19 @@ yakut pub 33:uavcan.primitive.array.Real64.1.0 'value: [!$ 1+n+t*0.1, 123456, !$
 At least the following symbols are available for use in expressions (see `yakut pub --help` for the full list):
 
 - Variables:
-
   - `n :int` --- message index starting from 0.
-
   - `t :float` --- time delta since first message.
 
 - HID controller access functions (more on this below):
-
   - `A(controller, axis :int) -> float` --- read controller axis value normalized into `[-1, +1]` or `[0, +1]`,
     depending on the type of controller (unipolar or reversible).
-
   - `B(controller, button :int) -> bool` --- read controller push button state (true if currently pressed).
-
   - `T(controller, toggle :int) -> bool` --- read controller toggle switch state.
 
 - The following Python standard library modules are wildcard-imported:
   - [random](https://docs.python.org/library/random.html) (e.g., `random()`)
-  - [time](https://docs.python.org/library/time.html) (e.g., `monotonic()`)
-  - [math](https://docs.python.org/library/math.html) (e.g., `sin(x)`)
+  - [time](  https://docs.python.org/library/time.html)   (e.g., `monotonic()`)
+  - [math](  https://docs.python.org/library/math.html)   (e.g., `sin(x)`)
 
 - The following modules are imported:
   - [pyuavcan](https://github.com/UAVCAN/pyuavcan/)

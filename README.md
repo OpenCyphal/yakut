@@ -180,7 +180,7 @@ Next there are practical examples (configuring the transport is left as an exerc
 
 Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0` as shown below;
 notice how we specify the subject-ID before the data type name.
-You will see output if there is a publisher on this subject (see the next section).
+You will see output if there is a publisher on this subject (more on this in the next section).
 
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
@@ -211,14 +211,15 @@ Publishing two messages synchronously twice (four messages total):
 ```bash
 export UAVCAN__UDP__IFACE=127.63.0.0
 export UAVCAN__NODE__ID=42
-yakut pub -N2 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
+yakut pub -N2 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' \
+                 uavcan.diagnostic.Record.1.1    'text: "2.31 rad"'
 ```
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
 
 The above example publishes constant values which is rarely useful.
 You can define arbitrary Python expressions that are evaluated by Yakut before publication.
-Such expressions are entered as strings marked with YAML tag `!$`.
+Such expressions are entered as strings marked with [YAML tag](https://yaml.org/spec/1.2/spec.html#id2761292) `!$`.
 There may be an arbitrary number of such expressions in a YAML document,
 and their results may be arbitrary as long as the final structure can initialize the specified message.
 The following example will publish a sinewave with frequency 1 Hz, amplitude 10 meters:

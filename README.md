@@ -60,7 +60,6 @@ There is a dedicated `--help` option for every subcommand.
 
 Yakut may also be invoked via its alias **`y`** as long as this name does not conflict with another installed program.
 
-
 ## Compiling DSDL
 
 Suppose we have our custom DSDL namespace that we want to use.
@@ -112,7 +111,6 @@ $env:YAKUT_PATH="$env:YAKUT_COMPILE_OUTPUT"
 
 So that you say simply `yakut compile path/to/my_namespace`
 knowing that the outputs will be always stored to and read from a fixed place unless you override it.
-
 
 ## Communicating
 
@@ -256,7 +254,6 @@ Here is an example where a MIDI controller is used to interactively change the f
 
 [![yakut publish](https://img.youtube.com/vi/DSsI882ZYh0/maxresdefault.jpg)](https://www.youtube.com/watch?v=DSsI882ZYh0)
 
-
 ### Invoking RPC-services
 
 Given custom data types:
@@ -291,7 +288,6 @@ $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: 
   y_intercept: 0.0
 ```
 
-
 ## Monitoring the network
 
 The command `yakut monitor` can be used to display *all* activity on the network in a compact representation.
@@ -314,7 +310,6 @@ In the latter case it will actively query other nodes using the standard introsp
 
 Some transports, UAVCAN/UDP in particular, require special privileges to run this tool due to the security
 implications of low-level packet capture.
-
 
 ## Updating node software
 

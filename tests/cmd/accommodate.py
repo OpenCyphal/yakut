@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
+import time
 import typing
 from tests.subprocess import Subprocess, execute_cli
 from tests.dsdl import OUTPUT_DIR
@@ -25,6 +26,7 @@ def _unittest_accommodate_swarm(transport_factory: TransportFactory, compiled_ds
         )
         for idx in used_node_ids
     ]
+    time.sleep(5)  # Some time is required for the nodes to start.
     _, stdout, _ = execute_cli(
         "-v",
         f"--path={OUTPUT_DIR}",

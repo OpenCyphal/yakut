@@ -74,7 +74,6 @@ _EXPRESSION_CONTEXT_MODULES = [
     ExpressionContextModule("scipy.spatial", "https://docs.scipy.org/doc/scipy/reference/spatial.html"),
 ]
 
-# TODO: update/extend the examples
 _EXAMPLES = """
 Example: publish constant messages (no embedded expressions, just regular YAML):
 
@@ -88,7 +87,7 @@ Example: publish sinewave with frequency 1 Hz, amplitude 10 meters:
     yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2) * 10"}'
 
 Example: as above, but control the frequency of the sinewave and its amplitude using sliders 10 and 11
-of the first connected HID controller (use `yakut joystick` to find connected HID controllers and their axis mappings):
+of the first connected controller (use `yakut joystick` to find connected controllers and their axis mappings):
 
 \b
     yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2 * A(1,10)) * 10 * A(1,11)"}'
@@ -144,8 +143,8 @@ The YAML-embedded expressions have access to the following variables (type is sp
 {Executor.SYM_DTYPE}: Type[pyuavcan.dsdl.CompositeType] --- message class.
 
 {Executor.SYM_CTRL_AXIS}: (controller,axis:int)->float ---
-read the normalized value of `axis` from HID `controller` (e.g., joystick or MIDI fader).
-To see the list of available HID controllers and determine their channel mapping, refer to `yakut joystick --help`.
+read the normalized value of `axis` from `controller` (e.g., joystick or MIDI fader).
+To see the list of available controllers and determine their channel mapping, refer to `yakut joystick --help`.
 
 {Executor.SYM_CTRL_BUTTON}: (controller,button:int)->bool ---
 read the state of `button` from `controller` (true while held down).

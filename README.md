@@ -30,7 +30,7 @@ Check for new versions every now and then: **`pip install --upgrade yakut`**
 
 ### GNU/Linux
 
-In order to use MIDI controllers you may need to manually install SDL2.
+In order to use joysticks you may need to manually install SDL2.
 In most distros the package name begins with `libsdl2`.
 
 ### Common issues

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 from typing import Iterable, Tuple, Callable, Dict, Optional, List
+import sys
 import functools
 import threading
 import yakut
@@ -149,7 +150,11 @@ def _run_sdl2() -> None:
         import ctypes
 
         # Initialization and event processing should be done in the same thread.
-        err = sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
+        init_subsystems = sdl2.SDL_INIT_JOYSTICK
+        if sys.platform.startswith("win"):  # pragma: no cover
+            # I don't understand why is this necessary but joystick does not work on Windows without the video subsystem
+            init_subsystems |= sdl2.SDL_INIT_VIDEO
+        err = sdl2.SDL_Init(init_subsystems)
         if err != 0:
             raise ControllerError(f"Could not initialize SDL2: {sdl2.SDL_GetError()!r}")
 

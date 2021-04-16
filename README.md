@@ -32,10 +32,15 @@ Check for new versions every now and then: **`pip install --upgrade yakut`**
 
 In order to use joysticks you may need to manually install SDL2.
 In most distros the package name begins with `libsdl2`.
+MIDI controller support may require the ALSA API library (with header files) to be installed as well.
 
 ### Common issues
 
 If you are experiencing illegal instruction faults on aarch64, upgrade NumPy and Cython: `pip install -U numpy cython`.
+
+Yakut [won't work](https://github.com/UAVCAN/yakut/issues/18)
+if you have the legacy PyUAVCAN v0 library installed, so be sure to get rid of it: `pip uninstall -y uavcan`.
+If you're not sure what it means, you're all set.
 
 ## Invoking commands
 
@@ -215,7 +220,7 @@ yakut pub -N2 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' \
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
 
-The above example publishes constant values which is rarely useful.
+The above example will publish constant values which is rarely useful.
 You can define arbitrary Python expressions that are evaluated by Yakut before publication.
 Such expressions are entered as strings marked with [YAML tag](https://yaml.org/spec/1.2/spec.html#id2761292) `!$`.
 There may be an arbitrary number of such expressions in a YAML document,
@@ -226,16 +231,16 @@ The following example will publish a sinewave with frequency 1 Hz, amplitude 10 
 yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2) * 10"}'
 ```
 
-Notice that we make use of variables like `t` or standard functions like `sin` in the expression.
-You will see the full list of available symbols and functions if you run `yakut pub --help`.
+Notice that we make use of entities like the variable `t` or the standard function `sin` in the expression.
+You will see the full list of available entities if you run `yakut pub --help`.
 
 One particularly important capability of this command is the ability to read data from connected
 joysticks or MIDI controllers.
 It allows the user to control UAVCAN processes or equipment in real time, simulate sensor feeds, etc.
-Function `A(x,y)` returns the normalized value of channel `y` from connected controller `x`
+Function `A(x,y)` returns the normalized value of axis `y` from connected controller `x`
 (for full details see `yakut pub --help`);
 likewise, there is `B(x,y)` for push buttons and `T(x,y)` for toggle switches.
-The next example shows how to publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state,
+The next example will publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state,
 allowing the user to control these parameters interactively:
 
 ```bash
@@ -245,7 +250,7 @@ yakut pub -T 0.1 \
     7:uavcan.primitive.scalar.Bit.1.0 'value: !$ T(1,5)'
 ```
 
-The list of available controllers and how their axes are mapped can be seen using `yakut joystick`,
+The list of connected controllers and how their axes are mapped can be seen using `yakut joystick`,
 as shown in the video:
 
 [![yakut joystick](https://img.youtube.com/vi/YPr98KM1RFM/maxresdefault.jpg)](https://www.youtube.com/watch?v=YPr98KM1RFM)

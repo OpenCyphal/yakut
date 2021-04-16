@@ -152,7 +152,8 @@ read the state of `button` from `controller` (true while held down).
 {Executor.SYM_CTRL_TOGGLE}: (controller,toggle:int)->bool ---
 read the state of `toggle` from `controller`.
 
-The following Python modules are imported; refer to their API docs for usage info:
+The following Python modules are imported and usable within embedded expressions;
+refer to their API docs for usage info:
 
 \b
 {textwrap.indent(chr(0x0A).join(map(str, _EXPRESSION_CONTEXT_MODULES)), " " * 4)}

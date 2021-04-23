@@ -28,6 +28,9 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
+Installation & configuration screencasts for Windows and GNU/Linux are
+[available on the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
+
 ### GNU/Linux
 
 In order to use joysticks you may need to manually install SDL2.
@@ -74,7 +77,7 @@ First, it needs to be *compiled*:
 yakut compile ~/custom_data_types/sirius_cyber_corp
 ```
 
-Some commands require the standard namespace to be available,
+Most of the commands require the standard namespace to be available,
 so let's compile it too, along with the regulated namespace:
 
 ```bash
@@ -85,7 +88,7 @@ Compilation outputs will be stored in the current working directory, but it can 
 via `--output` or `YAKUT_COMPILE_OUTPUT`.
 Naturally, Yakut needs to know where the outputs are located to use them;
 by default it looks in the current directory.
-You can specify additional search locations using `--path` or`YAKUT_PATH`.
+You can specify additional search locations using `--path` or `YAKUT_PATH`.
 
 A question one is likely to ask here is:
 *Why don't you ship precompiled regulated DSDL together with the tool?*
@@ -121,10 +124,9 @@ knowing that the outputs will be always stored to and read from a fixed place un
 
 Commands that access the network need to know how to do so.
 There are two ways to configure that:
-pass registers via environment variables (this is the default),
-or pass initialization expression via `--transport`/`YAKUT_TRANSPORT` (in which case the registers are ignored).
-
-### Configuring the transport via UAVCAN registers
+pass *UAVCAN registers* via environment variables (this is the default),
+or pass an initialization expression via `--transport`/`YAKUT_TRANSPORT` (in which case the registers are ignored).
+The latter is not recommended for general use so we'll focus on the first one.
 
 UAVCAN registers are named values that contain various configuration parameters of a UAVCAN application/node.
 They are extensively described in the [UAVCAN Specification](https://uavcan.org/specification).
@@ -137,8 +139,6 @@ The full description of supported registers is available in the API documentatio
 
 If the available registers define more than one transport configuration, a redundant transport will be initialized.
 
-**This initialization method requires that the standard DSDL namespace `uavcan` is compiled.**
-
 Transport |Register name        |Register type  |Environment variable name|Semantics                                          |Example environment variable value
 ----------|---------------------|---------------|-------------------------|---------------------------------------------------|------------------------------------
 All       |`uavcan.node.id`     |`natural16[1]` |`UAVCAN__NODE__ID`       |The local node-ID; anonymous if not set            |`42`
@@ -148,36 +148,6 @@ CAN       |`uavcan.can.iface`   |`string`       |`UAVCAN__CAN__IFACE`     |Space
 CAN       |`uavcan.can.mtu`     |`natural16[1]` |`UAVCAN__CAN__MTU`       |Maximum transmission unit; selects Classic/FD      |`64`
 CAN       |`uavcan.can.bitrate` |`natural32[2]` |`UAVCAN__CAN__BITRATE`   |Arbitration/data segment bits per second           |`1000000 4000000`
 Loopback  |`uavcan.loopback`    |`bit[1]`       |`UAVCAN__LOOPBACK`       |Use loopback interface (only for basic testing)    |`1`
-
-### Configuring the transport via initialization expression
-
-Being specific to this tool, this method is not compatible with the UAVCAN ecosystem at large,
-but its advantages are that it does not require the standard DSDL namespace `uavcan` to be compiled beforehand
-and it allows one to force the tool to disregard the registers if they are irrelevant in the current context.
-
-The *transport initialization expression* is passed via `--transport`/`YAKUT_TRANSPORT`.
-Here are practical examples (don't forget to add quotes around the expression):
-
-- `UDP("127.0.0.1",None)` -- UAVCAN/UDP on the local loopback interface; local node anonymous.
-
-- `UDP("192.168.0.0",456)` -- UAVCAN/UDP on the local network; local node-ID 456, local IP address 192.168.1.200.
-
-- `Serial('/dev/ttyUSB0',None)` -- UAVCAN/serial over a USB CDC ACM port; local node anonymous.
-
-- `Serial('socket://localhost:50905',123)` -- UAVCAN/serial tunneled via TCP/IP instead of a real serial port.
-  The local node-ID is 123.
-
-- `CAN(can.media.socketcan.SocketCANMedia('vcan1',32),3),CAN(can.media.socketcan.SocketCANMedia('vcan2',64),3)` --
-  UAVCAN/CAN over a doubly-redundant CAN FD bus using a virtual (simulated) SocketCAN interface.
-  The node-ID is 3, and the MTU is 32/64 bytes, respectively.
-
-- `Loopback(2222)` -- A null-transport for testing with node-ID 2222.
-
-To learn more, read `yakut --help`.
-If there is a particular transport you use often,
-consider configuring it as the default via environment variables as shown earlier.
-
-Next there are practical examples (configuring the transport is left as an exercise to the reader).
 
 ### Subscribing to subjects
 
@@ -305,7 +275,9 @@ Read `yakut monitor --help` for details.
 
 ```bash
 $ export UAVCAN__CAN__IFACE="socketcan:can0 socketcan:can1 socketcan:can2"  # Triply-redundant UAVCAN/CAN
-$ yakut monitor
+$ export UAVCAN__CAN__MTU=8                     # Force MTU = 8 bytes
+$ export UAVCAN__CAN__BITRATE=1000000 1000000   # Disable BRS, use the same bit rate for arbitration/data
+$ y mon                                         # Abbreviation of "yakut monitor"
 ```
 
 <img src="/docs/monitor.gif" alt="yakut monitor">

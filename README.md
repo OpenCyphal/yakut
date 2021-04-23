@@ -112,7 +112,7 @@ export YAKUT_PATH="$YAKUT_COMPILE_OUTPUT"
 ```
 
 ```powershell
-# PowerShell on Windows
+# PowerShell on Windows (double quotes are always required!)
 $env:YAKUT_COMPILE_OUTPUT="$env:APPDATA\Yakut"
 $env:YAKUT_PATH="$env:YAKUT_COMPILE_OUTPUT"
 ```
@@ -276,7 +276,7 @@ Read `yakut monitor --help` for details.
 ```bash
 $ export UAVCAN__CAN__IFACE="socketcan:can0 socketcan:can1 socketcan:can2"  # Triply-redundant UAVCAN/CAN
 $ export UAVCAN__CAN__MTU=8                     # Force MTU = 8 bytes
-$ export UAVCAN__CAN__BITRATE=1000000 1000000   # Disable BRS, use the same bit rate for arbitration/data
+$ export UAVCAN__CAN__BITRATE="1000000 1000000" # Disable BRS, use the same bit rate for arbitration/data
 $ y mon                                         # Abbreviation of "yakut monitor"
 ```
 

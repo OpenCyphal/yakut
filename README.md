@@ -41,10 +41,6 @@ MIDI controller support may require the ALSA API library (with header files) to 
 
 If you are experiencing illegal instruction faults on aarch64, upgrade NumPy and Cython: `pip install -U numpy cython`.
 
-Yakut [won't work](https://github.com/UAVCAN/yakut/issues/18)
-if you have the legacy PyUAVCAN v0 library installed, so be sure to get rid of it: `pip uninstall -y uavcan`.
-If you're not sure what it means, you're all set.
-
 ## Invoking commands
 
 Any option can be supplied either as a command-line argument or as an environment variable named like

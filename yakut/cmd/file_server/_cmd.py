@@ -181,8 +181,18 @@ def file_server(purser: yakut.Purser, roots: List[Path], plug_and_play: Optional
                 return
             heartbeat = entry.heartbeat
             assert isinstance(heartbeat, Heartbeat)
-            if heartbeat.mode.value == heartbeat.mode.SOFTWARE_UPDATE:
-                _logger.info("Node %r is in the software update mode already: %r", node_id, heartbeat)
+            if (
+                heartbeat.mode.value == heartbeat.mode.SOFTWARE_UPDATE
+                and heartbeat.health.value < heartbeat.health.WARNING
+            ):
+                # Do not skip an update request if the health is WARNING because it indicates a problem, possibly
+                # caused by a missing application. Details: https://github.com/UAVCAN/yakut/issues/27
+                _logger.info(
+                    "Node %r does not require an update because it is in the software update mode already "
+                    "and its health is acceptable: %r",
+                    node_id,
+                    heartbeat,
+                )
                 return
             _logger.info("Checking if node %r requires a software update...", node_id)
             info = entry.info

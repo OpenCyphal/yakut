@@ -70,7 +70,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "--priority=slow",
         environment_variables=env,
     )
-    time.sleep(2.0)  # Time to let the publisher boot up properly.
+    time.sleep(3.0)  # Time to let the publisher boot up properly.
 
     # Request GetInfo from the publisher we just launched.
     _, stdout, _ = execute_cli(

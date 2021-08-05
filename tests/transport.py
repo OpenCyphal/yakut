@@ -72,7 +72,11 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
     serial_endpoint = f"socket://127.0.0.1:{SERIAL_BROKER_PORT}"
 
     def launch_serial_broker() -> Subprocess:
-        return Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={SERIAL_BROKER_PORT}")
+        out = Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={SERIAL_BROKER_PORT}")
+        # The sleep is needed to let the broker initialize before starting the tests to avoid connection error.
+        # This is only relevant for Windows. See details: https://github.com/UAVCAN/yakut/issues/26
+        time.sleep(2)
+        return out
 
     def serial_tunneled_via_tcp() -> typing.Iterator[TransportFactory]:
         broker = launch_serial_broker()
@@ -123,5 +127,8 @@ def serial_broker() -> typing.Iterable[str]:
     The value is the endpoint where the broker is reachable; e.g., ``socket://127.0.0.1:50905``.
     """
     proc = Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={SERIAL_BROKER_PORT}")
+    # The sleep is needed to let the broker initialize before starting the tests to avoid connection error.
+    # This is only relevant for Windows. See details: https://github.com/UAVCAN/yakut/issues/26
+    time.sleep(2)
     yield f"socket://127.0.0.1:{SERIAL_BROKER_PORT}"
     proc.wait(5.0, interrupt=True)

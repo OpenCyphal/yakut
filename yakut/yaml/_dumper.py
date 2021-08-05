@@ -49,8 +49,6 @@ _POINT_ZERO_DECIMAL = decimal.Decimal("0.0")
 
 
 def _unittest_yaml() -> None:
-    import pytest
-
     ref = Dumper(explicit_start=True).dumps(
         {
             "abc": decimal.Decimal("-inf"),

@@ -13,7 +13,7 @@ from . import Controller, Sample, ControllerError, ControllerNotFoundError
 try:
     import sdl2  # type: ignore
 except ImportError as ex:
-    raise ImportError("Please install libsdl2: http://www.libsdl.org/download-2.0.php") from ex
+    raise ImportError("Joystick support not installed, install optional dependencies with yakut[joystick]") from e
 
 
 class JoystickController(Controller):

@@ -128,6 +128,7 @@
       <w>levelname</w>
       <w>libasound</w>
       <w>libcanard</w>
+      <w>libjack</w>
       <w>libpcap</w>
       <w>libsdl</w>
       <w>libuavcan</w>
@@ -233,6 +234,7 @@
       <w>rtps</w>
       <w>ruamel</w>
       <w>runas</w>
+      <w>screencasts</w>
       <w>searchbox</w>
       <w>sendable</w>
       <w>sendmsg</w>

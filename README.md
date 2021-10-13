@@ -27,7 +27,8 @@ Install Yakut: **`pip install yakut`**
 By default, Yakut does not support joysticks or MIDI controllers
 (this feature is described below in section [Publishing messages](#publishing-messages)).
 To enable the support for input devices, install the optional dependency: **`pip install yakut[joystick]`**.
-GNU/Linux users will need to also install: SDL2, libjack (with headers), libasound2 (with headers).
+GNU/Linux users will need to also install: [SDL2](https://libsdl.org),
+possibly libjack (with headers), possibly libasound2 (with headers).
 
 Afterward do endeavor to read the docs: **`yakut --help`**
 
@@ -35,10 +36,6 @@ Check for new versions every now and then: **`pip install --upgrade yakut`**
 
 Installation & configuration screencasts for Windows and GNU/Linux are
 [available on the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
-
-### Common issues
-
-If you are experiencing illegal instruction faults on aarch64, upgrade NumPy and Cython: `pip install -U numpy cython`.
 
 ## Invoking commands
 

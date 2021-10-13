@@ -43,6 +43,8 @@ def test(session):
     session.install("-e", ".")
     session.run_always("yakut", "--help", silent=True)
     session.run_always("yakut", "doc", silent=True)
+    # now, install the optional [joystick] dependency to test MIDI controller/joystick support
+    session.install("-e", ".[joystick]")
 
     # Now we can install dependencies for the full integration test suite.
     session.install(

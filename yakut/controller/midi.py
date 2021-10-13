@@ -8,10 +8,13 @@ from collections import defaultdict
 import functools
 import threading
 import dataclasses
+
 try:
     import mido  # type: ignore
 except ImportError as e:
-    raise ImportError("MIDI (joystick) support not installed, install optional dependencies with yakut[joystick]") from e
+    raise ImportError(
+        "MIDI (joystick) support not installed, install optional dependencies with yakut[joystick]"
+    ) from e
 import yakut
 from . import Controller, Sample, ControllerError, ControllerNotFoundError
 

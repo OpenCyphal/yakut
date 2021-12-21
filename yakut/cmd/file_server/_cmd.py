@@ -79,7 +79,7 @@ be named following this pattern:
     NAME-HWMAJ.HWMIN-SWMAJ.SWMIN.VCS.CRC.app*
               |____|                |__|
         |__________|            |______|
-    either major or both        either CRC or both
+    either minor or both        either CRC or both
     can be omitted if           CRC and VCS can be
     multiple hardware           omitted
     versions supported

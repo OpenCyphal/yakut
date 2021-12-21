@@ -100,6 +100,7 @@ async def call(
     \b
         yakut call 42 uavcan.node.GetInfo.1.0 +M -T3 -Pe
         yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+        yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 '[[10, 1], [20, 2]]'
     """
     try:
         from pyuavcan.application import Node

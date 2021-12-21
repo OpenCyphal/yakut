@@ -283,6 +283,10 @@ $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: 
   y_intercept: 0.0
 ```
 
+You might notice that the verbose initialization form used in this example is hard to type:
+`points: [{x: 10, y: 1}, {x: 20, y: 2}]`.
+Instead, you can use positional initialization for convenience: `[[10, 1], [20, 2]]`.
+
 ## Monitoring the network
 
 The command `yakut monitor` can be used to display *all* activity on the network in a compact representation.

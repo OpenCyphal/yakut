@@ -60,7 +60,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         f"--transport={transport_factory(51).expression}",  # Takes precedence over the environment variable.
         "pub",
         "4321:uavcan.diagnostic.Record.1.1",
-        '{severity: {value: 6}, timestamp: {microsecond: 123456}, text: "Hello world!"}',
+        '{severity: 6, timestamp: 123456, text: "Hello world!"}',  # Use shorthand init for severity, timestamp
         "1234:uavcan.diagnostic.Record.1.1",
         '{text: "Goodbye world."}',
         "555:uavcan.si.sample.temperature.Scalar.1.0",

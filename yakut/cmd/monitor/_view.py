@@ -29,8 +29,8 @@ S_CAUTION = Style(fg=Color.YELLOW, salience=1)
 S_WARNING = Style(fg=Color.RED, salience=1)
 S_NOTICE = Style(fg=Color.CYAN, salience=1)
 
-S_NICE = Style(fg=Color.GREEN, bg=Color.BLACK, salience=1)
-S_POOR = Style(fg=Color.YELLOW, bg=Color.BLACK, salience=1)
+S_NICE = Style(fg=Color.GREEN, salience=1)
+S_POOR = Style(fg=Color.YELLOW, salience=1)
 
 
 class View:
@@ -454,7 +454,7 @@ def get_matrix_cell_style(tx: Optional[bool], rx: Optional[bool], recently_activ
         return Style(fg=fg, bg=Color.BLUE, salience=salience)
     if rx:
         return Style(fg=fg, bg=Color.GREEN, salience=salience)
-    return Style(fg=fg, bg=Color.BLACK, salience=salience)
+    return Style(fg=fg, salience=salience)
 
 
 # noinspection SpellCheckingInspection

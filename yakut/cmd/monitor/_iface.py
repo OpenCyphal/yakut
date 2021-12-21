@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import asyncio
-from typing import TYPE_CHECKING, Callable, Dict, List, Any, Type, Tuple
+from typing import TYPE_CHECKING, Callable, Any, Type
 import threading
 import pyuavcan
 from pyuavcan.transport import Timestamp, AlienTransfer
@@ -18,14 +18,14 @@ class Iface:
     def __init__(self, node: pyuavcan.application.Node) -> None:
         self._loop = asyncio.get_event_loop()
         self._node = node
-        self._clients: Dict[
-            Tuple[Type[pyuavcan.dsdl.CompositeObject], int],
+        self._clients: dict[
+            tuple[Type[pyuavcan.dsdl.CompositeObject], int],
             pyuavcan.presentation.Client[pyuavcan.dsdl.CompositeObject],
         ] = {}
-        self._subscriptions: List[Type[pyuavcan.dsdl.FixedPortCompositeObject]] = []
+        self._subscriptions: list[Type[pyuavcan.dsdl.FixedPortCompositeObject]] = []
         self._lock = threading.RLock()
-        self._trace_handlers: List[Callable[[Timestamp, AlienTransfer], None]] = []
-        self._transport_error_handlers: List[Callable[[pyuavcan.transport.ErrorTrace], None]] = []
+        self._trace_handlers: list[Callable[[Timestamp, AlienTransfer], None]] = []
+        self._transport_error_handlers: list[Callable[[pyuavcan.transport.ErrorTrace], None]] = []
         self._tracer = node.presentation.transport.make_tracer()
 
         _logger.info("Starting packet capture on %r", self._node)

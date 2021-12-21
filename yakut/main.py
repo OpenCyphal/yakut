@@ -105,18 +105,6 @@ class AbbreviatedGroup(click.Group):
             return click.Group.get_command(self, ctx, matches[0])
         ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
 
-    def resolve_command(self, ctx: click.Context, args: list[Any]) -> tuple[str, click.Command, list[Any]]:
-        """
-        This is a workaround for this bug in v7: https://github.com/pallets/click/issues/1422.
-
-        If this is not overridden, then abbreviated commands cause the automatic envvar prefix to be constructed
-        incorrectly, such that instead of the full command name the abbreviated name is used.
-        For example, if the user invokes `yakut comp` meaning `yakut compile`,
-        the auto-constructed envvar prefix would be `YAKUT_COMP_` instead of `YAKUT_COMPILE_`.
-        """
-        _, cmd, out_args = super().resolve_command(ctx, args)
-        return cmd.name, cmd, out_args
-
 
 _ENV_VAR_PATH = "YAKUT_PATH"
 

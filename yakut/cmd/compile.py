@@ -132,7 +132,8 @@ def _fetch_archive_dirs(archive_uri: str) -> typing.List[Path]:
     Downloads an archive from the specified URI, unpacks it into a temporary directory, and returns the list of
     directories in the root of the unpacked archive.
     """
-    import requests  # Takes over 100 ms to import! Having it in the file scope is a performance disaster.
+    # The requests package takes over 100 ms to import! Having it in the file scope is a performance disaster.
+    import requests  # type: ignore
 
     # TODO: autodetect the type of the archive
     arch_dir = tempfile.mkdtemp(prefix="yakut-dsdl-")

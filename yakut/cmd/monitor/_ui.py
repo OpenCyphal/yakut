@@ -6,7 +6,7 @@ from __future__ import annotations
 import sys
 import dataclasses
 import functools
-from typing import Optional, Iterable, List, Any, Tuple
+from typing import Optional, Iterable, Any
 from numbers import Number
 import enum
 import click
@@ -58,7 +58,7 @@ class TableRenderer:
             data = str(data).rjust(self._column_widths[column])
         self._canvas.put(row, self._column_offsets[column], data, style=style)
 
-    def __setitem__(self, key: Tuple[int, int], value: Any) -> None:
+    def __setitem__(self, key: tuple[int, int], value: Any) -> None:
         row, col = key
         if isinstance(value, tuple):
             data, style = value
@@ -82,10 +82,10 @@ class Canvas:
         style: Optional[Style]
 
     def __init__(self) -> None:
-        self._rows: List[List[Canvas._Block]] = []
+        self._rows: list[list[Canvas._Block]] = []
 
     @property
-    def extent(self) -> Tuple[int, int]:
+    def extent(self) -> tuple[int, int]:
         return len(self._rows), max((x.column + len(x.text)) for r in self._rows for x in r)
 
     def put(self, row: int, column: int, data: Any, *, style: Optional[Style] = None) -> int:
@@ -105,9 +105,9 @@ class Canvas:
         self._rows = []
         return out
 
-    def _render_row(self, ln: List[Canvas._Block]) -> str:
+    def _render_row(self, ln: list[Canvas._Block]) -> str:
         col = 0
-        out: List[str] = [self._begin_style(None)]
+        out: list[str] = [self._begin_style(None)]
         for b in sorted(ln, key=lambda x: x.column):
             out.append(" " * (b.column - col))
             col = b.column

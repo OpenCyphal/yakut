@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import asyncio
-from typing import Optional, Iterable, List, Tuple, TYPE_CHECKING
+from typing import Optional, Iterable, TYPE_CHECKING
 from pathlib import Path
 import click
 import pyuavcan
@@ -18,9 +18,9 @@ if TYPE_CHECKING:
 _logger = yakut.get_logger(__name__)
 
 
-def _validate_root_directory(ctx: click.Context, param: click.Parameter, value: Iterable[str]) -> List[Path]:
+def _validate_root_directory(ctx: click.Context, param: click.Parameter, value: Iterable[str]) -> list[Path]:
     _ = param
-    out: List[Path] = []
+    out: list[Path] = []
     for x in value:
         p = Path(x).resolve()
         if not p.is_dir() or not p.exists():
@@ -122,7 +122,7 @@ the names are matching, the hardware version is compatible, and either condition
 @yakut.pass_purser
 @yakut.asynchronous
 async def file_server(
-    purser: yakut.Purser, roots: List[Path], plug_and_play: Optional[str], update_software: bool
+    purser: yakut.Purser, roots: list[Path], plug_and_play: Optional[str], update_software: bool
 ) -> None:
     """
     Run a standard UAVCAN file server; optionally run a plug-and-play node-ID allocator and software updater.
@@ -250,7 +250,7 @@ async def file_server(
 def _locate_package(
     fs: pyuavcan.application.file.FileServer,
     info: pyuavcan.application.NodeInfo,
-) -> Optional[Tuple[Path, Path]]:
+) -> Optional[tuple[Path, Path]]:
     """
     If at least one locally available application file is equivalent to the already running application,
     no update will take place.
@@ -260,7 +260,7 @@ def _locate_package(
     given node, they would be continuously replacing one another.
     """
     app = AppDescriptor.from_node_info(info)
-    result: Optional[Tuple[Path, Path]] = None
+    result: Optional[tuple[Path, Path]] = None
     for root, tail in fs.glob(app.make_glob_expression()):
         candidate = AppDescriptor.from_file_name(str(tail.name))
         if candidate:

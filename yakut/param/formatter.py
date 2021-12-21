@@ -61,9 +61,9 @@ def _make_json_formatter() -> Formatter:
     # We prefer simplejson over the standard json because the native json lacks important capabilities:
     #  - simplejson preserves dict ordering, which is very important for UX.
     #  - simplejson supports Decimal.
-    import simplejson as json
+    import simplejson as json  # type: ignore
 
-    return lambda data: json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    return lambda data: typing.cast(str, json.dumps(data, ensure_ascii=False, separators=(",", ":")))
 
 
 def _make_tsv_formatter() -> Formatter:

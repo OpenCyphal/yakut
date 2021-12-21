@@ -34,6 +34,7 @@
       <w>bufferless</w>
       <w>byref</w>
       <w>bysource</w>
+      <w>canbusload</w>
       <w>candump</w>
       <w>canfd</w>
       <w>canid</w>
@@ -270,6 +271,7 @@
       <w>swmin</w>
       <w>synth</w>
       <w>systeminfo</w>
+      <w>tcbr</w>
       <w>telega</w>
       <w>tempfile</w>
       <w>templatedir</w>

@@ -131,15 +131,43 @@ The full description of supported registers is available in the API documentatio
 
 If the available registers define more than one transport configuration, a redundant transport will be initialized.
 
-Transport |Register name        |Register type  |Environment variable name|Semantics                                          |Example environment variable value
-----------|---------------------|---------------|-------------------------|---------------------------------------------------|------------------------------------
-All       |`uavcan.node.id`     |`natural16[1]` |`UAVCAN__NODE__ID`       |The local node-ID; anonymous if not set            |`42`
-UDP       |`uavcan.udp.iface`   |`string`       |`UAVCAN__UDP__IFACE`     |Space-separated local IPs (16 LSB set to node-ID)  |`127.9.0.0 192.168.0.0`
-Serial    |`uavcan.serial.iface`|`string`       |`UAVCAN__SERIAL__IFACE`  |Space-separated serial port names                  |`COM9 socket://127.0.0.1:50905`
-CAN       |`uavcan.can.iface`   |`string`       |`UAVCAN__CAN__IFACE`     |Space-separated CAN iface names                    |`socketcan:vcan0 pcan:PCAN_USBBUS1`
-CAN       |`uavcan.can.mtu`     |`natural16[1]` |`UAVCAN__CAN__MTU`       |Maximum transmission unit; selects Classic/FD      |`64`
-CAN       |`uavcan.can.bitrate` |`natural32[2]` |`UAVCAN__CAN__BITRATE`   |Arbitration/data segment bits per second           |`1000000 4000000`
-Loopback  |`uavcan.loopback`    |`bit[1]`       |`UAVCAN__LOOPBACK`       |Use loopback interface (only for basic testing)    |`1`
+ Transport | Register name         | Register type  | Environment variable name | Semantics                                         | Example environment variable value  
+-----------|-----------------------|----------------|---------------------------|---------------------------------------------------|-------------------------------------
+ All       | `uavcan.node.id`      | `natural16[1]` | `UAVCAN__NODE__ID`        | The local node-ID; anonymous if not set           | `42`                                
+ UDP       | `uavcan.udp.iface`    | `string`       | `UAVCAN__UDP__IFACE`      | Space-separated local IPs (16 LSB set to node-ID) | `127.9.0.0 192.168.0.0`             
+ Serial    | `uavcan.serial.iface` | `string`       | `UAVCAN__SERIAL__IFACE`   | Space-separated serial port names                 | `COM9 socket://127.0.0.1:50905`     
+ CAN       | `uavcan.can.iface`    | `string`       | `UAVCAN__CAN__IFACE`      | Space-separated CAN iface names                   | `socketcan:vcan0 pcan:PCAN_USBBUS1` 
+ CAN       | `uavcan.can.mtu`      | `natural16[1]` | `UAVCAN__CAN__MTU`        | Maximum transmission unit; selects Classic/FD     | `64`                                
+ CAN       | `uavcan.can.bitrate`  | `natural32[2]` | `UAVCAN__CAN__BITRATE`    | Arbitration/data segment bits per second          | `1000000 4000000`                   
+ Loopback  | `uavcan.loopback`     | `bit[1]`       | `UAVCAN__LOOPBACK`        | Use loopback interface (only for basic testing)   | `1`                                 
+
+### Protip on environment variables
+
+Defining the required environment variables manually is unergonomic and time-consuming.
+A better option is to have relevant configuration that you use often defined in a dedicated file (or several)
+that is sourced into the current shell session as necessary
+(conceptually this is similar to virtual environments used in Python, etc).
+Here is an example for a doubly-redundant CAN bus (assuming sh/bash/zsh here):
+
+```bash
+# Common UAVCAN register configuration for testing & debugging.
+# Source this file into your sh/bash/zsh session before using Yakut and other UAVCAN tools.
+# Other helpful commands from can-utils:
+#   canbusload -tcbr slcan0@1000000 slcan1@1000000
+#   candump -decaxta any
+
+export UAVCAN__CAN__IFACE='socketcan:slcan0 socketcan:slcan1'
+export UAVCAN__CAN__MTU=8
+export UAVCAN__NODE__ID=$(yakut accommodate)  # Pick an unoccupied node-ID automatically for this shell session.
+echo "Auto-selected node-ID for this session: $UAVCAN__NODE__ID"
+```
+
+Usage:
+
+```bash
+$ . my_environment.sh
+$ yakut monitor  # Whatever.
+```
 
 ### Subscribing to subjects
 

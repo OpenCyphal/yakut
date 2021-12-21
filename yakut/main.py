@@ -8,6 +8,7 @@ import sys
 from typing import TYPE_CHECKING, Iterable, Optional, Any, Callable, Awaitable
 import logging
 from pathlib import Path
+from shutil import get_terminal_size
 import click
 import yakut
 from yakut.param.transport import transport_factory_option, TransportFactory, Transport
@@ -123,7 +124,7 @@ _ENV_VAR_PATH = "YAKUT_PATH"
 @click.command(
     cls=AbbreviatedGroup,
     context_settings={
-        "max_content_width": click.get_terminal_size()[0],
+        "max_content_width": get_terminal_size()[0],
         "auto_envvar_prefix": "YAKUT",  # Specified here, not in __main__.py, otherwise doesn't work when installed.
     },
 )

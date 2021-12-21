@@ -213,7 +213,8 @@ The send timeout equals the period as long as it is not less than {_MIN_SEND_TIM
     help=f"Priority of published message transfers. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]",
 )
 @yakut.pass_purser
-def publish(
+@yakut.asynchronous
+async def publish(
     purser: yakut.Purser,
     message: Sequence[Tuple[str, str]],
     period: float,
@@ -277,7 +278,7 @@ def publish(
             count,
             priority.name,
         )
-        executor.run(count=count, period=period)
+        await executor.run(count=count, period=period)
     finally:
         executor.close()
         if _logger.isEnabledFor(logging.INFO):

@@ -39,7 +39,8 @@ Exit automatically after this many messages (or synchronous message groups) have
 """,
 )
 @yakut.pass_purser
-def subscribe(
+@yakut.asynchronous
+async def subscribe(
     purser: yakut.Purser,
     subject: typing.Tuple[str, ...],
     with_metadata: bool,
@@ -92,7 +93,7 @@ def subscribe(
     with contextlib.closing(Presentation(transport)) as presentation:
         subscriber = _make_subscriber(subject, presentation)
         try:
-            _run(subscriber, formatter, with_metadata=with_metadata, count=count)
+            await _run(subscriber, formatter, with_metadata=with_metadata, count=count)
         finally:
             if _logger.isEnabledFor(logging.INFO):
                 _logger.info("%s", presentation.transport.sample_statistics())
@@ -110,7 +111,6 @@ def _make_subscriber(subjects: typing.Sequence[str], presentation: Presentation)
     )
 
 
-@yakut.asynchronous
 async def _run(subscriber: Subscriber[_M], formatter: Formatter, with_metadata: bool, count: int) -> None:
     async for msg, transfer in subscriber:
         assert isinstance(transfer, pyuavcan.transport.TransferFrom)

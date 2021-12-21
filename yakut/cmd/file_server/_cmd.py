@@ -120,7 +120,10 @@ the names are matching, the hardware version is compatible, and either condition
 """,
 )
 @yakut.pass_purser
-def file_server(purser: yakut.Purser, roots: List[Path], plug_and_play: Optional[str], update_software: bool) -> None:
+@yakut.asynchronous
+async def file_server(
+    purser: yakut.Purser, roots: List[Path], plug_and_play: Optional[str], update_software: bool
+) -> None:
     """
     Run a standard UAVCAN file server; optionally run a plug-and-play node-ID allocator and software updater.
 
@@ -231,7 +234,7 @@ def file_server(purser: yakut.Purser, roots: List[Path], plug_and_play: Optional
                         return
                     _logger.info("Node %r confirmed software update command %r", node_id, cmd_request)
 
-                node.loop.create_task(do_call())
+                asyncio.create_task(do_call())
             else:
                 _logger.info("Node %r does not require a software update.", node_id)
 
@@ -241,7 +244,7 @@ def file_server(purser: yakut.Purser, roots: List[Path], plug_and_play: Optional
             # the file server to slow down significantly because the event loop would be blocked here on disk reads.
             get_node_tracker().add_update_handler(check_software_update)
 
-        asyncio.get_event_loop().run_forever()
+        await asyncio.sleep(1e100)
 
 
 def _locate_package(

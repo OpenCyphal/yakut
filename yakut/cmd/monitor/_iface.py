@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
+import asyncio
 from typing import TYPE_CHECKING, Callable, Dict, List, Any, Type, Tuple
 import threading
 import pyuavcan
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
 class Iface:
     def __init__(self, node: pyuavcan.application.Node) -> None:
+        self._loop = asyncio.get_event_loop()
         self._node = node
         self._clients: Dict[
             Tuple[Type[pyuavcan.dsdl.CompositeObject], int],
@@ -72,18 +74,18 @@ class Iface:
         async def run() -> None:
             _ = await client.call(request)
 
-        self._node.loop.create_task(run())
+        self._loop.create_task(run())
 
     def _process_capture(self, cap: pyuavcan.transport.Capture) -> None:
         # Locking is super critical! Captures may run in separate threads.
         with self._lock:
             trace = self._tracer.update(cap)
             if isinstance(trace, pyuavcan.transport.TransferTrace):
-                self._node.loop.call_soon_threadsafe(
+                self._loop.call_soon_threadsafe(
                     pyuavcan.util.broadcast(self._trace_handlers), trace.timestamp, trace.transfer
                 )
             elif isinstance(trace, pyuavcan.transport.ErrorTrace):
-                self._node.loop.call_soon_threadsafe(pyuavcan.util.broadcast(self._transport_error_handlers), trace)
+                self._loop.call_soon_threadsafe(pyuavcan.util.broadcast(self._transport_error_handlers), trace)
             else:
                 pass
 

@@ -137,7 +137,7 @@ async def _unittest_monitor_errors(compiled_dsdl: Any, serial_broker: str) -> No
 
 async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_id: Optional[int]) -> str:
     stdout_file = "monitor_stdout"
-    stdout = open(stdout_file, "wb")
+    stdout = open(stdout_file, "wb")  # pylint: disable=consider-using-with
     args = ["monitor"]
     if node_id is not None:
         args.append("--plug-and-play=allocation_table.db")

@@ -56,7 +56,15 @@ class Child:
         else:  # pragma: no cover
             e = os.environ.copy()
             e.update({k: v.decode() for k, v in env.items()})
-        self._proc = Popen(cmd, env=e, shell=True, stdout=stdout, stderr=stderr, stdin=DEVNULL, bufsize=1)
+        self._proc = Popen(  # pylint: disable=consider-using-with
+            cmd,
+            env=e,
+            shell=True,
+            stdout=stdout,
+            stderr=stderr,
+            stdin=DEVNULL,
+            bufsize=1,
+        )
 
     @property
     def pid(self) -> int:

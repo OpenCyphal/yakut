@@ -129,7 +129,9 @@ class View:
 
             def put(data: Any, style: Optional[Style]) -> None:
                 nonlocal col
-                self._node_table_renderer[idx + 1, col] = data, (style or S_DEFAULT)
+                self._node_table_renderer[idx + 1, col] = data, (  # pylint: disable=cell-var-from-loop
+                    style or S_DEFAULT
+                )
                 col += 1
 
             if node_id is not None:
@@ -488,7 +490,7 @@ def render_uptime(val: int) -> str:
 
 
 def render_version(val: uavcan.node.Version_1_0) -> str:
-    return "% 3d.%-3d" % (val.major, val.minor)
+    return "% 3d.%-3d" % (val.major, val.minor)  # pylint: disable=consider-using-f-string
 
 
 def render_full_software_version(version: uavcan.node.Version_1_0, vcs_revision_id: int, crc: Optional[int]) -> str:

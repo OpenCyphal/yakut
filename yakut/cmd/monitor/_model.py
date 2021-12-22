@@ -3,9 +3,11 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Dict, Callable, Type, AbstractSet, Tuple, Sequence, Union
+from typing import TYPE_CHECKING, Optional, Callable, Type, AbstractSet
 import dataclasses
 import math
+import numpy as np
+from numpy.typing import NDArray
 import pyuavcan
 from pyuavcan.transport import MessageDataSpecifier, ServiceDataSpecifier, Timestamp, AlienTransfer
 import yakut
@@ -68,11 +70,9 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
 
         self._ports = PortSet()
 
-        self._dispatch: Dict[
-            Union[
-                Type[pyuavcan.dsdl.FixedPortCompositeObject],
-                Tuple[Type[pyuavcan.dsdl.FixedPortServiceObject], ServiceDataSpecifier.Role],
-            ],
+        self._dispatch: dict[
+            Type[pyuavcan.dsdl.FixedPortCompositeObject]
+            | tuple[Type[pyuavcan.dsdl.FixedPortServiceObject], ServiceDataSpecifier.Role],
             Callable[[float, pyuavcan.dsdl.CompositeObject], None],
         ] = {
             (uavcan.node.GetInfo_1_0, ServiceDataSpecifier.Role.RESPONSE): self._on_info_response,
@@ -201,7 +201,7 @@ def expand_subjects(m: uavcan.node.port.SubjectIDList_0_1) -> AbstractSet[int]:
     assert False
 
 
-def expand_mask(mask: Sequence[bool]) -> AbstractSet[int]:
+def expand_mask(mask: NDArray[np.bool_]) -> AbstractSet[int]:
     return frozenset(x for x in range(len(mask)) if mask[x])
 
 

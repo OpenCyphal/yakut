@@ -142,13 +142,14 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
             models[node.id] = Avatar(iface, node.id, info=node.info)
 
         _logger.debug("STARTING THE MAIN LOOP")
+        loop = asyncio.get_event_loop()
         view = View()
-        next_redraw_at = node.loop.time()
+        next_redraw_at = loop.time()
         ts_prev = next_redraw_at
         while True:
             next_redraw_at += period
-            await asyncio.sleep(next_redraw_at - node.loop.time())
-            ts_started = node.loop.time()
+            await asyncio.sleep(next_redraw_at - loop.time())
+            ts_started = loop.time()
 
             # If there were any network events since last update, use the latest time received from the network.
             # Only if there were no updates use the real time, which may happen IFF the local node is anonymous
@@ -170,7 +171,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
             byte_rates_filter.update((byte_counts - byte_counts_prev).astype(np.float64) / dt_trace)
             byte_counts_prev = byte_counts.copy()
             byte_rates = byte_rates_filter.compute()
-            elapsed_stats = node.loop.time() - ts_started
+            elapsed_stats = loop.time() - ts_started
 
             # Recompute the new node state snapshots
             snapshot: Dict[Optional[int], NodeState] = {}
@@ -179,7 +180,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
                 snapshot[node_id] = mo.update(ts)
 
             # Render the model into a huge text buffer
-            ts_render_started = node.loop.time()
+            ts_render_started = loop.time()
             view.render(
                 states=snapshot,
                 xfer_deltas=xfer_deltas,
@@ -188,13 +189,13 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
                 total_transport_errors=total_transport_error_count,
                 fir_window_duration=fir_window_duration,
             )
-            elapsed_render = node.loop.time() - ts_render_started
+            elapsed_render = loop.time() - ts_render_started
 
             # Send the text buffer to the terminal (may block)
-            await node.loop.run_in_executor(None, refresh_screen, view.flip_buffer())
+            await loop.run_in_executor(None, refresh_screen, view.flip_buffer())
             _logger.info(
                 "Updated in %.3f (stats %.3f, render %.3f); dt %.3f; time lag %.3f",
-                node.loop.time() - ts_started,
+                loop.time() - ts_started,
                 elapsed_stats,
                 elapsed_render,
                 dt_trace,

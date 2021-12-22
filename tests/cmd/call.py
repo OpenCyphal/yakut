@@ -16,6 +16,8 @@ from yakut.param.transport import construct_transport
 
 @pytest.mark.asyncio
 async def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    asyncio.get_running_loop().slow_callback_duration = 5.0
+
     _ = compiled_dsdl
     env = {
         "YAKUT_TRANSPORT": transport_factory(88).expression,

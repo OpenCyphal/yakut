@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import asyncio
-from typing import Optional, Iterable, List, Tuple, TYPE_CHECKING
+from typing import Optional, Iterable, TYPE_CHECKING
 from pathlib import Path
 import click
 import pyuavcan
@@ -18,9 +18,9 @@ if TYPE_CHECKING:
 _logger = yakut.get_logger(__name__)
 
 
-def _validate_root_directory(ctx: click.Context, param: click.Parameter, value: Iterable[str]) -> List[Path]:
+def _validate_root_directory(ctx: click.Context, param: click.Parameter, value: Iterable[str]) -> list[Path]:
     _ = param
-    out: List[Path] = []
+    out: list[Path] = []
     for x in value:
         p = Path(x).resolve()
         if not p.is_dir() or not p.exists():
@@ -79,7 +79,7 @@ be named following this pattern:
     NAME-HWMAJ.HWMIN-SWMAJ.SWMIN.VCS.CRC.app*
               |____|                |__|
         |__________|            |______|
-    either major or both        either CRC or both
+    either minor or both        either CRC or both
     can be omitted if           CRC and VCS can be
     multiple hardware           omitted
     versions supported
@@ -120,7 +120,10 @@ the names are matching, the hardware version is compatible, and either condition
 """,
 )
 @yakut.pass_purser
-def file_server(purser: yakut.Purser, roots: List[Path], plug_and_play: Optional[str], update_software: bool) -> None:
+@yakut.asynchronous
+async def file_server(
+    purser: yakut.Purser, roots: list[Path], plug_and_play: Optional[str], update_software: bool
+) -> None:
     """
     Run a standard UAVCAN file server; optionally run a plug-and-play node-ID allocator and software updater.
 
@@ -231,7 +234,7 @@ def file_server(purser: yakut.Purser, roots: List[Path], plug_and_play: Optional
                         return
                     _logger.info("Node %r confirmed software update command %r", node_id, cmd_request)
 
-                node.loop.create_task(do_call())
+                asyncio.create_task(do_call())
             else:
                 _logger.info("Node %r does not require a software update.", node_id)
 
@@ -241,13 +244,13 @@ def file_server(purser: yakut.Purser, roots: List[Path], plug_and_play: Optional
             # the file server to slow down significantly because the event loop would be blocked here on disk reads.
             get_node_tracker().add_update_handler(check_software_update)
 
-        asyncio.get_event_loop().run_forever()
+        await asyncio.sleep(1e100)
 
 
 def _locate_package(
     fs: pyuavcan.application.file.FileServer,
     info: pyuavcan.application.NodeInfo,
-) -> Optional[Tuple[Path, Path]]:
+) -> Optional[tuple[Path, Path]]:
     """
     If at least one locally available application file is equivalent to the already running application,
     no update will take place.
@@ -257,7 +260,7 @@ def _locate_package(
     given node, they would be continuously replacing one another.
     """
     app = AppDescriptor.from_node_info(info)
-    result: Optional[Tuple[Path, Path]] = None
+    result: Optional[tuple[Path, Path]] = None
     for root, tail in fs.glob(app.make_glob_expression()):
         candidate = AppDescriptor.from_file_name(str(tail.name))
         if candidate:

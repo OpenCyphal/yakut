@@ -12,12 +12,12 @@ from . import Controller, Sample, ControllerError, ControllerNotFoundError
 
 try:
     import sdl2  # type: ignore
-except ImportError as ex:
+except ImportError as _ex:
     raise ImportError(
         "Joystick support not installed or libsdl2 is missing. "
         "Please install optional dependencies with yakut[joystick] "
         "and check https://libsdl.org"
-    ) from ex
+    ) from _ex
 
 
 class JoystickController(Controller):

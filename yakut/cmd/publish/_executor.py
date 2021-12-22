@@ -41,7 +41,6 @@ class Executor:
         self._loader.evaluation_context[Executor.SYM_CTRL_BUTTON] = lambda s, i: self._sample_controller(s).button[i]
         self._loader.evaluation_context[Executor.SYM_CTRL_TOGGLE] = lambda s, i: self._sample_controller(s).toggle[i]
 
-    @yakut.asynchronous
     async def run(self, count: int, period: float) -> None:
         self._node.start()
 

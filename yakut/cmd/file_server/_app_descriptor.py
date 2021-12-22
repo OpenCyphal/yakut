@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     import pyuavcan.application  # pylint: disable=ungrouped-imports
 
 
-_logger = yakut.get_logger(__name__.split("._")[0])
+_logger = yakut.get_logger(__name__.split("._", maxsplit=1)[0])
 
 
 @dataclasses.dataclass(frozen=True)

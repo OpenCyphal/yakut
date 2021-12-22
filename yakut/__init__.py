@@ -3,9 +3,9 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 import typing
-import pathlib
+from importlib.resources import read_text as _read_text
 
-__version__: str = (pathlib.Path(__file__).parent / "VERSION").read_text().strip()
+__version__: str = _read_text(__name__, "VERSION", encoding="utf8").strip()
 __version_info__: typing.Tuple[int, ...] = tuple(map(int, __version__.split(".")[:3]))
 __author__ = "UAVCAN Consortium"
 __email__ = "consortium@uavcan.org"

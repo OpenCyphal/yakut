@@ -5,9 +5,10 @@
 from __future__ import annotations
 import os
 import sys
-from typing import TYPE_CHECKING, Union, Iterable, Optional, List, Any, Tuple, Callable, Awaitable
+from typing import TYPE_CHECKING, Iterable, Optional, Any, Callable, Awaitable
 import logging
 from pathlib import Path
+from shutil import get_terminal_size
 import click
 import yakut
 from yakut.param.transport import transport_factory_option, TransportFactory, Transport
@@ -38,7 +39,7 @@ logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will 
 class Purser:
     def __init__(
         self,
-        paths: Iterable[Union[str, Path]],
+        paths: Iterable[str | Path],
         formatter_factory: FormatterFactory,
         transport_factory: TransportFactory,
         node_factory: NodeFactory,
@@ -53,7 +54,7 @@ class Purser:
         self._node: Optional["pyuavcan.application.Node"] = None
 
     @property
-    def paths(self) -> List[Path]:
+    def paths(self) -> list[Path]:
         return list(self._paths)
 
     def make_formatter(self) -> Formatter:
@@ -104,18 +105,6 @@ class AbbreviatedGroup(click.Group):
             return click.Group.get_command(self, ctx, matches[0])
         ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
 
-    def resolve_command(self, ctx: click.Context, args: List[Any]) -> Tuple[str, click.Command, List[Any]]:
-        """
-        This is a workaround for this bug in v7: https://github.com/pallets/click/issues/1422.
-
-        If this is not overridden, then abbreviated commands cause the automatic envvar prefix to be constructed
-        incorrectly, such that instead of the full command name the abbreviated name is used.
-        For example, if the user invokes `yakut comp` meaning `yakut compile`,
-        the auto-constructed envvar prefix would be `YAKUT_COMP_` instead of `YAKUT_COMPILE_`.
-        """
-        _, cmd, out_args = super().resolve_command(ctx, args)
-        return cmd.name, cmd, out_args
-
 
 _ENV_VAR_PATH = "YAKUT_PATH"
 
@@ -123,7 +112,7 @@ _ENV_VAR_PATH = "YAKUT_PATH"
 @click.command(
     cls=AbbreviatedGroup,
     context_settings={
-        "max_content_width": click.get_terminal_size()[0],
+        "max_content_width": get_terminal_size()[0],
         "auto_envvar_prefix": "YAKUT",  # Specified here, not in __main__.py, otherwise doesn't work when installed.
     },
 )
@@ -156,7 +145,7 @@ Examples:
 def main(
     ctx: click.Context,
     verbose: int,
-    path: Tuple[str, ...],
+    path: tuple[str, ...],
     formatter_factory: FormatterFactory,
     transport_factory: TransportFactory,
     node_factory: NodeFactory,
@@ -205,8 +194,7 @@ def asynchronous(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
     from functools import update_wrapper
 
     def proxy(*args: Any, **kwargs: Any) -> Any:
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(f(*args, **kwargs))
+        return asyncio.run(f(*args, **kwargs))
 
     return update_wrapper(proxy, f)
 

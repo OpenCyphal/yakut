@@ -92,19 +92,20 @@ of the first connected controller (use `yakut joystick` to find connected contro
 \b
     yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2 * A(1,10)) * 10 * A(1,11)"}'
 
-Example: publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state:
+Example: publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state;
+use positional initialization instead of YAML dicts:
 
 \b
     yakut pub -T 0.1 \\
-        5:uavcan.si.unit.angular_velocity.Vector3.1.0 'radian_per_second: !$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \\
-        6:uavcan.si.unit.power.Scalar.1.0 'watt: !$ A(2,10)*1e3' \\
-        7:uavcan.primitive.scalar.Bit.1.0 'value: !$ T(1,5)'
+        5:uavcan.si.unit.angular_velocity.Vector3.1.0 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \\
+        6:uavcan.si.unit.power.Scalar.1.0 '!$ A(2,10)*1e3' \\
+        7:uavcan.primitive.scalar.Bit.1.0 '!$ T(1,5)'
 
 Example: simulate timestamped measurement of voltage affected by white noise with standard deviation 0.25 V:
 
 \b
     yakut pub -T 0.1 6:uavcan.si.sample.voltage.Scalar.1.0 \\
-        '{timestamp: {microsecond: !$ time()*1e6}, volt: !$ "A(2,10)*100+normalvariate(0,0.25)"}'
+        '{timestamp: !$ time()*1e6, volt: !$ "A(2,10)*100+normalvariate(0,0.25)"}'
 """.strip()
 
 _HELP = f"""
@@ -213,7 +214,8 @@ The send timeout equals the period as long as it is not less than {_MIN_SEND_TIM
     help=f"Priority of published message transfers. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]",
 )
 @yakut.pass_purser
-def publish(
+@yakut.asynchronous
+async def publish(
     purser: yakut.Purser,
     message: Sequence[Tuple[str, str]],
     period: float,
@@ -277,7 +279,7 @@ def publish(
             count,
             priority.name,
         )
-        executor.run(count=count, period=period)
+        await executor.run(count=count, period=period)
     finally:
         executor.close()
         if _logger.isEnabledFor(logging.INFO):

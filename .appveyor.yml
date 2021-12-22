@@ -3,7 +3,11 @@ environment:
     -
       job_group: tests
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      PYTHON: 'C:\Python39-x64'  # YAML treats '\\' and "\\" differently.
+      PYTHON: 'C:\Python310-x64'  # YAML treats '\\' and "\\" differently.
+    -
+      job_group: tests
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+      PYTHON: '3.10'
     -
       job_group: tests
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
@@ -16,7 +20,7 @@ environment:
       job_name: deploy
       job_depends_on: tests
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-      PYTHON: '3.9'
+      PYTHON: '3.10'
 
   GIT_TOKEN:
     secure: +jQhxLpePj6hdDryfET/XpLo7VL9fhDXVHlwLOPp/nRDYe97TJAfd0XCTuPz1qkT

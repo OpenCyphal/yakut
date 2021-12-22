@@ -7,15 +7,16 @@
 from __future__ import annotations
 import sys
 import functools
-from typing import TYPE_CHECKING, Optional, Dict, Callable, List, Any, Set, AbstractSet, Tuple, TypeVar
+from typing import TYPE_CHECKING, Optional, Callable, Any, AbstractSet, TypeVar
 from collections import defaultdict
+import numpy as np
 import pyuavcan
 import yakut
 from ._model import N_NODES, N_SUBJECTS, N_SERVICES, NodeState
 from ._ui import Style, Color, Canvas, TableRenderer
 
 if TYPE_CHECKING:
-    from numpy import matrix
+    from numpy.typing import NDArray
     from scipy.sparse import spmatrix
     import uavcan.node
 
@@ -28,15 +29,15 @@ S_CAUTION = Style(fg=Color.YELLOW, salience=1)
 S_WARNING = Style(fg=Color.RED, salience=1)
 S_NOTICE = Style(fg=Color.CYAN, salience=1)
 
-S_NICE = Style(fg=Color.GREEN, bg=Color.BLACK, salience=1)
-S_POOR = Style(fg=Color.YELLOW, bg=Color.BLACK, salience=1)
+S_NICE = Style(fg=Color.GREEN, salience=1)
+S_POOR = Style(fg=Color.YELLOW, salience=1)
 
 
 class View:
     _CONNECTIVITY_MATRIX_CELL_WIDTH = 5
 
     def __init__(self) -> None:
-        self._fragments: List[str] = []
+        self._fragments: list[str] = []
 
         self._node_table_renderer = TableRenderer(map(len, View._NODE_TABLE_HEADER), separate_columns=True)
         self._connectivity_matrix_renderer = TableRenderer(
@@ -80,7 +81,7 @@ class View:
 
     def render(
         self,
-        states: Dict[Optional[int], NodeState],
+        states: dict[Optional[int], NodeState],
         xfer_deltas: spmatrix,
         xfer_rates: spmatrix,
         byte_rates: spmatrix,
@@ -119,7 +120,7 @@ class View:
         "Name",
     ]
 
-    def _render_node_table(self, states: Dict[Optional[int], NodeState]) -> str:
+    def _render_node_table(self, states: dict[Optional[int], NodeState]) -> str:
         for idx, s in enumerate(View._NODE_TABLE_HEADER):
             self._node_table_renderer[0, idx] = s
 
@@ -128,7 +129,9 @@ class View:
 
             def put(data: Any, style: Optional[Style]) -> None:
                 nonlocal col
-                self._node_table_renderer[idx + 1, col] = data, (style or S_DEFAULT)
+                self._node_table_renderer[idx + 1, col] = data, (  # pylint: disable=cell-var-from-loop
+                    style or S_DEFAULT
+                )
                 col += 1
 
             if node_id is not None:
@@ -194,13 +197,13 @@ class View:
     # noinspection SpellCheckingInspection
     def _render_connectivity_matrix(
         self,
-        states: Dict[Optional[int], NodeState],
+        states: dict[Optional[int], NodeState],
         xfer_delta: spmatrix,
         xfer_rates: spmatrix,
         byte_rates: spmatrix,
     ) -> str:
         tbl = self._connectivity_matrix_renderer
-        online_states: Dict[Optional[int], NodeState] = {k: v for k, v in states.items() if v.online}
+        online_states: dict[Optional[int], NodeState] = {k: v for k, v in states.items() if v.online}
 
         # This part took some time to get right to avoid accidental dense matrix operations, which are super slow.
         xfer_rates_by_ds = xfer_rates.sum(axis=0)
@@ -211,8 +214,8 @@ class View:
         # Consider a port existing if either holds:
         #   - there have been recent transfers, even if the source nodes have gone offline
         #   - if the port was recently reported via uavcan.node.port.List, even if the node is currently offline
-        all_subjects: Set[int] = set()
-        all_services: Set[int] = set()
+        all_subjects: set[int] = set()
+        all_services: set[int] = set()
         for y in xfer_rates_by_ds.nonzero()[1]:
             y = int(y)
             if y < N_SUBJECTS:
@@ -279,7 +282,7 @@ class View:
             byte_rates_by_port=byte_rates_by_ds,
         )
 
-        def slice_req_rsp(m: _T) -> Tuple[_T, _T]:
+        def slice_req_rsp(m: _T) -> tuple[_T, _T]:
             a = N_SUBJECTS + N_SERVICES * 0
             b = N_SUBJECTS + N_SERVICES * 1
             c = N_SUBJECTS + N_SERVICES * 2
@@ -320,18 +323,18 @@ class View:
     @staticmethod
     def _render_subject_matrix_contents(
         put: Callable[[int, int, Any, Style], None],
-        states: Dict[Optional[int], NodeState],
+        states: dict[Optional[int], NodeState],
         subjects: AbstractSet[int],
         xfer_delta: spmatrix,
         xfer_rates: spmatrix,
         byte_rates: spmatrix,
-        xfer_delta_by_port: matrix,
-        xfer_rates_by_port: matrix,
-        byte_rates_by_port: matrix,
+        xfer_delta_by_port: NDArray[np.int_],
+        xfer_rates_by_port: NDArray[np.float_],
+        byte_rates_by_port: NDArray[np.float_],
     ) -> None:
-        recent_by_node: Dict[Optional[int], bool] = defaultdict(bool)
-        xfer_rate_by_node: Dict[Optional[int], float] = defaultdict(float)
-        byte_rate_by_node: Dict[Optional[int], float] = defaultdict(float)
+        recent_by_node: dict[Optional[int], bool] = defaultdict(bool)
+        xfer_rate_by_node: dict[Optional[int], float] = defaultdict(float)
+        byte_rate_by_node: dict[Optional[int], float] = defaultdict(float)
         for row, subject_id in enumerate(sorted(subjects)):
             for col, (node_id, state) in enumerate(states.items()):
                 x = node_id if node_id is not None else N_NODES
@@ -369,14 +372,14 @@ class View:
     @staticmethod
     def _render_service_matrix_contents(
         put: Callable[[int, int, Any, Style], None],
-        states: Dict[Optional[int], NodeState],
+        states: dict[Optional[int], NodeState],
         services: AbstractSet[int],
-        xfer_delta: Tuple[spmatrix, spmatrix],
-        xfer_rates: Tuple[spmatrix, spmatrix],
-        byte_rates: Tuple[spmatrix, spmatrix],
-        xfer_delta_by_port: Tuple[matrix, matrix],
-        xfer_rates_by_port: Tuple[matrix, matrix],
-        byte_rates_by_port: Tuple[matrix, matrix],
+        xfer_delta: tuple[spmatrix, spmatrix],
+        xfer_rates: tuple[spmatrix, spmatrix],
+        byte_rates: tuple[spmatrix, spmatrix],
+        xfer_delta_by_port: tuple[NDArray[np.int_], NDArray[np.int_]],
+        xfer_rates_by_port: tuple[NDArray[np.float_], NDArray[np.float_]],
+        byte_rates_by_port: tuple[NDArray[np.float_], NDArray[np.float_]],
     ) -> None:
         # We used to display two rows per service: separate request and response. It is very informative but a bit
         # expensive in terms of the screen space, which is very limited when large networks are involved.
@@ -385,13 +388,13 @@ class View:
         # We may change it later shall the need arise.
         xfer_delta_uni: spmatrix = sum(xfer_delta)
         byte_rates_uni: spmatrix = sum(byte_rates)
-        xfer_delta_by_port_uni: matrix = sum(xfer_delta_by_port)
-        xfer_rates_by_port_uni: matrix = sum(xfer_rates_by_port)
-        byte_rates_by_port_uni: matrix = sum(byte_rates_by_port)
+        xfer_delta_by_port_uni: NDArray[np.int_] = sum(xfer_delta_by_port)  # type: ignore
+        xfer_rates_by_port_uni: NDArray[np.float_] = sum(xfer_rates_by_port)  # type: ignore
+        byte_rates_by_port_uni: NDArray[np.float_] = sum(byte_rates_by_port)  # type: ignore
 
-        recent_by_node: Dict[Optional[int], bool] = defaultdict(bool)
-        xfer_rate_by_node: Dict[Optional[int], float] = defaultdict(float)
-        byte_rate_by_node: Dict[Optional[int], float] = defaultdict(float)
+        recent_by_node: dict[Optional[int], bool] = defaultdict(bool)
+        xfer_rate_by_node: dict[Optional[int], float] = defaultdict(float)
+        byte_rate_by_node: dict[Optional[int], float] = defaultdict(float)
 
         for row, service_id in enumerate(sorted(services)):
             for col, (node_id, state) in enumerate(states.items()):
@@ -453,11 +456,11 @@ def get_matrix_cell_style(tx: Optional[bool], rx: Optional[bool], recently_activ
         return Style(fg=fg, bg=Color.BLUE, salience=salience)
     if rx:
         return Style(fg=fg, bg=Color.GREEN, salience=salience)
-    return Style(fg=fg, bg=Color.BLACK, salience=salience)
+    return Style(fg=fg, salience=salience)
 
 
 # noinspection SpellCheckingInspection
-def render_mode(val: uavcan.node.Mode_1_0) -> Tuple[str, Optional[Style]]:
+def render_mode(val: uavcan.node.Mode_1_0) -> tuple[str, Optional[Style]]:
     if val.value == val.OPERATIONAL:
         return "oper", None
     if val.value == val.INITIALIZATION:
@@ -470,7 +473,7 @@ def render_mode(val: uavcan.node.Mode_1_0) -> Tuple[str, Optional[Style]]:
 
 
 # noinspection SpellCheckingInspection
-def render_health(val: uavcan.node.Health_1_0) -> Tuple[str, Optional[Style]]:
+def render_health(val: uavcan.node.Health_1_0) -> tuple[str, Optional[Style]]:
     if val.value == val.NOMINAL:
         return "nomina", None
     if val.value == val.ADVISORY:
@@ -487,7 +490,7 @@ def render_uptime(val: int) -> str:
 
 
 def render_version(val: uavcan.node.Version_1_0) -> str:
-    return "% 3d.%-3d" % (val.major, val.minor)
+    return "% 3d.%-3d" % (val.major, val.minor)  # pylint: disable=consider-using-f-string
 
 
 def render_full_software_version(version: uavcan.node.Version_1_0, vcs_revision_id: int, crc: Optional[int]) -> str:

@@ -59,7 +59,8 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
     help="When enabled, the response object is prepended with an extra field named `_metadata_`.",
 )
 @yakut.pass_purser
-def call(
+@yakut.asynchronous
+async def call(
     purser: yakut.Purser,
     server_node_id: int,
     service: str,
@@ -99,6 +100,7 @@ def call(
     \b
         yakut call 42 uavcan.node.GetInfo.1.0 +M -T3 -Pe
         yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+        yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 '[[10, 1], [20, 2]]'
     """
     try:
         from pyuavcan.application import Node
@@ -132,10 +134,9 @@ def call(
         client.response_timeout = timeout
         client.priority = priority
         node.start()
-        _run(client, request, formatter, with_metadata=with_metadata)
+        await _run(client, request, formatter, with_metadata=with_metadata)
 
 
-@yakut.asynchronous
 async def _run(
     client: pyuavcan.presentation.Client[_S],
     request: pyuavcan.dsdl.CompositeObject,

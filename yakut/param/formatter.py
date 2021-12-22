@@ -69,9 +69,9 @@ def _make_json_formatter() -> Formatter:
 
 
 def flatten(
-        d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
-        parent_key: str = "",
-        sep: str = ".",
+    d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
+    parent_key: str = "",
+    sep: str = ".",
 ) -> typing.Dict[str, typing.Any]:
     if isinstance(d, Mapping):
         items: typing.List[typing.Tuple[str, typing.Any]] = []
@@ -103,31 +103,28 @@ def flatten(
         return {}
 
 
-is_first_time = True
-
-
-def tsv_format_function(data: typing.Dict[typing.Any, typing.Any]) -> str:
-    return "\t".join([str(v) for k, v in flatten(data).items()])
-
-
-def tsv_format_function_with_header(data: typing.Dict[typing.Any, typing.Any]) -> str:
-    global is_first_time
-    if is_first_time:
-        is_first_time = False
-        return (
-                "\t".join([str(k) for k, v in flatten(data).items()])
-                + "\n"
-                + "\t".join([str(v) for k, v in flatten(data).items()])
-        )
-    else:
+def _make_tsv_formatter() -> Formatter:
+    def tsv_format_function(data: typing.Dict[typing.Any, typing.Any]) -> str:
         return "\t".join([str(v) for k, v in flatten(data).items()])
 
-
-def _make_tsv_formatter() -> Formatter:
     return tsv_format_function
 
 
 def _make_tsvh_formatter() -> Formatter:
+    is_first_time = True
+
+    def tsv_format_function_with_header(data: typing.Dict[typing.Any, typing.Any]) -> str:
+        nonlocal is_first_time
+        if is_first_time:
+            is_first_time = False
+            return (
+                "\t".join([str(k) for k, v in flatten(data).items()])
+                + "\n"
+                + "\t".join([str(v) for k, v in flatten(data).items()])
+            )
+        else:
+            return "\t".join([str(v) for k, v in flatten(data).items()])
+
     return tsv_format_function_with_header
 
 
@@ -149,8 +146,8 @@ def _unittest_formatter() -> None:
         }
     }
     assert (
-            _FORMATTERS["YAML"]()(obj)
-            == """---
+        _FORMATTERS["YAML"]()(obj)
+        == """---
 2345:
   abc:
     def: [123, 456]
@@ -158,3 +155,9 @@ def _unittest_formatter() -> None:
 """
     )
     assert _FORMATTERS["JSON"]()(obj) == '{"2345":{"abc":{"def":[123,456]},"ghi":789}}'
+    assert _FORMATTERS["TSV"]()(obj) == "123\t456\t789"
+    tsvh_formatter = _FORMATTERS["TSVH"]()
+    # first time should include a header
+    assert tsvh_formatter(obj) == "2345.abc.def.[0]\t2345.abc.def.[1]\t2345.ghi\n123\t456\t789"
+    # subsequent calls shouldn't include a header
+    assert tsvh_formatter(obj) == "123\t456\t789"

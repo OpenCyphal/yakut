@@ -17,7 +17,7 @@ preferably at the end of the same Python module.
 ## Being able to run tests
 
 ### Installable dependencies
-Please look at the `.appveyor.yml` file for up to date dependency information. 
+Please look at the `.appveyor.yml` file for up-to-date dependency information. 
 
 Here are some examples of what you will need:
 
@@ -43,7 +43,14 @@ The test suite should pass and one part of it is the mypy code analysis that tak
 4. This is one of the environments that nox creates for testing
 5. Run ```source ../bin/activate``` to activate the virtualenv
 6. ```export PYTHONPATH=.compiled/```
-7. `mypy --strict /home/silver/zubax/yakut/yakut /home/silver/zubax/yakut/tests`
+7. `mypy --strict yakut tests`
+
+### Running a unit test in a specific file
+When you want to run say unit tests at the end of the `yakut/param/formatter.py` file:
+1. Make sure `nox` has been run before, this creates the test environment(s).
+2. Activate one of the nox test environments `source .nox/test-3-8/bin/activate`
+3. `pytest yakut/param/formatter.py`
+
 ## Manual tests
 
 To look for manual tests in the codebase, please search for `def _main()`.

@@ -4,6 +4,4 @@ target-version = ['py310']
 include = '''
 (yakut|tests)/.*\.pyi?$
 '''
-exclude = '''
-/\..*/
-'''
+exclude = '''/\..*/|venv/'''

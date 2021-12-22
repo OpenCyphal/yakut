@@ -4,8 +4,8 @@
 
 from __future__ import annotations
 import typing
+from collections.abc import Mapping, Collection
 import click
-
 
 Formatter = typing.Callable[[typing.Any], str]
 FormatterFactory = typing.Callable[[], Formatter]
@@ -35,6 +35,8 @@ JSON and TSV (tab separated values) keep exactly one object per line.
 
 TSV is intended for use with third-party software
 such as computer algebra systems or spreadsheet processors.
+
+TSVH is just TSV with the header included.
 """
     f = click.option(
         "--format",
@@ -66,21 +68,74 @@ def _make_json_formatter() -> Formatter:
     return lambda data: typing.cast(str, json.dumps(data, ensure_ascii=False, separators=(",", ":")))
 
 
+def flatten(
+        d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
+        parent_key: str = "",
+        sep: str = ".",
+) -> typing.Dict[str, typing.Any]:
+    if isinstance(d, Mapping):
+        items: typing.List[typing.Tuple[str, typing.Any]] = []
+        for k, v in d.items():
+            new_key = str(parent_key) + sep + str(k) if parent_key else str(k)
+            if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
+                for_extension = flatten(v, new_key, sep=sep)
+                if for_extension is not None:
+                    items.extend(for_extension.items())
+                else:
+                    print(v)
+            else:
+                items.append((new_key, v))
+        return dict(items)
+    elif isinstance(d, Collection) and not isinstance(d, str):
+        items = []
+        for i, v in enumerate(d):
+            new_key = str(parent_key) + sep + str(f"[{i}]") if parent_key else str(f"[{i}]")
+            if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
+                for_extension = flatten(v, new_key, sep=sep)
+                if for_extension is not None:
+                    items.extend(for_extension.items())
+                else:
+                    print(v)
+            else:
+                items.append((new_key, v))
+        return dict(items)
+    else:
+        return {}
+
+
+is_first_time = True
+
+
+def tsv_format_function(data: typing.Dict[typing.Any, typing.Any]) -> str:
+    return "\t".join([str(v) for k, v in flatten(data).items()])
+
+
+def tsv_format_function_with_header(data: typing.Dict[typing.Any, typing.Any]) -> str:
+    global is_first_time
+    if is_first_time:
+        is_first_time = False
+        return (
+                "\t".join([str(k) for k, v in flatten(data).items()])
+                + "\n"
+                + "\t".join([str(v) for k, v in flatten(data).items()])
+        )
+    else:
+        return "\t".join([str(v) for k, v in flatten(data).items()])
+
+
 def _make_tsv_formatter() -> Formatter:
-    # TODO print into a TSV (tab separated values, like CSV with tabs instead of commas).
-    # The TSV format should place one scalar per column for ease of parsing by third-party software.
-    # Variable-length entities such as arrays should expand into the maximum possible number of columns?
-    # Unions should be represented by adjacent groups of columns where only one such group contains values?
-    # We may need to obtain the full type information here in order to build the final representation.
-    # Sounds complex. Search for better ways later. We just need a straightforward way of dumping data into a
-    # standard tabular format for later processing using third-party software.
-    raise NotImplementedError("Sorry, the TSV formatter is not yet implemented")
+    return tsv_format_function
+
+
+def _make_tsvh_formatter() -> Formatter:
+    return tsv_format_function_with_header
 
 
 _FORMATTERS = {
     "YAML": _make_yaml_formatter,
     "JSON": _make_json_formatter,
     "TSV": _make_tsv_formatter,
+    "TSVH": _make_tsvh_formatter,
 }
 
 
@@ -94,8 +149,8 @@ def _unittest_formatter() -> None:
         }
     }
     assert (
-        _FORMATTERS["YAML"]()(obj)
-        == """---
+            _FORMATTERS["YAML"]()(obj)
+            == """---
 2345:
   abc:
     def: [123, 456]

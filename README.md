@@ -22,20 +22,52 @@ First, make sure to [have Python installed](https://docs.python.org/3/using/inde
 Windows users are recommended to grab the official distribution from Windows Store.
 Yakut requires **Python 3.7 or newer**.
 
-Install Yakut: **`pip install yakut`**
+GNU/Linux users will need to also install: SDL2, possibly libjack (with headers), possibly libasound2 (with headers).
 
-By default, Yakut does not support joysticks or MIDI controllers
-(this feature is described below in section [Publishing messages](#publishing-messages)).
-To enable the support for input devices, install the optional dependency: **`pip install yakut[joystick]`**.
-GNU/Linux users will need to also install: [SDL2](https://libsdl.org),
-possibly libjack (with headers), possibly libasound2 (with headers).
+If you are using the Ubuntu distro, make sure to install these:
+```bash
+sudo apt install libjack-jackd2-dev libasound2-dev can-utils
+```
+Install Yakut: **`pip install yakut`**
 
 Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
-Installation & configuration screencasts for Windows and GNU/Linux are
-[available on the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
+By default, Yakut does not support joysticks or MIDI controllers
+(this feature is described below in section [Publishing messages](#publishing-messages)).
+To enable the support for input devices, install the optional dependency: **`pip install yakut[joystick]`**.
+
+In case you need screencast tutorials for installation & configuration on Windows and GNU/Linux, they can be found on
+[the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
+
+### Protip on environment variables
+
+Defining the required environment variables manually is unergonomic and time-consuming.
+A better option is to have relevant configuration that you use often defined in a dedicated file (or several)
+that is sourced into the current shell session as necessary
+(conceptually this is similar to virtual environments used in Python, etc).
+Here is an example for a doubly-redundant CAN bus (assuming sh/bash/zsh here):
+
+```bash
+# Common UAVCAN register configuration for testing & debugging.
+# Source this file into your sh/bash/zsh session before using Yakut and other UAVCAN tools.
+# Other helpful commands from can-utils:
+#   canbusload -tcbr slcan0@1000000 slcan1@1000000
+#   candump -decaxta any
+
+export UAVCAN__CAN__IFACE='socketcan:slcan0 socketcan:slcan1'
+export UAVCAN__CAN__MTU=8
+export UAVCAN__NODE__ID=$(yakut accommodate)  # Pick an unoccupied node-ID automatically for this shell session.
+echo "Auto-selected node-ID for this session: $UAVCAN__NODE__ID"
+```
+
+Usage:
+
+```bash
+$ . my_environment.sh
+$ yakut monitor  # Whatever.
+```
 
 ## Invoking commands
 
@@ -131,43 +163,16 @@ The full description of supported registers is available in the API documentatio
 
 If the available registers define more than one transport configuration, a redundant transport will be initialized.
 
- Transport | Register name         | Register type  | Environment variable name | Semantics                                         | Example environment variable value  
------------|-----------------------|----------------|---------------------------|---------------------------------------------------|-------------------------------------
- All       | `uavcan.node.id`      | `natural16[1]` | `UAVCAN__NODE__ID`        | The local node-ID; anonymous if not set           | `42`                                
- UDP       | `uavcan.udp.iface`    | `string`       | `UAVCAN__UDP__IFACE`      | Space-separated local IPs (16 LSB set to node-ID) | `127.9.0.0 192.168.0.0`             
- Serial    | `uavcan.serial.iface` | `string`       | `UAVCAN__SERIAL__IFACE`   | Space-separated serial port names                 | `COM9 socket://127.0.0.1:50905`     
- CAN       | `uavcan.can.iface`    | `string`       | `UAVCAN__CAN__IFACE`      | Space-separated CAN iface names                   | `socketcan:vcan0 pcan:PCAN_USBBUS1` 
- CAN       | `uavcan.can.mtu`      | `natural16[1]` | `UAVCAN__CAN__MTU`        | Maximum transmission unit; selects Classic/FD     | `64`                                
- CAN       | `uavcan.can.bitrate`  | `natural32[2]` | `UAVCAN__CAN__BITRATE`    | Arbitration/data segment bits per second          | `1000000 4000000`                   
- Loopback  | `uavcan.loopback`     | `bit[1]`       | `UAVCAN__LOOPBACK`        | Use loopback interface (only for basic testing)   | `1`                                 
+| Transport | Register name         | Register type  | Environment variable name | Semantics                                         | Example environment variable value  |
+|-----------|-----------------------|----------------|---------------------------|---------------------------------------------------|-------------------------------------|
+| All       | `uavcan.node.id`      | `natural16[1]` | `UAVCAN__NODE__ID`        | The local node-ID; anonymous if not set           | `42`                                |
+| UDP       | `uavcan.udp.iface`    | `string`       | `UAVCAN__UDP__IFACE`      | Space-separated local IPs (16 LSB set to node-ID) | `127.9.0.0 192.168.0.0`             |
+| Serial    | `uavcan.serial.iface` | `string`       | `UAVCAN__SERIAL__IFACE`   | Space-separated serial port names                 | `COM9 socket://127.0.0.1:50905`     |
+| CAN       | `uavcan.can.mtu`      | `natural16[1]` | `UAVCAN__CAN__MTU`        | Maximum transmission unit; selects Classic/FD     | `64`                                |
+| CAN       | `uavcan.can.iface`    | `string`       | `UAVCAN__CAN__IFACE`      | Space-separated CAN iface names                   | `socketcan:vcan0 pcan:PCAN_USBBUS1` |
+| CAN       | `uavcan.can.bitrate`  | `natural32[2]` | `UAVCAN__CAN__BITRATE`    | Arbitration/data segment bits per second          | `1000000 4000000`                   |
+| Loopback  | `uavcan.loopback`     | `bit[1]`       | `UAVCAN__LOOPBACK`        | Use loopback interface (only for basic testing)   | `1`                                 |
 
-### Protip on environment variables
-
-Defining the required environment variables manually is unergonomic and time-consuming.
-A better option is to have relevant configuration that you use often defined in a dedicated file (or several)
-that is sourced into the current shell session as necessary
-(conceptually this is similar to virtual environments used in Python, etc).
-Here is an example for a doubly-redundant CAN bus (assuming sh/bash/zsh here):
-
-```bash
-# Common UAVCAN register configuration for testing & debugging.
-# Source this file into your sh/bash/zsh session before using Yakut and other UAVCAN tools.
-# Other helpful commands from can-utils:
-#   canbusload -tcbr slcan0@1000000 slcan1@1000000
-#   candump -decaxta any
-
-export UAVCAN__CAN__IFACE='socketcan:slcan0 socketcan:slcan1'
-export UAVCAN__CAN__MTU=8
-export UAVCAN__NODE__ID=$(yakut accommodate)  # Pick an unoccupied node-ID automatically for this shell session.
-echo "Auto-selected node-ID for this session: $UAVCAN__NODE__ID"
-```
-
-Usage:
-
-```bash
-$ . my_environment.sh
-$ yakut monitor  # Whatever.
-```
 
 ### Subscribing to subjects
 
@@ -311,6 +316,15 @@ In the latter case it will actively query other nodes using the standard introsp
 
 Some transports, UAVCAN/UDP in particular, require special privileges to run this tool due to the security
 implications of low-level packet capture.
+
+## Exporting data from Yakut to computer algebra systems or spreadsheet processors
+
+Here the reg.udral.physics.dynamics.rotation.PlanarTs.0.1 message is formatted using the TSV formatter with headers prepended. 
+```bash
+yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs.0.1 > rotation_data.tsv
+```
+Then the data is imported into LibreOffice Calc and a line graph is plotted using two data sequences, the two columns of `142.timestamp.microsecond` and `142.value.kinematics.angular_velocity.radian_per_second` are plotted.
+![yakut publish](docs/LibreOfficeCalc_rotation_data.svg)
 
 ## Updating node software
 

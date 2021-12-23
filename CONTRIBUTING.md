@@ -45,6 +45,8 @@ The test suite should pass and one part of it is the mypy code analysis that tak
 6. ```export PYTHONPATH=.compiled/```
 7. `mypy --strict yakut tests`
 
+Also, a much easier solution is to use `nox -s lint` and it will run all the linters including mypy and pylint.
+
 ### Running a unit test in a specific file
 When you want to run say unit tests at the end of the `yakut/param/formatter.py` file:
 1. Make sure `nox` has been run before, this creates the test environment(s).

@@ -103,6 +103,54 @@ def flatten(
         return {}
 
 
+def _insert_format_specifier(items: typing.List[typing.Tuple[str, typing.Any]], key, instance, is_start: bool = True):
+    if is_start:
+        if isinstance(instance, Mapping):
+            items.append((key + "{", "{"))
+        elif isinstance(instance, Collection) and not isinstance(instance, str):
+            items.append((key + "[", "["))
+    else:
+        if isinstance(instance, Mapping):
+            items.append((key + "}", "}"))
+        elif isinstance(instance, Collection) and not isinstance(instance, str):
+            items.append((key + "]", "]"))
+
+
+def _flatten_with_format_columns(
+    d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
+    parent_key: str = "",
+    sep: str = ".",
+) -> typing.Dict[str, typing.Any]:
+    if isinstance(d, Mapping):
+        items: typing.List[typing.Tuple[str, typing.Any]] = []
+        for k, v in d.items():
+            new_key = str(parent_key) + sep + str(k) if parent_key else str(k)
+            if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
+                _insert_format_specifier(items, new_key, v)
+                for_extension = _flatten_with_format_columns(v, new_key, sep=sep)
+                if for_extension is not None:
+                    items.extend(for_extension.items())
+                _insert_format_specifier(items, new_key, v, is_start=False)
+            else:
+                items.append((new_key, v))
+        return dict(items)
+    elif isinstance(d, Collection) and not isinstance(d, str):
+        items = []
+        for i, v in enumerate(d):
+            new_key = str(parent_key) + sep + str(f"[{i}]") if parent_key else str(f"[{i}]")
+            if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
+                _insert_format_specifier(items, new_key, v)
+                for_extension = _flatten_with_format_columns(v, new_key, sep=sep)
+                if for_extension is not None:
+                    items.extend(for_extension.items())
+                _insert_format_specifier(items, new_key, v, is_start=False)
+            else:
+                items.append((new_key, v))
+        return dict(items)
+    else:
+        return {}
+
+
 def _make_tsv_formatter() -> Formatter:
     def tsv_format_function(data: typing.Dict[typing.Any, typing.Any]) -> str:
         return "\t".join([str(v) for k, v in flatten(data).items()])
@@ -128,11 +176,32 @@ def _make_tsvh_formatter() -> Formatter:
     return tsv_format_function_with_header
 
 
+def _make_tsvfc_formatter() -> Formatter:
+    """Makes a formatter that will make extra columns in the TSV for displaying the structure of original JSON"""
+    is_first_time = True
+    separator = "\t"
+
+    def tsv_format_function_with_header(data: typing.Dict[typing.Any, typing.Any]) -> str:
+        nonlocal is_first_time
+        if is_first_time:
+            is_first_time = False
+            return (
+                separator.join([str(k) for k, v in _flatten_with_format_columns(data).items()])
+                + "\n"
+                + separator.join([str(v) for k, v in _flatten_with_format_columns(data).items()])
+            )
+        else:
+            return separator.join([str(v) for k, v in _flatten_with_format_columns(data).items()])
+
+    return tsv_format_function_with_header
+
+
 _FORMATTERS = {
     "YAML": _make_yaml_formatter,
     "JSON": _make_json_formatter,
     "TSV": _make_tsv_formatter,
     "TSVH": _make_tsvh_formatter,
+    "TSVFC": _make_tsvfc_formatter,
 }
 
 

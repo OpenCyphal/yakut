@@ -1,6 +1,7 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2021 UAVCAN Consortium
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Authors: Pavel Kirienko <pavel@uavcan.org>
+# Silver Valdvee <silver.valdvee@zubax.com>
 
 from __future__ import annotations
 import typing
@@ -82,15 +83,15 @@ def _insert_format_specifier(items: typing.List[typing.Tuple[str, typing.Any]], 
 
 
 def flatten_start(
-    d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
-    parent_key: str = "",
-    sep: str = ".",
-    do_put_format_specifiers: bool = False,
-):
-    def flatten(
         d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
         parent_key: str = "",
         sep: str = ".",
+        do_put_format_specifiers: bool = False,
+):
+    def flatten(
+            d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
+            parent_key: str = "",
+            sep: str = ".",
     ) -> typing.Dict[str, typing.Any]:
         if isinstance(d, Mapping):
             items: typing.List[typing.Tuple[str, typing.Any]] = []
@@ -135,50 +136,35 @@ def _make_tsv_formatter() -> Formatter:
     return tsv_format_function
 
 
-def _make_tsvh_formatter() -> Formatter:
-    is_first_time = True
+def _make_formatter(do_put_format_specifiers: bool = False):
+    def _make_tsvh_formatter() -> Formatter:
+        is_first_time = True
 
-    def tsv_format_function_with_header(data: typing.Dict[typing.Any, typing.Any]) -> str:
-        nonlocal is_first_time
-        if is_first_time:
-            is_first_time = False
-            return (
-                "\t".join([str(k) for k, v in flatten_start(data).items()])
-                + "\n"
-                + "\t".join([str(v) for k, v in flatten_start(data).items()])
-            )
-        else:
-            return "\t".join([str(v) for k, v in flatten_start(data).items()])
+        def tsv_format_function_with_header(data: typing.Dict[typing.Any, typing.Any]) -> str:
+            nonlocal is_first_time
+            if is_first_time:
+                is_first_time = False
+                return (
+                        "\t".join([str(k) for k, v in
+                                   flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()])
+                        + "\n"
+                        + "\t".join(
+                    [str(v) for k, v in flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()])
+                )
+            else:
+                return "\t".join(
+                    [str(v) for k, v in flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()])
 
-    return tsv_format_function_with_header
-
-
-def _make_tsvfc_formatter() -> Formatter:
-    """Makes a formatter that will make extra columns in the TSV for displaying the structure of original JSON"""
-    is_first_time = True
-    separator = "\t"
-
-    def tsv_format_function_with_header(data: typing.Dict[typing.Any, typing.Any]) -> str:
-        nonlocal is_first_time
-        if is_first_time:
-            is_first_time = False
-            return (
-                separator.join([str(k) for k, v in flatten_start(data, do_put_format_specifiers=True).items()])
-                + "\n"
-                + separator.join([str(v) for k, v in flatten_start(data, do_put_format_specifiers=True).items()])
-            )
-        else:
-            return separator.join([str(v) for k, v in flatten_start(data, do_put_format_specifiers=True).items()])
-
-    return tsv_format_function_with_header
+        return tsv_format_function_with_header
+    return _make_tsvh_formatter
 
 
 _FORMATTERS = {
     "YAML": _make_yaml_formatter,
     "JSON": _make_json_formatter,
     "TSV": _make_tsv_formatter,
-    "TSVH": _make_tsvh_formatter,
-    "TSVFC": _make_tsvfc_formatter,
+    "TSVH": _make_formatter(do_put_format_specifiers=False),
+    "TSVFC": _make_formatter(do_put_format_specifiers=True)
 }
 
 
@@ -192,8 +178,8 @@ def _unittest_formatter() -> None:
         }
     }
     assert (
-        _FORMATTERS["YAML"]()(obj)
-        == """---
+            _FORMATTERS["YAML"]()(obj)
+            == """---
 2345:
   abc:
     def: [123, 456]
@@ -251,6 +237,6 @@ def _unittest_formatter() -> None:
     }
     tsvfc_formatter = _FORMATTERS["TSVFC"]()
     assert (
-        tsvfc_formatter(obj)
-        == "142{	142._metadata_{	142._metadata_.timestamp{	142._metadata_.timestamp.system	142._metadata_.timestamp.monotonic	142._metadata_.timestamp}	142._metadata_.priority	142._metadata_.transfer_id	142._metadata_.source_node_id	142._metadata_}	142.timestamp{	142.timestamp.microsecond	142.timestamp}	142.value{	142.value.kinematics{	142.value.kinematics.angular_position{	142.value.kinematics.angular_position.radian	142.value.kinematics.angular_position}	142.value.kinematics.angular_velocity{	142.value.kinematics.angular_velocity.radian_per_second	142.value.kinematics.angular_velocity}	142.value.kinematics.angular_acceleration{	142.value.kinematics.angular_acceleration.radian_per_second_per_second	142.value.kinematics.angular_acceleration}	142.value.kinematics}	142.value.torque{	142.value.torque.newton_meter	142.value.torque}	142.value}	142}\n{	{	{	1640611164.396007	4765.594161	}	nominal	28	21	}	{	309697890	}	{	{	{	nan	}	{	0.0	}	{	0.0	}	}	{	nan	}	}	}"
+            tsvfc_formatter(obj)
+            == "142{	142._metadata_{	142._metadata_.timestamp{	142._metadata_.timestamp.system	142._metadata_.timestamp.monotonic	142._metadata_.timestamp}	142._metadata_.priority	142._metadata_.transfer_id	142._metadata_.source_node_id	142._metadata_}	142.timestamp{	142.timestamp.microsecond	142.timestamp}	142.value{	142.value.kinematics{	142.value.kinematics.angular_position{	142.value.kinematics.angular_position.radian	142.value.kinematics.angular_position}	142.value.kinematics.angular_velocity{	142.value.kinematics.angular_velocity.radian_per_second	142.value.kinematics.angular_velocity}	142.value.kinematics.angular_acceleration{	142.value.kinematics.angular_acceleration.radian_per_second_per_second	142.value.kinematics.angular_acceleration}	142.value.kinematics}	142.value.torque{	142.value.torque.newton_meter	142.value.torque}	142.value}	142}\n{	{	{	1640611164.396007	4765.594161	}	nominal	28	21	}	{	309697890	}	{	{	{	nan	}	{	0.0	}	{	0.0	}	}	{	nan	}	}	}"
     )

@@ -70,15 +70,17 @@ def _make_json_formatter() -> Formatter:
 
 
 def _insert_format_specifier(items: typing.List[typing.Tuple[str, typing.Any]], key, instance, is_start: bool = True):
+    is_list = isinstance(instance, Collection) and not isinstance(instance, str)
+    is_dictionary = isinstance(instance, Mapping)
     if is_start:
-        if isinstance(instance, Mapping):
+        if is_dictionary:
             items.append((key + "{", "{"))
-        elif isinstance(instance, Collection) and not isinstance(instance, str):
+        elif is_list:
             items.append((key + "[", "["))
     else:
-        if isinstance(instance, Mapping):
+        if is_dictionary:
             items.append((key + "}", "}"))
-        elif isinstance(instance, Collection) and not isinstance(instance, str):
+        elif is_list:
             items.append((key + "]", "]"))
 
 
@@ -93,35 +95,29 @@ def flatten_start(
             parent_key: str = "",
             sep: str = ".",
     ) -> typing.Dict[str, typing.Any]:
+        def add_item(items, new_key, v):
+            if do_put_format_specifiers:
+                _insert_format_specifier(items, new_key, v)
+            if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
+                for_extension = flatten(v, new_key, sep=sep)
+                if for_extension is not None:
+                    items.extend(for_extension.items())
+            else:
+                items.append((new_key, v))
+            if do_put_format_specifiers:
+                _insert_format_specifier(items, new_key, v, is_start=False)
+
         if isinstance(d, Mapping):
             items: typing.List[typing.Tuple[str, typing.Any]] = []
             for k, v in d.items():
                 new_key = str(parent_key) + sep + str(k) if parent_key else str(k)
-                if do_put_format_specifiers:
-                    _insert_format_specifier(items, new_key, v)
-                if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
-                    for_extension = flatten(v, new_key, sep=sep)
-                    if for_extension is not None:
-                        items.extend(for_extension.items())
-                else:
-                    items.append((new_key, v))
-                if do_put_format_specifiers:
-                    _insert_format_specifier(items, new_key, v, is_start=False)
+                add_item(items, new_key, v)
             return dict(items)
         elif isinstance(d, Collection) and not isinstance(d, str):
             items = []
             for i, v in enumerate(d):
                 new_key = str(parent_key) + sep + str(f"[{i}]") if parent_key else str(f"[{i}]")
-                if do_put_format_specifiers:
-                    _insert_format_specifier(items, new_key, v)
-                if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
-                    for_extension = flatten(v, new_key, sep=sep)
-                    if for_extension is not None:
-                        items.extend(for_extension.items())
-                else:
-                    items.append((new_key, v))
-                if do_put_format_specifiers:
-                    _insert_format_specifier(items, new_key, v, is_start=False)
+                add_item(items, new_key, v)
             return dict(items)
         else:
             return {}
@@ -156,6 +152,7 @@ def _make_formatter(do_put_format_specifiers: bool = False):
                     [str(v) for k, v in flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()])
 
         return tsv_format_function_with_header
+
     return _make_tsvh_formatter
 
 

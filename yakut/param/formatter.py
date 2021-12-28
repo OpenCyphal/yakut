@@ -1,7 +1,6 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2019 UAVCAN Consortium
 # This software is distributed under the terms of the MIT License.
-# Authors: Pavel Kirienko <pavel@uavcan.org>
-# Silver Valdvee <silver.valdvee@zubax.com>
+# Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
 import typing

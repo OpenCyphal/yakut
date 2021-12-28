@@ -1,21 +1,24 @@
 # Development guide
+
 This document is intended for developers only.
 # Runtime dependencies
+
 Install dependencies listed in setup.cfg.
 ```
 pip install .
 ```
-# Testing
-## Writing tests
+## Testing
+
+### Writing tests
 
 Write unit tests as functions without arguments prefixed with `_unittest_`;
 optionally, for slow test functions use the prefix `_unittest_slow_`.
 Generally, simple test functions should be located as close as possible to the tested code,
 preferably at the end of the same Python module.
 
-## Being able to run tests
+### Being able to run tests
 
-### Installable dependencies
+#### Installable dependencies
 Please look at the `.appveyor.yml` file for up-to-date dependency information. 
 
 Here are some examples of what you will need:
@@ -24,13 +27,13 @@ Install [Nox](https://nox.thea.codes): `pip install nox`
 
 Install ncat ([Netcat](https://nmap.org/ncat/)): `sudo apt install ncat`
 
-### Restrictions to running on your computer
+#### Restrictions to running on your computer
 
 When running tests on GNU/Linux, ensure either that the current user is allowed to use `sudo` without an
 interactive password prompt or when you're around, you can also enter the password when prompted.
 This is needed for setting up `vcan` interfaces, loading relevant kernel modules, and setting up packet capture.
 
-### Mypy inspections
+#### Mypy inspections
 Having mypy analyze the code without running the whole test suite
 
 The test suite should pass and one part of it is the mypy code analysis that takes place at the end of the execution of the long test suite.
@@ -46,46 +49,37 @@ The test suite should pass and one part of it is the mypy code analysis that tak
 
 Also, a much easier solution is to use `nox -s lint` and it will run all the linters including mypy and pylint.
 
-## Running a unit test in a specific file
+### Running a unit test in a specific file
 When you want to run say unit tests at the end of the `yakut/param/formatter.py` file:
 1. Make sure `nox` has been run before, this creates the test environment(s).
 2. Activate one of the nox test environments `source .nox/test-3-8/bin/activate`
 3. `pytest yakut/param/formatter.py`
 
-## Manual tests
+### Manual tests
 
 To look for manual tests in the codebase, please search for `def _main()`.
 
-## Using Nox
-### The useful nox command
+### Using Nox
+#### The useful nox command
 
 Run the test suite and linters, abort on first failure:
 
 ```bash
 nox -xs test lint
 ```
-### The nox clean command
+#### The nox clean command
 Here, Nox is configured to reuse existing virtualenv to accelerate interactive testing.
 If you want to start from scratch, use `clean`:
 
 ```bash
 nox -s clean
 ```
-## Code coverage
+### Code coverage
 The directory `tests/deps` contains various test dependencies, including `sitecustomize.py`,
 which is used to measure code coverage in the many subprocesses that are spawned.
 
-## Releasing
+## Tools
 
-The tool is versioned by following [Semantic Versioning](https://semver.org).
-
-For all commits pushed to master, the CI/CD pipeline automatically uploads a new release to PyPI
-and pushes a new tag upstream.
-It is therefore necessary to ensure that the library version (see ``yakut/VERSION``) is bumped whenever
-a new commit is merged into master;
-otherwise, the automation will fail with an explicit tag conflict error instead of deploying the release.
-
-#Tools
 We recommend [JetBrains PyCharm](https://www.jetbrains.com/pycharm/) for development.
 
 The test suite stores compiled DSDL into `.compiled/` in the current working directory
@@ -97,7 +91,7 @@ Alternatively, you can just compile DSDL manually directly in the project root.
 Configure the IDE to run Black on save.
 See the Black documentation for integration instructions.
 
-## Capturing video for documentation
+### Capturing video for documentation
 
 Capture desktop region:
 
@@ -117,3 +111,12 @@ Stream webcam via MJPEG using VLC (open the stream using web browser or VLC):
 cvlc v4l2:///dev/video0 :chroma=mjpg :live-caching=10 --sout '#transcode{vcodec=mjpg}:std{access=http{mime=multipart/x-mixed-replace;boundary=-7b3cc56e5f51db803f790dad720ed50a},mux=mpjpeg,dst=0.0.0.0:8080}' --network-caching=0
 ```
 
+## Releasing
+
+The tool is versioned by following [Semantic Versioning](https://semver.org).
+
+For all commits pushed to master, the CI/CD pipeline automatically uploads a new release to PyPI
+and pushes a new tag upstream.
+It is therefore necessary to ensure that the library version (see ``yakut/VERSION``) is bumped whenever
+a new commit is merged into master;
+otherwise, the automation will fail with an explicit tag conflict error instead of deploying the release.

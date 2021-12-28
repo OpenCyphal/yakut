@@ -323,8 +323,6 @@ Here the reg.udral.physics.dynamics.rotation.PlanarTs.0.1 message is formatted u
 ```bash
 yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs.0.1 > rotation_data.tsv
 ```
-Then the data is imported into LibreOffice Calc and a line graph is plotted using two data sequences, the two columns of `142.timestamp.microsecond` and `142.value.kinematics.angular_velocity.radian_per_second` are plotted.
-![yakut publish](docs/LibreOfficeCalc_rotation_data.svg)
 
 ## Updating node software
 

@@ -1,4 +1,3 @@
-
 # Development guide
 This document is intended for developers only.
 # Runtime dependencies
@@ -9,8 +8,8 @@ pip install .
 # Testing
 ## Writing tests
 
-Write unit tests as functions without arguments prefixed with ``_unittest_``;
-optionally, for slow test functions use the prefix ``_unittest_slow_``.
+Write unit tests as functions without arguments prefixed with `_unittest_`;
+optionally, for slow test functions use the prefix `_unittest_slow_`.
 Generally, simple test functions should be located as close as possible to the tested code,
 preferably at the end of the same Python module.
 
@@ -38,12 +37,12 @@ The test suite should pass and one part of it is the mypy code analysis that tak
 
 
 1. Be in the yakut root directory
-2. Run the long test suite once with ```nox``` 
-3. Change directory to ```.nox/test-3-8/tmp```, here substitute `test-3-8` for the folder you have.
+2. Run the long test suite once with `nox`
+3. Change directory to `.nox/test-3-8/tmp`, here substitute `test-3-8` for the folder you have.
 4. This is one of the environments that nox creates for testing
-5. Run ```source ../bin/activate``` to activate the virtualenv
-6. ```export PYTHONPATH=.compiled/```
-7. `mypy --strict yakut tests`
+5. Run `source ../bin/activate` to activate the virtualenv
+6. `export PYTHONPATH=.compiled/`
+7. `mypy --strict ../../../yakut ../../../tests`
 
 Also, a much easier solution is to use `nox -s lint` and it will run all the linters including mypy and pylint.
 

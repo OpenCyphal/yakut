@@ -87,7 +87,7 @@ def _insert_format_specifier(items: typing.List[typing.Tuple[str, typing.Any]], 
             items.append((key + "]", "]"))
 
 
-def flatten_start(
+def _flatten_start(
     d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
     parent_key: str = "",
     sep: str = ".",
@@ -130,7 +130,7 @@ def flatten_start(
 
 def _make_tsv_formatter() -> Formatter:
     def tsv_format_function(data: typing.Dict[typing.Any, typing.Any]) -> str:
-        return "\t".join([str(v) for k, v in flatten_start(data).items()])
+        return "\t".join([str(v) for k, v in _flatten_start(data).items()])
 
     return tsv_format_function
 
@@ -147,20 +147,20 @@ def _make_formatter(do_put_format_specifiers: bool = False):
                     "\t".join(
                         [
                             str(k)
-                            for k, v in flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()
+                            for k, v in _flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()
                         ]
                     )
                     + "\n"
                     + "\t".join(
                         [
                             str(v)
-                            for k, v in flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()
+                            for k, v in _flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()
                         ]
                     )
                 )
             else:
                 return "\t".join(
-                    [str(v) for k, v in flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()]
+                    [str(v) for k, v in _flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()]
                 )
 
         return tsv_format_function_with_header

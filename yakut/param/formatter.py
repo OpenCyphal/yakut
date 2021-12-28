@@ -3,15 +3,15 @@
 # Author: Pavel Kirienko <pavel@uavcan.org>
 
 from __future__ import annotations
-import typing
+from typing import Callable, Any, cast
 from collections.abc import Mapping, Collection
 import click
 
-Formatter = typing.Callable[[typing.Any], str]
-FormatterFactory = typing.Callable[[], Formatter]
+Formatter = Callable[[Any], str]
+FormatterFactory = Callable[[], Formatter]
 
 
-def formatter_factory_option(f: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
+def formatter_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
     def validate(ctx: click.Context, param: object, value: str) -> FormatterFactory:
         _ = ctx, param
         try:
@@ -68,13 +68,13 @@ def _make_json_formatter() -> Formatter:
     #  - simplejson supports Decimal.
     import simplejson as json  # type: ignore
 
-    return lambda data: typing.cast(str, json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    return lambda data: cast(str, json.dumps(data, ensure_ascii=False, separators=(",", ":")))
 
 
 def _insert_format_specifier(
-    items: typing.List[typing.Tuple[str, typing.Any]],
+    items: list[tuple[str, Any]],
     key: str,
-    instance: typing.Union[Collection[typing.Any], Mapping[typing.Any, typing.Any]],
+    instance: Collection[Any] | Mapping[Any, Any],
     is_start: bool = True,
 ) -> None:
     is_list = isinstance(instance, Collection) and not isinstance(instance, str)
@@ -92,26 +92,19 @@ def _insert_format_specifier(
 
 
 def _flatten_start(
-    d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
+    d: dict[Any, Any] | Collection[Any],
     parent_key: str = "",
     sep: str = ".",
     do_put_format_specifiers: bool = False,
-) -> typing.Dict[str, typing.Any]:
-    def flatten(
-        d: typing.Union[typing.Dict[typing.Any, typing.Any], typing.Collection[typing.Any]],
-        parent_key: str = "",
-        sep: str = ".",
-    ) -> typing.Dict[str, typing.Any]:
-        def add_item(
-            items: typing.List[typing.Tuple[str, typing.Any]],
-            new_key: str,
-            v: typing.Union[Mapping[typing.Any, typing.Any], Collection[typing.Any]],
-        ) -> None:
+) -> dict[str, Any]:
+    def flatten(d: dict[Any, Any] | Collection[Any], parent_key: str = "") -> dict[str, Any]:
+        def add_item(items: list[tuple[str, Any]], new_key: str, v: Mapping[Any, Any] | Collection[Any]) -> None:
             if do_put_format_specifiers:
                 _insert_format_specifier(items, new_key, v)
             if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
-                for_extension = flatten(v, new_key, sep=sep)
+                for_extension = flatten(v, new_key)
                 if for_extension is not None:
+                    # noinspection PyTypeChecker
                     items.extend(for_extension.items())
             else:
                 items.append((new_key, v))
@@ -119,35 +112,34 @@ def _flatten_start(
                 _insert_format_specifier(items, new_key, v, is_start=False)
 
         if isinstance(d, Mapping):
-            items: typing.List[typing.Tuple[str, typing.Any]] = []
+            items: list[tuple[str, Any]] = []
             for k, v in d.items():
-                new_key = str(parent_key) + sep + str(k) if parent_key else str(k)
+                new_key = parent_key + sep + str(k) if parent_key else str(k)
                 add_item(items, new_key, v)
             return dict(items)
-        elif isinstance(d, Collection) and not isinstance(d, str):
+        if isinstance(d, Collection) and not isinstance(d, str):
             items = []
             for i, v in enumerate(d):
-                new_key = str(parent_key) + sep + str(f"[{i}]") if parent_key else str(f"[{i}]")
+                new_key = parent_key + sep + f"[{i}]" if parent_key else str(f"[{i}]")
                 add_item(items, new_key, v)
             return dict(items)
-        else:
-            return {}
+        return {}
 
-    return flatten(d, parent_key, sep)
+    return flatten(d, parent_key)
 
 
 def _make_tsv_formatter() -> Formatter:
-    def tsv_format_function(data: typing.Dict[typing.Any, typing.Any]) -> str:
+    def tsv_format_function(data: dict[Any, Any]) -> str:
         return "\t".join([str(v) for k, v in _flatten_start(data).items()])
 
     return tsv_format_function
 
 
-def _make_formatter(do_put_format_specifiers: bool = False) -> typing.Callable[[], Formatter]:
+def _make_tsvh_formatter_factory(do_put_format_specifiers: bool = False) -> Callable[[], Formatter]:
     def _make_tsvh_formatter() -> Formatter:
         is_first_time = True
 
-        def tsv_format_function_with_header(data: typing.Dict[typing.Any, typing.Any]) -> str:
+        def tsv_format_function_with_header(data: dict[Any, Any]) -> str:
             nonlocal is_first_time
             if is_first_time:
                 is_first_time = False
@@ -166,10 +158,9 @@ def _make_formatter(do_put_format_specifiers: bool = False) -> typing.Callable[[
                         ]
                     )
                 )
-            else:
-                return "\t".join(
-                    [str(v) for k, v in _flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()]
-                )
+            return "\t".join(
+                [str(v) for k, v in _flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()]
+            )
 
         return tsv_format_function_with_header
 
@@ -180,8 +171,8 @@ _FORMATTERS = {
     "YAML": _make_yaml_formatter,
     "JSON": _make_json_formatter,
     "TSV": _make_tsv_formatter,
-    "TSVH": _make_formatter(do_put_format_specifiers=False),
-    "TSVFC": _make_formatter(do_put_format_specifiers=True),
+    "TSVH": _make_tsvh_formatter_factory(do_put_format_specifiers=False),
+    "TSVFC": _make_tsvh_formatter_factory(do_put_format_specifiers=True),
 }
 
 
@@ -244,9 +235,10 @@ def _unittest_formatter() -> None:
         "	142.value.kinematics.angular_velocity}	142.value.kinematics.angular_acceleration{"
         "	142.value.kinematics.angular_acceleration.radian_per_second_per_second"
         "	142.value.kinematics.angular_acceleration}	142.value.kinematics}	142.value.torque{"
-        "	142.value.torque.newton_meter	142.value.torque}	142.value}	142}\n{	{	{	1640611164.396007"
-        "	4765.594161	}	nominal	28	21	}	{	309697890	}	{	{	{	nan	}	{	0.0	}	{	0.0	}"
-        "	}	{	nan	}	}	}"
+        "	142.value.torque.newton_meter	142.value.torque}	142.value}	142}\n{	{	{"
+        "	1640611164.396007	4765.594161	}	nominal	28	21	}"
+        "	{	309697890	}	{	{	{	nan	}	{	0.0	}"
+        "	{	0.0	}	}	{	nan	}	}	}"
     )
     assert _FORMATTERS["TSV"]()(obj) == "1640611164.396007\t4765.594161\tnominal\t28\t21\t309697890\tnan\t0.0\t0.0\tnan"
 

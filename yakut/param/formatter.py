@@ -247,5 +247,17 @@ def _unittest_formatter() -> None:
     tsvfc_formatter = _FORMATTERS["TSVFC"]()
     assert (
         tsvfc_formatter(obj)
-        == "142{	142._metadata_{	142._metadata_.timestamp{	142._metadata_.timestamp.system	142._metadata_.timestamp.monotonic	142._metadata_.timestamp}	142._metadata_.priority	142._metadata_.transfer_id	142._metadata_.source_node_id	142._metadata_}	142.timestamp{	142.timestamp.microsecond	142.timestamp}	142.value{	142.value.kinematics{	142.value.kinematics.angular_position{	142.value.kinematics.angular_position.radian	142.value.kinematics.angular_position}	142.value.kinematics.angular_velocity{	142.value.kinematics.angular_velocity.radian_per_second	142.value.kinematics.angular_velocity}	142.value.kinematics.angular_acceleration{	142.value.kinematics.angular_acceleration.radian_per_second_per_second	142.value.kinematics.angular_acceleration}	142.value.kinematics}	142.value.torque{	142.value.torque.newton_meter	142.value.torque}	142.value}	142}\n{	{	{	1640611164.396007	4765.594161	}	nominal	28	21	}	{	309697890	}	{	{	{	nan	}	{	0.0	}	{	0.0	}	}	{	nan	}	}	}"
+        == "142{	142._metadata_{	142._metadata_.timestamp{"
+        "	142._metadata_.timestamp.system	142._metadata_.timestamp.monotonic"
+        "	142._metadata_.timestamp}	142._metadata_.priority	142._metadata_.transfer_id"
+        "	142._metadata_.source_node_id	142._metadata_}	142.timestamp{	142.timestamp.microsecond"
+        "	142.timestamp}	142.value{	142.value.kinematics{	142.value.kinematics.angular_position{"
+        "	142.value.kinematics.angular_position.radian	142.value.kinematics.angular_position}"
+        "	142.value.kinematics.angular_velocity{	142.value.kinematics.angular_velocity.radian_per_second"
+        "	142.value.kinematics.angular_velocity}	142.value.kinematics.angular_acceleration{"
+        "	142.value.kinematics.angular_acceleration.radian_per_second_per_second"
+        "	142.value.kinematics.angular_acceleration}	142.value.kinematics}	142.value.torque{"
+        "	142.value.torque.newton_meter	142.value.torque}	142.value}	142}\n{	{	{	1640611164.396007"
+        "	4765.594161	}	nominal	28	21	}	{	309697890	}	{	{	{	nan	}	{	0.0	}	{	0.0	}"
+        "	}	{	nan	}	}	}"
     )

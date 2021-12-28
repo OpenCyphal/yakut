@@ -41,13 +41,6 @@ To enable the support for input devices, install the optional dependency: **`pip
 In case you need screencast tutorials for installation & configuration on Windows and GNU/Linux, they can be found on
 [the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
 
-### Protip on environment variables
-
-Defining the required environment variables manually is unergonomic and time-consuming.
-A better option is to have relevant configuration that you use often defined in a dedicated file (or several)
-that is sourced into the current shell session as necessary
-(conceptually this is similar to virtual environments used in Python, etc).
-Here is an example for a doubly-redundant CAN bus (assuming sh/bash/zsh here):
 
 ```bash
 # Common UAVCAN register configuration for testing & debugging.
@@ -173,6 +166,13 @@ If the available registers define more than one transport configuration, a redun
 | CAN       | `uavcan.can.bitrate`  | `natural32[2]` | `UAVCAN__CAN__BITRATE`    | Arbitration/data segment bits per second          | `1000000 4000000`                   |
 | Loopback  | `uavcan.loopback`     | `bit[1]`       | `UAVCAN__LOOPBACK`        | Use loopback interface (only for basic testing)   | `1`                                 |
 
+### Protip on environment variables
+
+Defining the required environment variables manually is unergonomic and time-consuming.
+A better option is to have relevant configuration that you use often defined in a dedicated file (or several)
+that is sourced into the current shell session as necessary
+(conceptually this is similar to virtual environments used in Python, etc).
+Here is an example for a doubly-redundant CAN bus (assuming sh/bash/zsh here):
 
 ### Subscribing to subjects
 

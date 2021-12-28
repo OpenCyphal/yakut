@@ -1,12 +1,12 @@
 
 # Development guide
 This document is intended for developers only.
-### Runtime dependencies
+# Runtime dependencies
 Install dependencies listed in setup.cfg.
 ```
 pip install .
 ```
-
+# Testing
 ## Writing tests
 
 Write unit tests as functions without arguments prefixed with ``_unittest_``;
@@ -32,7 +32,7 @@ interactive password prompt or when you're around, you can also enter the passwo
 This is needed for setting up `vcan` interfaces, loading relevant kernel modules, and setting up packet capture.
 
 ### Mypy inspections
-#### Having mypy analyze the code without running the whole test suite
+Having mypy analyze the code without running the whole test suite
 
 The test suite should pass and one part of it is the mypy code analysis that takes place at the end of the execution of the long test suite.
 
@@ -47,7 +47,7 @@ The test suite should pass and one part of it is the mypy code analysis that tak
 
 Also, a much easier solution is to use `nox -s lint` and it will run all the linters including mypy and pylint.
 
-### Running a unit test in a specific file
+## Running a unit test in a specific file
 When you want to run say unit tests at the end of the `yakut/param/formatter.py` file:
 1. Make sure `nox` has been run before, this creates the test environment(s).
 2. Activate one of the nox test environments `source .nox/test-3-8/bin/activate`
@@ -57,21 +57,7 @@ When you want to run say unit tests at the end of the `yakut/param/formatter.py`
 
 To look for manual tests in the codebase, please search for `def _main()`.
 
-## Releasing
-
-The tool is versioned by following [Semantic Versioning](https://semver.org).
-
-For all commits pushed to master, the CI/CD pipeline automatically uploads a new release to PyPI
-and pushes a new tag upstream.
-It is therefore necessary to ensure that the library version (see ``yakut/VERSION``) is bumped whenever
-a new commit is merged into master;
-otherwise, the automation will fail with an explicit tag conflict error instead of deploying the release.
-
-### Code coverage
-The directory `tests/deps` contains various test dependencies, including `sitecustomize.py`,
-which is used to measure code coverage in the many subprocesses that are spawned.
-
-
+## Using Nox
 ### The useful nox command
 
 Run the test suite and linters, abort on first failure:
@@ -86,8 +72,21 @@ If you want to start from scratch, use `clean`:
 ```bash
 nox -s clean
 ```
-## Using JetBrains PyCharm
+## Code coverage
+The directory `tests/deps` contains various test dependencies, including `sitecustomize.py`,
+which is used to measure code coverage in the many subprocesses that are spawned.
 
+## Releasing
+
+The tool is versioned by following [Semantic Versioning](https://semver.org).
+
+For all commits pushed to master, the CI/CD pipeline automatically uploads a new release to PyPI
+and pushes a new tag upstream.
+It is therefore necessary to ensure that the library version (see ``yakut/VERSION``) is bumped whenever
+a new commit is merged into master;
+otherwise, the automation will fail with an explicit tag conflict error instead of deploying the release.
+
+#Tools
 We recommend [JetBrains PyCharm](https://www.jetbrains.com/pycharm/) for development.
 
 The test suite stores compiled DSDL into `.compiled/` in the current working directory
@@ -99,7 +98,7 @@ Alternatively, you can just compile DSDL manually directly in the project root.
 Configure the IDE to run Black on save.
 See the Black documentation for integration instructions.
 
-### Capturing video for documentation
+## Capturing video for documentation
 
 Capture desktop region:
 

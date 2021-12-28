@@ -22,24 +22,26 @@ First, make sure to [have Python installed](https://docs.python.org/3/using/inde
 Windows users are recommended to grab the official distribution from Windows Store.
 Yakut requires **Python 3.7 or newer**.
 
-GNU/Linux users will need to also install: SDL2, possibly libjack (with headers), possibly libasound2 (with headers).
-
-If you are using the Ubuntu distro, make sure to install these:
-```bash
-sudo apt install libjack-jackd2-dev libasound2-dev can-utils
-```
 Install Yakut: **`pip install yakut`**
+
+By default, Yakut does not support joysticks or MIDI controllers
+(this feature is described below in section [Publishing messages](#publishing-messages)).
+To enable the support for input devices, install the optional dependency: **`pip install yakut[joystick]`**.
+GNU/Linux users will need to also install: [SDL2](https://libsdl.org),
+possibly libjack (with headers), possibly libasound2 (with headers)
+(if you are using a Debian-based distro, the required packages are: `libasound2-dev libjack-dev`).
 
 Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
-By default, Yakut does not support joysticks or MIDI controllers
-(this feature is described below in section [Publishing messages](#publishing-messages)).
-To enable the support for input devices, install the optional dependency: **`pip install yakut[joystick]`**.
+Installation & configuration screencasts for Windows and GNU/Linux are
+[available on the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
 
-In case you need screencast tutorials for installation & configuration on Windows and GNU/Linux, they can be found on
-[the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
+### Additional third-party tools
+
+- UAVCAN/CAN on GNU/Linux: [`can-utils`](https://github.com/linux-can/can-utils)
+- UAVCAN/UDP or UAVCAN/CAN: [Wireshark](https://www.wireshark.org/)
 
 ## Invoking commands
 
@@ -201,6 +203,16 @@ $ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
   radian: 2.309999942779541
 ```
 
+#### Exporting data to computer algebra systems or spreadsheet processors
+
+Here the `reg.udral.physics.dynamics.rotation.PlanarTs.0.1` message is formatted using the TSV formatter
+with headers prepended.
+The resulting data can be imported as-is into Excel, Wolfram Mathematica, etc.
+
+```bash
+yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs.0.1 > rotation_data.tsv
+```
+
 ### Publishing messages
 
 Publishing two messages synchronously twice (four messages total):
@@ -315,13 +327,6 @@ In the latter case it will actively query other nodes using the standard introsp
 
 Some transports, UAVCAN/UDP in particular, require special privileges to run this tool due to the security
 implications of low-level packet capture.
-
-## Exporting data from Yakut to computer algebra systems or spreadsheet processors
-
-Here the reg.udral.physics.dynamics.rotation.PlanarTs.0.1 message is formatted using the TSV formatter with headers prepended. 
-```bash
-yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs.0.1 > rotation_data.tsv
-```
 
 ## Updating node software
 

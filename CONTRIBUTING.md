@@ -4,6 +4,10 @@ This document is intended for developers only.
 
 ## Testing
 
+Install dependencies into your current Python environment: `pip install .`
+Aside from that, you will need to install other dependencies listed in `.appveyor.yml`
+(e.g., [Ncat](https://nmap.org/ncat/); for Debian-based distros try `apt install ncat`).
+
 Write unit tests as functions without arguments prefixed with ``_unittest_``;
 optionally, for slow test functions use the prefix ``_unittest_slow_``.
 Generally, simple test functions should be located as close as possible to the tested code,
@@ -12,14 +16,9 @@ preferably at the end of the same Python module.
 The directory `tests/deps` contains various test dependencies, including `sitecustomize.py`,
 which is used to measure code coverage in subprocesses (which the test suite spawns a lot of, naturally).
 
-When running tests on GNU/Linux, ensure that the current user is allowed to use `sudo` without an
-interactive password prompt.
+When running tests on GNU/Linux, ensure either that the current user is allowed to use `sudo` without an
+interactive password prompt; or, when you're around, you can also enter the password when prompted.
 This is needed for setting up `vcan` interfaces, loading relevant kernel modules, and setting up packet capture.
-
-### Manual testing
-
-Some tools with rich UI are difficult to fully test manually.
-These should be validated manually; please find instructions in the corresponding files under `tests/cmd`.
 
 ### Using Nox
 
@@ -37,6 +36,31 @@ If you want to start from scratch, use `clean`:
 ```bash
 nox -s clean
 ```
+
+#### Running tests/linters selectively from a virtual environment created by Nox
+
+Running the full test suite using Nox takes too much time for interactive testing during development.
+A more interactive approach is as follows:
+
+1. Be in the yakut root directory.
+2. Run the long test session once with `nox`.
+3. Change directory to `.nox/test-3-8/tmp`, here substitute `test-3-8` for the directory you have. 
+   This is one of the environments that Nox creates for testing.
+4. Run `source ../bin/activate` to activate the virtualenv.
+5. `export PYTHONPATH=.compiled/`
+6. Run specific commands you need:
+   `pytest ../../../yakut/whatever`, `mypy --strict ../../../yakut ../../../tests`, etc.
+
+When you want to run say unit tests at the end of the `yakut/param/formatter.py` file:
+
+1. Make sure `nox` has been run before, this creates the test environment(s).
+2. Activate one of the nox test environments like `source .nox/test-3-8/bin/activate`
+3. `pytest yakut/param/formatter.py`
+
+### Manual testing
+
+Some tools with rich UI are difficult to test automatically.
+To look for manual tests in the codebase, please search for `def _main` under `tests/`.
 
 ## Tools
 

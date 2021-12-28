@@ -28,7 +28,8 @@ By default, Yakut does not support joysticks or MIDI controllers
 (this feature is described below in section [Publishing messages](#publishing-messages)).
 To enable the support for input devices, install the optional dependency: **`pip install yakut[joystick]`**.
 GNU/Linux users will need to also install: [SDL2](https://libsdl.org),
-possibly libjack (with headers), possibly libasound2 (with headers).
+possibly libjack (with headers), possibly libasound2 (with headers)
+(if you are using a Debian-based distro, the required packages are: `libasound2-dev libjack-dev`).
 
 Afterward do endeavor to read the docs: **`yakut --help`**
 
@@ -36,6 +37,11 @@ Check for new versions every now and then: **`pip install --upgrade yakut`**
 
 Installation & configuration screencasts for Windows and GNU/Linux are
 [available on the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
+
+### Additional third-party tools
+
+- UAVCAN/CAN on GNU/Linux: [`can-utils`](https://github.com/linux-can/can-utils)
+- UAVCAN/UDP or UAVCAN/CAN: [Wireshark](https://www.wireshark.org/)
 
 ## Invoking commands
 
@@ -131,15 +137,15 @@ The full description of supported registers is available in the API documentatio
 
 If the available registers define more than one transport configuration, a redundant transport will be initialized.
 
- Transport | Register name         | Register type  | Environment variable name | Semantics                                         | Example environment variable value  
------------|-----------------------|----------------|---------------------------|---------------------------------------------------|-------------------------------------
- All       | `uavcan.node.id`      | `natural16[1]` | `UAVCAN__NODE__ID`        | The local node-ID; anonymous if not set           | `42`                                
- UDP       | `uavcan.udp.iface`    | `string`       | `UAVCAN__UDP__IFACE`      | Space-separated local IPs (16 LSB set to node-ID) | `127.9.0.0 192.168.0.0`             
- Serial    | `uavcan.serial.iface` | `string`       | `UAVCAN__SERIAL__IFACE`   | Space-separated serial port names                 | `COM9 socket://127.0.0.1:50905`     
- CAN       | `uavcan.can.iface`    | `string`       | `UAVCAN__CAN__IFACE`      | Space-separated CAN iface names                   | `socketcan:vcan0 pcan:PCAN_USBBUS1` 
- CAN       | `uavcan.can.mtu`      | `natural16[1]` | `UAVCAN__CAN__MTU`        | Maximum transmission unit; selects Classic/FD     | `64`                                
- CAN       | `uavcan.can.bitrate`  | `natural32[2]` | `UAVCAN__CAN__BITRATE`    | Arbitration/data segment bits per second          | `1000000 4000000`                   
- Loopback  | `uavcan.loopback`     | `bit[1]`       | `UAVCAN__LOOPBACK`        | Use loopback interface (only for basic testing)   | `1`                                 
+| Transport | Register name         | Register type  | Environment variable name | Semantics                                         | Example environment variable value  |
+|-----------|-----------------------|----------------|---------------------------|---------------------------------------------------|-------------------------------------|
+| All       | `uavcan.node.id`      | `natural16[1]` | `UAVCAN__NODE__ID`        | The local node-ID; anonymous if not set           | `42`                                |
+| UDP       | `uavcan.udp.iface`    | `string`       | `UAVCAN__UDP__IFACE`      | Space-separated local IPs (16 LSB set to node-ID) | `127.9.0.0 192.168.0.0`             |
+| Serial    | `uavcan.serial.iface` | `string`       | `UAVCAN__SERIAL__IFACE`   | Space-separated serial port names                 | `COM9 socket://127.0.0.1:50905`     |
+| CAN       | `uavcan.can.iface`    | `string`       | `UAVCAN__CAN__IFACE`      | Space-separated CAN iface names                   | `socketcan:vcan0 pcan:PCAN_USBBUS1` |
+| CAN       | `uavcan.can.mtu`      | `natural16[1]` | `UAVCAN__CAN__MTU`        | Maximum transmission unit; selects Classic/FD     | `64`                                |
+| CAN       | `uavcan.can.bitrate`  | `natural32[2]` | `UAVCAN__CAN__BITRATE`    | Arbitration/data segment bits per second          | `1000000 4000000`                   |
+| Loopback  | `uavcan.loopback`     | `bit[1]`       | `UAVCAN__LOOPBACK`        | Use loopback interface (only for basic testing)   | `1`                                 |
 
 ### Protip on environment variables
 
@@ -195,6 +201,16 @@ $ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
     transfer_id: 1
     source_node_id: 42
   radian: 2.309999942779541
+```
+
+#### Exporting data to computer algebra systems or spreadsheet processors
+
+Here the `reg.udral.physics.dynamics.rotation.PlanarTs.0.1` message is formatted using the TSV formatter
+with headers prepended.
+The resulting data can be imported as-is into Excel, Wolfram Mathematica, etc.
+
+```bash
+yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs.0.1 > rotation_data.tsv
 ```
 
 ### Publishing messages

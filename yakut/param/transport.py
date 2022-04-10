@@ -70,7 +70,7 @@ Upon evaluation, the expression should yield either a single transport instance 
 In the latter case, the multiple transports will be joined under the same redundant transport instance,
 which may be heterogeneous (e.g., UDP+Serial).
 This method does not require any DSDL to be compiled at all.
-To see supported transports and how they should be initialized, run `yakut doc`.
+To see supported transports and how they should be initialized, refer to https://pyuavcan.readthedocs.io.
 
 The expression does not need to explicitly reference the `pyuavcan.transport` module
 because its contents are wildcard-imported for convenience.

@@ -1,6 +1,6 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import sys
@@ -108,21 +108,21 @@ EXAMPLE_PUB_SUB_STDOUT = """
 
 
 _HELP = f"""
-Manage configuration of multiple UAVCAN nodes using YAML files.
+Manage configuration of multiple Cyphal nodes using YAML files.
 
 Currently, this tool is not tested against Windows and is therefore not expected to function there correctly.
 
-Here, "orchestration" means configuration management of a UAVCAN-based distributed computing system.
+Here, "orchestration" means configuration management of a Cyphal-based distributed computing system.
 The participants of such a system may be either software processes executed on a computer (local or remote),
 dedicated hardware units (e.g., a flight management unit or a sensor), or a mix thereof.
 
 The user writes an orchestration file (orc-file for short) that defines the desired node parameters
 and the shell commands that need to be executed to bring the system configuration into the desired state.
-The configuration of remote nodes may be enforced via UAVCAN using proxy commands like
+The configuration of remote nodes may be enforced via Cyphal using proxy commands like
 "yakut register", "yakut call", etc. (this is convenient for hardware nodes) or via conventional means like SSH
 (useful for software nodes executed on a remote computer).
 
-As prescribed by the UAVCAN standard, the node parameters are modeled as registers
+As prescribed by the Cyphal standard, the node parameters are modeled as registers
 (see standard RPC-service uavcan.register.Access).
 Register values described in the orc-file are passed to the invoked processes via environment variables.
 An environment variable name is constructed from register name by upper-casing it and replacing full stop characters
@@ -159,7 +159,7 @@ Null-valued keys can be used to erase registers and environment variables define
 (so that they are not propagated).
 
 The behaviors defined by an orchestration file are specified using "compositions".
-A composition is a YAML-dictionary of UAVCAN registers, environment variables, and "directives".
+A composition is a YAML-dictionary of Cyphal registers, environment variables, and "directives".
 A directive is a dictionary key ending with an equals sign "=".
 The syntax can be approximated as follows, using a PEG-like notation:
 

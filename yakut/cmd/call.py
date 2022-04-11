@@ -1,29 +1,27 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
+from __future__ import annotations
 import sys
-import typing
+from typing import Any
 import decimal
 import contextlib
 import click
-import pyuavcan
+import pycyphal
 import yakut
 from yakut.helpers import EnumParam
 from yakut.param.formatter import Formatter
 from yakut.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
 
 
-_S = typing.TypeVar("_S", bound=pyuavcan.dsdl.ServiceObject)
-
-
 _logger = yakut.get_logger(__name__)
 
 
-def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: str) -> typing.Any:
+def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: str) -> Any:
     from yakut.yaml import EvaluableLoader
 
-    eval_context: typing.Dict[str, typing.Any] = {}  # Add useful members later.
+    eval_context: dict[str, Any] = {}  # Add useful members later.
     try:
         fields = EvaluableLoader(eval_context).load(value)
     except Exception as ex:
@@ -39,7 +37,7 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
     "--timeout",
     "-T",
     type=float,
-    default=pyuavcan.presentation.DEFAULT_SERVICE_REQUEST_TIMEOUT,
+    default=pycyphal.presentation.DEFAULT_SERVICE_REQUEST_TIMEOUT,
     show_default=True,
     metavar="SECONDS",
     help=f"Request timeout; how long to wait for the response before giving up.",
@@ -47,9 +45,9 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
 @click.option(
     "--priority",
     "-P",
-    default=pyuavcan.presentation.DEFAULT_PRIORITY,
-    type=EnumParam(pyuavcan.transport.Priority),
-    help=f"Priority of the request transfer. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]",
+    default=pycyphal.presentation.DEFAULT_PRIORITY,
+    type=EnumParam(pycyphal.transport.Priority),
+    help=f"Priority of the request transfer. [default: {pycyphal.presentation.DEFAULT_PRIORITY.name}]",
 )
 @click.option(
     "--with-metadata/--no-metadata",
@@ -64,9 +62,9 @@ async def call(
     purser: yakut.Purser,
     server_node_id: int,
     service: str,
-    request_fields: typing.Any,
+    request_fields: Any,
     timeout: float,
-    priority: pyuavcan.transport.Priority,
+    priority: pycyphal.transport.Priority,
     with_metadata: bool,
 ) -> None:
     """
@@ -90,7 +88,7 @@ async def call(
     (or JSON, which is a subset of YAML).
     Missing fields will be left at their default values.
     If omitted, this argument defaults to an empty object: `{}`.
-    For more info about the format see PyUAVCAN documentation on builtin-based representations.
+    For more info about the format see PyCyphal documentation on builtin-based representations.
 
     The output will be printed as a key-value mapping of one element where the key is the service-ID
     and the value is the received response object.
@@ -103,7 +101,7 @@ async def call(
         yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 '[[10, 1], [20, 2]]'
     """
     try:
-        from pyuavcan.application import Node
+        from pycyphal.application import Node
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
 
@@ -120,10 +118,10 @@ async def call(
     )
 
     service_id, dtype = construct_port_id_and_type(service)
-    if not issubclass(dtype, pyuavcan.dsdl.ServiceObject):
+    if not pycyphal.dsdl.is_service_type(dtype):
         raise TypeError(f"Expected a service type; got {dtype.__name__}")
 
-    request = pyuavcan.dsdl.update_from_builtin(dtype.Request(), request_fields)
+    request = pycyphal.dsdl.update_from_builtin(dtype.Request(), request_fields)
     _logger.info("Request object: %r", request)
 
     formatter = purser.make_formatter()
@@ -138,22 +136,22 @@ async def call(
 
 
 async def _run(
-    client: pyuavcan.presentation.Client[_S],
-    request: pyuavcan.dsdl.CompositeObject,
+    client: pycyphal.presentation.Client[Any],
+    request: Any,
     formatter: Formatter,
     with_metadata: bool,
 ) -> None:
-    request_ts_transport: typing.Optional[pyuavcan.transport.Timestamp] = None
+    request_ts_transport: pycyphal.transport.Timestamp | None = None
 
-    def on_transfer_feedback(fb: pyuavcan.transport.Feedback) -> None:
+    def on_transfer_feedback(fb: pycyphal.transport.Feedback) -> None:
         nonlocal request_ts_transport
         request_ts_transport = fb.first_frame_transmission_timestamp
 
     client.output_transport_session.enable_feedback(on_transfer_feedback)
 
-    request_ts_application = pyuavcan.transport.Timestamp.now()
+    request_ts_application = pycyphal.transport.Timestamp.now()
     result = await client.call(request)
-    response_ts_application = pyuavcan.transport.Timestamp.now()
+    response_ts_application = pycyphal.transport.Timestamp.now()
     if result is None:
         click.secho(f"The request has timed out after {client.response_timeout:0.1f} seconds", err=True, fg="red")
         sys.exit(1)
@@ -177,7 +175,7 @@ async def _run(
         application_duration - transport_duration,
     )
 
-    bi: typing.Dict[str, typing.Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
+    bi: dict[str, Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
     if with_metadata:
         qnt = decimal.Decimal("0.000001")
         bi.update(
@@ -189,6 +187,6 @@ async def _run(
                 },
             )
         )
-    bi.update(pyuavcan.dsdl.to_builtin(response))
+    bi.update(pycyphal.dsdl.to_builtin(response))
 
     print(formatter({client.port_id: bi}))

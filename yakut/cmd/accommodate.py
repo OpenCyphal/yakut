@@ -1,13 +1,13 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 import sys
 import random
 import asyncio
 import contextlib
 import click
-import pyuavcan
+import pycyphal
 import yakut
 
 
@@ -44,7 +44,7 @@ async def accommodate(purser: yakut.Purser) -> None:
 
     transport = purser.get_transport()
     node_id_set_cardinality = transport.protocol_parameters.max_nodes
-    if node_id_set_cardinality > 2 ** 24:
+    if node_id_set_cardinality > 2**24:
         # Special case: for very large sets just pick a random number.
         # Very large sets are only possible with test transports such as loopback so it's acceptable.
         # If necessary, later we could develop a more robust solution.
@@ -60,13 +60,13 @@ async def accommodate(purser: yakut.Purser) -> None:
     if node_id_set_cardinality > 1000:
         # Special case: some transports with large NID cardinality may have difficulties supporting a node-ID of zero
         # depending on the configuration of the underlying hardware and software.
-        # This is not a problem of UAVCAN but of the platform itself.
+        # This is not a problem of Cyphal but of the platform itself.
         # For example, a UDP/IP transport over IPv4 with a node-ID of zero would map to an IP address with trailing
         # zeros which may be the address of the subnet, which is likely to cause all sorts of complications.
         _logger.debug("Removing the zero node-ID from the set of available values to avoid platform-specific issues")
         candidates.remove(0)
 
-    pres = pyuavcan.presentation.Presentation(transport)
+    pres = pycyphal.presentation.Presentation(transport)
     with contextlib.closing(pres):
         deadline = asyncio.get_event_loop().time() + uavcan.node.Heartbeat_1_0.MAX_PUBLICATION_PERIOD * 2.0
         sub = pres.make_subscriber_with_fixed_subject_id(uavcan.node.Heartbeat_1_0)
@@ -75,7 +75,7 @@ async def accommodate(purser: yakut.Purser) -> None:
             if result is None:
                 break
             msg, transfer = result
-            assert isinstance(transfer, pyuavcan.transport.TransferFrom)
+            assert isinstance(transfer, pycyphal.transport.TransferFrom)
             _logger.debug("Received %r via %r", msg, transfer)
             if transfer.source_node_id is None:
                 _logger.warning(

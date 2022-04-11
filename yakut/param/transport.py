@@ -1,13 +1,13 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 from typing import Callable, Optional, Any, List, Dict
 import inspect
 import logging
-import pyuavcan
-from pyuavcan.transport import Transport as Transport
+import pycyphal
+from pycyphal.transport import Transport as Transport
 import click
 from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
 
@@ -37,7 +37,7 @@ def transport_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
                 return result
             # If no expression is given, construct from the registers passed via environment variables:
             try:
-                from pyuavcan.application import make_transport
+                from pycyphal.application import make_transport
             except (ImportError, AttributeError):
                 _logger.info(
                     "Transport initialization expression is not provided and constructing the transport "
@@ -61,8 +61,8 @@ commands that access the network deduce the transport configuration from standar
 environment variables, such as UAVCAN__NODE__ID, UAVCAN__UDP__IFACE, UAVCAN__SERIAL__IFACE,
 and so on.
 The full list of registers that configure the transport is available in the definition of the standard
-RPC-service "uavcan.register.Access", and in the documentation for PyUAVCAN:
-https://pyuavcan.readthedocs.io (see "make_transport()").
+RPC-service "uavcan.register.Access", and in the documentation for PyCyphal:
+https://pycyphal.readthedocs.io (see "make_transport()").
 This method requires that the standard DSDL namespace "uavcan" is compiled (see command "yakut compile")!
 
 If this expression is given, the registers are ignored, and the transport instance is constructed by evaluating it.
@@ -70,9 +70,9 @@ Upon evaluation, the expression should yield either a single transport instance 
 In the latter case, the multiple transports will be joined under the same redundant transport instance,
 which may be heterogeneous (e.g., UDP+Serial).
 This method does not require any DSDL to be compiled at all.
-To see supported transports and how they should be initialized, refer to https://pyuavcan.readthedocs.io.
+To see supported transports and how they should be initialized, refer to https://pycyphal.readthedocs.io.
 
-The expression does not need to explicitly reference the `pyuavcan.transport` module
+The expression does not need to explicitly reference the `pycyphal.transport` module
 because its contents are wildcard-imported for convenience.
 Further, when specifying a transport class, the suffix `Transport` may be omitted;
 e.g., `UDPTransport` and `UDP` are equivalent.
@@ -110,7 +110,7 @@ def construct_transport(expression: str) -> Transport:
     if len(trs) == 1:
         return trs[0]  # Non-redundant transport
     if len(trs) > 1:
-        from pyuavcan.transport.redundant import RedundantTransport
+        from pycyphal.transport.redundant import RedundantTransport
 
         rt = RedundantTransport()
         for t in trs:
@@ -128,7 +128,7 @@ def _evaluate_transport_expr(expression: str, context: Dict[str, Any]) -> List[T
         return list(out)
     raise ValueError(
         f"The expression {expression!r} yields an instance of {type(out).__name__!r}. "
-        f"Expected an instance of pyuavcan.transport.Transport or a list thereof."
+        f"Expected an instance of pycyphal.transport.Transport or a list thereof."
     )
 
 
@@ -145,21 +145,21 @@ def _make_evaluation_context() -> Dict[str, Any]:
     # This import is super slow, so we do it as late as possible.
     # Doing this when generating command-line arguments would be disastrous for performance.
     # noinspection PyTypeChecker
-    pyuavcan.util.import_submodules(pyuavcan.transport, error_handler=handle_import_error)
+    pycyphal.util.import_submodules(pycyphal.transport, error_handler=handle_import_error)
 
     # Populate the context with all references that may be useful for the transport expression.
     context: Dict[str, Any] = {
-        "pyuavcan": pyuavcan,
+        "pycyphal": pycyphal,
         "os": os,
     }
 
     # Expose pre-imported transport modules for convenience.
-    for name, module in inspect.getmembers(pyuavcan.transport, inspect.ismodule):
+    for name, module in inspect.getmembers(pycyphal.transport, inspect.ismodule):
         if not name.startswith("_"):
             context[name] = module
 
     # Pre-import transport classes.
-    for cls in pyuavcan.util.iter_descendants(Transport):
+    for cls in pycyphal.util.iter_descendants(Transport):
         if not cls.__name__.startswith("_") and cls is not Transport:
             name = cls.__name__.rpartition(Transport.__name__)[0]
             assert name

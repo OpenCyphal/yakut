@@ -1,19 +1,19 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import asyncio
 from typing import Optional, Iterable, TYPE_CHECKING
 from pathlib import Path
 import click
-import pyuavcan
+import pycyphal
 import yakut
 from . import AppDescriptor
 
 if TYPE_CHECKING:
-    import pyuavcan.application  # pylint: disable=ungrouped-imports
-    import pyuavcan.application.file  # pylint: disable=ungrouped-imports
+    import pycyphal.application  # pylint: disable=ungrouped-imports
+    import pycyphal.application.file  # pylint: disable=ungrouped-imports
 
 _logger = yakut.get_logger(__name__)
 
@@ -51,8 +51,8 @@ The file path points to the allocation table; if missing, a new file will be cre
 
 The PnP allocator will be tracking the status of nodes and requesting uavcan.node.GetInfo automatically.
 
-Low-level implementation details are available in the documentation for pyuavcan.application.plug_and_play
-at https://pyuavcan.readthedocs.io.
+Low-level implementation details are available in the documentation for pycyphal.application.plug_and_play
+at https://pycyphal.readthedocs.io.
 """,
 )
 @click.option(
@@ -125,11 +125,11 @@ async def file_server(
     purser: yakut.Purser, roots: list[Path], plug_and_play: Optional[str], update_software: bool
 ) -> None:
     """
-    Run a standard UAVCAN file server; optionally run a plug-and-play node-ID allocator and software updater.
+    Run a standard Cyphal file server; optionally run a plug-and-play node-ID allocator and software updater.
 
     The command takes a list of root directories for the file server.
     If none are given, the current working directory will be used as the only root.
-    If more than one root is given, they all will be visible via UAVCAN as a single unified directory;
+    If more than one root is given, they all will be visible via Cyphal as a single unified directory;
     the first directory takes precedence in case of conflicting entries.
 
     Examples:
@@ -138,9 +138,9 @@ async def file_server(
         yakut file-server --plug-and-play=allocation_table.db --update-software
     """
     try:
-        from pyuavcan.application import NodeInfo
-        from pyuavcan.application.file import FileServer
-        from pyuavcan.application.node_tracker import NodeTracker, Entry
+        from pycyphal.application import NodeInfo
+        from pycyphal.application.file import FileServer
+        from pycyphal.application.node_tracker import NodeTracker, Entry
         from uavcan.node import ExecuteCommand_1_1 as ExecuteCommand
         from uavcan.node import Heartbeat_1_0 as Heartbeat
     except ImportError as ex:
@@ -160,7 +160,7 @@ async def file_server(
 
         if plug_and_play:
             _logger.info("Starting a plug-and-play allocator using file %r", plug_and_play)
-            from pyuavcan.application.plug_and_play import CentralizedAllocator
+            from pycyphal.application.plug_and_play import CentralizedAllocator
 
             alloc = CentralizedAllocator(node, plug_and_play)
 
@@ -189,7 +189,7 @@ async def file_server(
                 and heartbeat.health.value < heartbeat.health.WARNING
             ):
                 # Do not skip an update request if the health is WARNING because it indicates a problem, possibly
-                # caused by a missing application. Details: https://github.com/UAVCAN/yakut/issues/27
+                # caused by a missing application. Details: https://github.com/OpenCyphal/yakut/issues/27
                 _logger.info(
                     "Node %r does not require an update because it is in the software update mode already "
                     "and its health is acceptable: %r",
@@ -209,7 +209,7 @@ async def file_server(
                 )
                 _logger.warning("Requesting node %r to update its software: %r", node_id, cmd_request)
                 cmd_client = node.make_client(ExecuteCommand, node_id)
-                cmd_client.priority = pyuavcan.transport.Priority.SLOW
+                cmd_client.priority = pycyphal.transport.Priority.SLOW
                 cmd_client.response_timeout = 5.0
 
                 async def do_call() -> None:
@@ -248,8 +248,8 @@ async def file_server(
 
 
 def _locate_package(
-    fs: pyuavcan.application.file.FileServer,
-    info: pyuavcan.application.NodeInfo,
+    fs: pycyphal.application.file.FileServer,
+    info: pycyphal.application.NodeInfo,
 ) -> Optional[tuple[Path, Path]]:
     """
     If at least one locally available application file is equivalent to the already running application,

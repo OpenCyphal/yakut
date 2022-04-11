@@ -1,15 +1,15 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Callable, Type, AbstractSet
+from typing import TYPE_CHECKING, Optional, Callable, AbstractSet, Any
 import dataclasses
 import math
 import numpy as np
 from numpy.typing import NDArray
-import pyuavcan
-from pyuavcan.transport import MessageDataSpecifier, ServiceDataSpecifier, Timestamp, AlienTransfer
+import pycyphal
+from pycyphal.transport import MessageDataSpecifier, ServiceDataSpecifier, Timestamp, AlienTransfer
 import yakut
 from ._iface import Iface
 
@@ -70,11 +70,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
 
         self._ports = PortSet()
 
-        self._dispatch: dict[
-            Type[pyuavcan.dsdl.FixedPortCompositeObject]
-            | tuple[Type[pyuavcan.dsdl.FixedPortServiceObject], ServiceDataSpecifier.Role],
-            Callable[[float, pyuavcan.dsdl.CompositeObject], None],
-        ] = {
+        self._dispatch: dict[Any | tuple[Any, ServiceDataSpecifier.Role], Callable[[float, Any], None],] = {
             (uavcan.node.GetInfo_1_0, ServiceDataSpecifier.Role.RESPONSE): self._on_info_response,
             uavcan.node.port.List_0_1: self._on_port_list,
             uavcan.node.Heartbeat_1_0: self._on_heartbeat,
@@ -89,7 +85,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         self._num_info_requests = 0
         self._ts_port_list = -math.inf
 
-    def _on_info_response(self, ts: float, obj: pyuavcan.dsdl.CompositeObject) -> None:
+    def _on_info_response(self, ts: float, obj: Any) -> None:
         import uavcan.node
 
         _logger.info("%r: Received node info", self)
@@ -97,7 +93,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         _ = ts
         self._info = obj
 
-    def _on_port_list(self, ts: float, obj: pyuavcan.dsdl.CompositeObject) -> None:
+    def _on_port_list(self, ts: float, obj: Any) -> None:
         import uavcan.node.port
 
         assert isinstance(obj, uavcan.node.port.List_0_1)
@@ -107,7 +103,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         self._ports.srv = expand_mask(obj.servers.mask)
         self._ts_port_list = ts
 
-    def _on_heartbeat(self, ts: float, obj: pyuavcan.dsdl.CompositeObject) -> None:
+    def _on_heartbeat(self, ts: float, obj: Any) -> None:
         from uavcan.node import Heartbeat_1_0 as Heartbeat, GetInfo_1_0 as GetInfo
 
         assert isinstance(obj, Heartbeat)
@@ -140,7 +136,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         self._ts_heartbeat = ts
 
     def _on_trace(self, ts: Timestamp, tr: AlienTransfer) -> None:
-        from pyuavcan.dsdl import get_fixed_port_id
+        from pycyphal.dsdl import get_fixed_port_id
 
         own = tr.metadata.session_specifier.source_node_id == self._node_id
         if not own:
@@ -155,14 +151,13 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
                 assert isinstance(ty, type) and isinstance(role, ServiceDataSpecifier.Role)
                 if isinstance(ds, ServiceDataSpecifier) and ds.role == role and ds.service_id == get_fixed_port_id(ty):
                     rr = getattr(ty, role.name.capitalize())
-                    assert issubclass(rr, pyuavcan.dsdl.CompositeObject)
-                    obj = pyuavcan.dsdl.deserialize(rr, tr.fragmented_payload)
+                    obj = pycyphal.dsdl.deserialize(rr, tr.fragmented_payload)
                     _logger.debug("%r: Service snoop: %r from %r", self, obj, tr)
                     if obj is not None:
                         handler(float(ts.monotonic), obj)
-            elif isinstance(ty, type) and issubclass(ty, pyuavcan.dsdl.FixedPortCompositeObject):
-                if isinstance(ds, MessageDataSpecifier) and ds.subject_id == get_fixed_port_id(ty):
-                    obj = pyuavcan.dsdl.deserialize(ty, tr.fragmented_payload)
+            elif isinstance(ty, type) and (fpid := get_fixed_port_id(ty)) is not None:
+                if isinstance(ds, MessageDataSpecifier) and ds.subject_id == fpid:
+                    obj = pycyphal.dsdl.deserialize(ty, tr.fragmented_payload)
                     _logger.debug("%r: Message snoop: %r from %r", self, obj, tr)
                     if obj is not None:
                         handler(float(ts.monotonic), obj)
@@ -188,7 +183,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         )
 
     def __repr__(self) -> str:
-        return str(pyuavcan.util.repr_attributes(self, node_id=self._node_id))
+        return str(pycyphal.util.repr_attributes(self, node_id=self._node_id))
 
 
 def expand_subjects(m: uavcan.node.port.SubjectIDList_0_1) -> AbstractSet[int]:

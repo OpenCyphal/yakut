@@ -52,6 +52,7 @@
       <w>creationflags</w>
       <w>ctrunc</w>
       <w>cyber</w>
+      <w>cyphal</w>
       <w>datagrams</w>
       <w>dcabf</w>
       <w>ddddddd</w>
@@ -92,6 +93,7 @@
       <w>fgsfds</w>
       <w>findalldevs</w>
       <w>fontname</w>
+      <w>fpid</w>
       <w>frombuffer</w>
       <w>fyodor</w>
       <w>geez</w>
@@ -186,6 +188,7 @@
       <w>prog</w>
       <w>protip</w>
       <w>pycodestyle</w>
+      <w>pycyphal</w>
       <w>pydev</w>
       <w>pydsdl</w>
       <w>pydsdlgen</w>

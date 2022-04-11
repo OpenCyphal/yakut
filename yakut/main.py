@@ -1,6 +1,6 @@
-# Copyright (c) 2020 UAVCAN Consortium
+# Copyright (c) 2020 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import os
@@ -16,7 +16,7 @@ from yakut.param.formatter import formatter_factory_option, FormatterFactory, Fo
 from yakut.param.node import node_factory_option, NodeFactory
 
 if TYPE_CHECKING:
-    import pyuavcan.application
+    import pycyphal.application
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -49,9 +49,9 @@ class Purser:
         self._f_transport = transport_factory
         self._f_node = node_factory
 
-        self._registry: Optional[pyuavcan.application.register.Registry] = None
+        self._registry: Optional[pycyphal.application.register.Registry] = None
         self._transport: Optional[Transport] = None
-        self._node: Optional["pyuavcan.application.Node"] = None
+        self._node: Optional["pycyphal.application.Node"] = None
 
     @property
     def paths(self) -> list[Path]:
@@ -60,7 +60,7 @@ class Purser:
     def make_formatter(self) -> Formatter:
         return self._f_formatter()
 
-    def get_registry(self) -> pyuavcan.application.register.Registry:
+    def get_registry(self) -> pycyphal.application.register.Registry:
         """
         Commands should never construct registry on their own!
         Doing so is likely to create divergent configurations that are not exposed via the Register Interface.
@@ -70,7 +70,7 @@ class Purser:
         :raises: :class:`ImportError` if the standard DSDL namespace ``uavcan`` is not available.
         """
         if self._registry is None:
-            from pyuavcan.application import make_registry
+            from pycyphal.application import make_registry
 
             self._registry = make_registry()
         return self._registry
@@ -82,7 +82,7 @@ class Purser:
             return self._transport
         click.get_current_context().fail("Transport not configured, or the standard DSDL namespace is not compiled")
 
-    def get_node(self, name_suffix: str, allow_anonymous: bool) -> "pyuavcan.application.Node":
+    def get_node(self, name_suffix: str, allow_anonymous: bool) -> "pycyphal.application.Node":
         if self._node is None:  # pragma: no branch
             tr = self.get_transport()
             self._node = self._f_node(tr, name_suffix=name_suffix, allow_anonymous=allow_anonymous)
@@ -152,17 +152,16 @@ def main(
 ) -> None:
     """
     \b
-         __   __   _______   __   __   _______   _______   __   __
-        |  | |  | /   _   ` |  | |  | /   ____| /   _   ` |  ` |  |
-        |  | |  | |  |_|  | |  | |  | |  |      |  |_|  | |   `|  |
-        |  |_|  | |   _   | `  `_/  / |  |____  |   _   | |  |`   |
-        `_______/ |__| |__|  `_____/  `_______| |__| |__| |__| `__|
-            |      |            |         |      |         |
-        ----o------o------------o---------o------o---------o-------
+           ____                   ______            __          __
+          / __ `____  ___  ____  / ____/_  ______  / /_  ____  / /
+         / / / / __ `/ _ `/ __ `/ /   / / / / __ `/ __ `/ __ `/ /
+        / /_/ / /_/ /  __/ / / / /___/ /_/ / /_/ / / / / /_/ / /
+        `____/ .___/`___/_/ /_/`____/`__, / .___/_/ /_/`__,_/_/
+            /_/                     /____/_/
 
-    Yakut is a cross-platform command-line utility for diagnostics and management of UAVCAN networks.
+    Yakut is a cross-platform command-line utility for diagnostics and management of Cyphal networks.
     It is designed for use either directly by humans or from automation scripts.
-    Ask questions at https://forum.uavcan.org
+    Ask questions at https://forum.opencyphal.org
 
     Any long option can be provided via environment variable prefixed with `YAKUT_`
     such that an option `--foo-bar` for command `baz`, if not provided as a command-line argument,

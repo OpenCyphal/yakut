@@ -1,6 +1,6 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 # pylint: disable=too-many-locals
 
@@ -10,7 +10,7 @@ import functools
 from typing import TYPE_CHECKING, Optional, Callable, Any, AbstractSet, TypeVar
 from collections import defaultdict
 import numpy as np
-import pyuavcan
+import pycyphal
 import yakut
 from ._model import N_NODES, N_SUBJECTS, N_SERVICES, NodeState
 from ._ui import Style, Color, Canvas, TableRenderer
@@ -174,7 +174,7 @@ class View:
                 sty = None if ss.online and ss.heartbeat else S_MUTED
                 put(
                     render_version(ss.info.protocol_version),
-                    sty if ss.info.protocol_version.major == pyuavcan.UAVCAN_SPECIFICATION_VERSION[0] else S_FAILURE,
+                    sty if ss.info.protocol_version.major == pycyphal.CYPHAL_SPECIFICATION_VERSION[0] else S_FAILURE,
                 )
                 put(render_version(ss.info.hardware_version), sty)
                 put(

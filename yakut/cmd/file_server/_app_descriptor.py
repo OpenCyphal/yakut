@@ -1,6 +1,6 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 # pylint: disable=too-many-boolean-expressions,too-many-instance-attributes
 
@@ -8,11 +8,11 @@ from __future__ import annotations
 import re
 from typing import Optional, TYPE_CHECKING, Any
 import dataclasses
-import pyuavcan
+import pycyphal
 import yakut
 
 if TYPE_CHECKING:
-    import pyuavcan.application  # pylint: disable=ungrouped-imports
+    import pycyphal.application  # pylint: disable=ungrouped-imports
 
 
 _logger = yakut.get_logger(__name__.split("._", maxsplit=1)[0])
@@ -156,7 +156,7 @@ class AppDescriptor:
         )
 
     @staticmethod
-    def from_node_info(info: pyuavcan.application.NodeInfo) -> AppDescriptor:
+    def from_node_info(info: pycyphal.application.NodeInfo) -> AppDescriptor:
         has_hw = info.hardware_version.major > 0 or info.hardware_version.minor > 0
         return AppDescriptor(
             info.name.tobytes().decode(errors="ignore").strip().lower(),
@@ -187,7 +187,7 @@ def _unittest_app_descriptor_from_node_info() -> None:
 
     ensure_compiled_dsdl()
 
-    from pyuavcan.application import NodeInfo
+    from pycyphal.application import NodeInfo
     from uavcan.node import Version_1_0 as Version
 
     ad = AppDescriptor.from_node_info(
@@ -195,11 +195,11 @@ def _unittest_app_descriptor_from_node_info() -> None:
             hardware_version=Version(16, 17),
             software_version=Version(26, 27),
             software_vcs_revision_id=0x123456,
-            name="org.uavcan.NODE",
+            name="org.opencyphal.NODE",
             software_image_crc=[0xDEADBEEF],
         )
     )
-    assert ad.name == "org.uavcan.node"
+    assert ad.name == "org.opencyphal.node"
     assert ad.hw_maj == 16
     assert ad.hw_min == 17
     assert ad.sw_maj == 26
@@ -210,10 +210,10 @@ def _unittest_app_descriptor_from_node_info() -> None:
     ad = AppDescriptor.from_node_info(
         NodeInfo(
             software_version=Version(26, 27),
-            name="org.uavcan.NODE",
+            name="org.opencyphal.NODE",
         )
     )
-    assert ad.name == "org.uavcan.node"
+    assert ad.name == "org.opencyphal.node"
     assert ad.hw_maj is None
     assert ad.hw_min is None
     assert ad.sw_maj == 26
@@ -223,23 +223,25 @@ def _unittest_app_descriptor_from_node_info() -> None:
 
 
 def _unittest_app_descriptor_from_file_name() -> None:
-    assert "org.uavcan.node-16.17-26.27.0000000000123456.00000000deadbeef.app" == str(
-        AppDescriptor.from_file_name("org.uavcan.NODE-16.17-26.27.123456.DEADBEEF.application.bin")
+    assert "org.opencyphal.node-16.17-26.27.0000000000123456.00000000deadbeef.app" == str(
+        AppDescriptor.from_file_name("org.opencyphal.NODE-16.17-26.27.123456.DEADBEEF.application.bin")
     )
-    assert "org.uavcan.node-16-26.27.0000000000123456.00000000deadbeef.app" == str(
-        AppDescriptor.from_file_name("org.uavcan.NODE-16-26.27.123456.DEADBEEF.application.bin")
+    assert "org.opencyphal.node-16-26.27.0000000000123456.00000000deadbeef.app" == str(
+        AppDescriptor.from_file_name("org.opencyphal.NODE-16-26.27.123456.DEADBEEF.application.bin")
     )
-    assert "org.uavcan.node-26.27.0000000000123456.00000000deadbeef.app" == str(
-        AppDescriptor.from_file_name("org.uavcan.NODE-26.27.123456.DEADBEEF.application.bin")
+    assert "org.opencyphal.node-26.27.0000000000123456.00000000deadbeef.app" == str(
+        AppDescriptor.from_file_name("org.opencyphal.NODE-26.27.123456.DEADBEEF.application.bin")
     )
-    assert "org.uavcan.node-26.27.0000000000123456.app" == str(
-        AppDescriptor.from_file_name("org.uavcan.NODE-26.27.123456.application.bin")
+    assert "org.opencyphal.node-26.27.0000000000123456.app" == str(
+        AppDescriptor.from_file_name("org.opencyphal.NODE-26.27.123456.application.bin")
     )
-    assert "org.uavcan.node-26.27.app" == str(AppDescriptor.from_file_name("org.uavcan.NODE-26.27.app"))
-    assert "org.uavcan.node-16.17-26.27.app" == str(AppDescriptor.from_file_name("org.uavcan.NODE-16.17-26.27.app"))
+    assert "org.opencyphal.node-26.27.app" == str(AppDescriptor.from_file_name("org.opencyphal.NODE-26.27.app"))
+    assert "org.opencyphal.node-16.17-26.27.app" == str(
+        AppDescriptor.from_file_name("org.opencyphal.NODE-16.17-26.27.app")
+    )
 
-    assert None is AppDescriptor.from_file_name("org.uavcan.node-z-26.27.app")
-    assert None is AppDescriptor.from_file_name("org.uavcan.NODE-16.17-26.27.123456.DEADBEEF.bin")
+    assert None is AppDescriptor.from_file_name("org.opencyphal.node-z-26.27.app")
+    assert None is AppDescriptor.from_file_name("org.opencyphal.NODE-16.17-26.27.123456.DEADBEEF.bin")
 
 
 def _unittest_app_descriptor_equivalency() -> None:

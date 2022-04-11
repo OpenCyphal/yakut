@@ -3,18 +3,18 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/knl63ojynybi3co6/branch/main?svg=true)](https://ci.appveyor.com/project/Zubax/yakut/branch/main)
 [![PyPI - Version](https://img.shields.io/pypi/v/yakut.svg)](https://pypi.org/project/yakut/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Forum](https://img.shields.io/discourse/users.svg?server=https%3A%2F%2Fforum.uavcan.org&color=1700b3)](https://forum.uavcan.org)
+[![Forum](https://img.shields.io/discourse/users.svg?server=https%3A%2F%2Fforum.opencyphal.org&color=1700b3)](https://forum.opencyphal.org)
 
 Yakút is a simple cross-platform command-line interface (CLI) tool for diagnostics and debugging of
-[UAVCAN](https://uavcan.org) networks.
-By virtue of being based on [PyUAVCAN](https://github.com/UAVCAN/pyuavcan),
-Yakut supports all UAVCAN transports (UDP, serial, CAN, ...)
+[Cyphal](https://opencyphal.org) networks.
+By virtue of being based on [PyCyphal](https://github.com/OpenCyphal/pycyphal),
+Yakut supports all Cyphal transports (UDP, serial, CAN, ...)
 and is compatible with all major features of the protocol.
 It is designed to be usable with GNU/Linux, Windows, and macOS.
 
 <img src="/docs/monitor.png" alt="yakut monitor">
 
-Ask questions and get assistance at [forum.uavcan.org](https://forum.uavcan.org/).
+Ask questions and get assistance at [forum.opencyphal.org](https://forum.opencyphal.org/).
 
 ## Installing
 
@@ -36,12 +36,12 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
 Installation & configuration screencasts for Windows and GNU/Linux are
-[available on the forum](https://forum.uavcan.org/t/screencast-of-installing-configuring-yakut/1197).
+[available on the forum](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197).
 
 ### Additional third-party tools
 
-- UAVCAN/CAN on GNU/Linux: [`can-utils`](https://github.com/linux-can/can-utils)
-- UAVCAN/UDP or UAVCAN/CAN: [Wireshark](https://www.wireshark.org/)
+- Cyphal/CAN on GNU/Linux: [`can-utils`](https://github.com/linux-can/can-utils)
+- Cyphal/UDP or Cyphal/CAN: [Wireshark](https://www.wireshark.org/)
 
 ## Invoking commands
 
@@ -122,18 +122,18 @@ knowing that the outputs will be always stored to and read from a fixed place un
 
 Commands that access the network need to know how to do so.
 There are two ways to configure that:
-pass *UAVCAN registers* via environment variables (this is the default),
+pass *Cyphal registers* via environment variables (this is the default),
 or pass an initialization expression via `--transport`/`YAKUT_TRANSPORT` (in which case the registers are ignored).
 The latter is not recommended for general use so we'll focus on the first one.
 
-UAVCAN registers are named values that contain various configuration parameters of a UAVCAN application/node.
-They are extensively described in the [UAVCAN Specification](https://uavcan.org/specification).
+Cyphal registers are named values that contain various configuration parameters of a Cyphal application/node.
+They are extensively described in the [Cyphal Specification](https://opencyphal.org/specification).
 When starting a new process, it is possible to pass arbitrary registers via environment variables.
 
-There are certain registers that are looked at by UAVCAN nodes to determine how to connect to the network.
+There are certain registers that are looked at by Cyphal nodes to determine how to connect to the network.
 Some of them are given below, but the list is not exhaustive.
 The full description of supported registers is available in the API documentation for
-[`pyuavcan.application.make_transport()`](https://pyuavcan.readthedocs.io/en/stable/api/pyuavcan.application.html#pyuavcan.application.make_transport).
+[`pycyphal.application.make_transport()`](https://pycyphal.readthedocs.io/en/stable/api/pycyphal.application.html#pycyphal.application.make_transport).
 
 If the available registers define more than one transport configuration, a redundant transport will be initialized.
 
@@ -156,8 +156,8 @@ that is sourced into the current shell session as necessary
 Here is an example for a doubly-redundant CAN bus (assuming sh/bash/zsh here):
 
 ```bash
-# Common UAVCAN register configuration for testing & debugging.
-# Source this file into your sh/bash/zsh session before using Yakut and other UAVCAN tools.
+# Common Cyphal register configuration for testing & debugging.
+# Source this file into your sh/bash/zsh session before using Yakut and other Cyphal tools.
 # Other helpful commands from can-utils:
 #   canbusload -tcbr slcan0@1000000 slcan1@1000000
 #   candump -decaxta any
@@ -242,7 +242,7 @@ You will see the full list of available entities if you run `yakut pub --help`.
 
 One particularly important capability of this command is the ability to read data from connected
 joysticks or MIDI controllers.
-It allows the user to control UAVCAN processes or equipment in real time, simulate sensor feeds, etc.
+It allows the user to control Cyphal processes or equipment in real time, simulate sensor feeds, etc.
 Function `A(x,y)` returns the normalized value of axis `y` from connected controller `x`
 (for full details see `yakut pub --help`);
 likewise, there is `B(x,y)` for push buttons and `T(x,y)` for toggle switches.
@@ -314,7 +314,7 @@ It may also be able to detect some common network configuration issues like zomb
 Read `yakut monitor --help` for details.
 
 ```bash
-$ export UAVCAN__CAN__IFACE="socketcan:can0 socketcan:can1 socketcan:can2"  # Triply-redundant UAVCAN/CAN
+$ export UAVCAN__CAN__IFACE="socketcan:can0 socketcan:can1 socketcan:can2"  # Triply-redundant Cyphal/CAN
 $ export UAVCAN__CAN__MTU=8                     # Force MTU = 8 bytes
 $ export UAVCAN__CAN__BITRATE="1000000 1000000" # Disable BRS, use the same bit rate for arbitration/data
 $ y mon                                         # Abbreviation of "yakut monitor"
@@ -325,7 +325,7 @@ $ y mon                                         # Abbreviation of "yakut monitor
 The monitor can be an anonymous node or it can be given a node-ID of its own.
 In the latter case it will actively query other nodes using the standard introspection services.
 
-Some transports, UAVCAN/UDP in particular, require special privileges to run this tool due to the security
+Some transports, Cyphal/UDP in particular, require special privileges to run this tool due to the security
 implications of low-level packet capture.
 
 ## Updating node software

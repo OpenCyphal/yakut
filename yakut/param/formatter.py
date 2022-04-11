@@ -1,6 +1,6 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 from typing import Callable, Any, cast
@@ -27,7 +27,7 @@ This option is only relevant for commands that generate structured outputs, like
 
 The final representation of the output data is constructed from an intermediate "builtin-based" representation,
 which is a simplified form that is stripped of the detailed DSDL type information, like JSON.
-For more info please read the PyUAVCAN documentation on builtin-based representations.
+For more info please read the PyCyphal documentation on builtin-based representations.
 
 YAML separates objects with `---`.
 

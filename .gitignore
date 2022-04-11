@@ -53,6 +53,6 @@ coverage.xml
 
 # Compiled namespaces
 .*compiled
-/uavcan/
+/OpenCyphal/
 /reg/
 /sirius_cyber_corp/

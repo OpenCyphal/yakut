@@ -1,13 +1,13 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import asyncio
 from typing import Optional, Dict, TypeVar, Generic, cast, Any, TYPE_CHECKING
 import click
-import pyuavcan
-from pyuavcan.transport import MessageDataSpecifier, ServiceDataSpecifier, Timestamp, AlienTransfer
+import pycyphal
+from pycyphal.transport import MessageDataSpecifier, ServiceDataSpecifier, Timestamp, AlienTransfer
 import yakut
 from ._model import N_NODES, N_SUBJECTS, N_SERVICES, Avatar, NodeState
 from ._view import View
@@ -15,7 +15,7 @@ from ._iface import Iface
 from ._ui import refresh_screen
 
 if TYPE_CHECKING:
-    import pyuavcan.application  # pylint: disable=ungrouped-imports
+    import pycyphal.application  # pylint: disable=ungrouped-imports
 
 
 @yakut.subcommand()
@@ -28,8 +28,8 @@ if TYPE_CHECKING:
 Run a centralized plug-and-play (PnP) node-ID allocator alongside the monitor.
 The file path points to the allocation table; if missing, a new file will be created.
 If this option is used, the monitor cannot be used in anonymous mode (a local node-ID shall be given).
-Low-level implementation details are available in the documentation for pyuavcan.application.plug_and_play
-at https://pyuavcan.readthedocs.io.
+Low-level implementation details are available in the documentation for pycyphal.application.plug_and_play
+at https://pycyphal.readthedocs.io.
 """,
 )
 @yakut.pass_purser
@@ -44,11 +44,11 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
     but it will always attempt to snoop on relevant data sent to other nodes and extract as much information as it can
     through passive monitoring (e.g., by intercepting responses to uavcan.node.GetInfo).
 
-    The tool will set up low-level packet capture using the advanced network introspection API of PyUAVCAN.
+    The tool will set up low-level packet capture using the advanced network introspection API of PyCyphal.
     This may fail for some transports (UDP in particular) unless the user has the permissions required for packet
     capture and the system is configured appropriately (capabilities enabled, capture drivers installed, etc).
     Ethernet-based transports shall be connected to the SPAN port of the local switch (see port mirroring).
-    Refer to the PyUAVCAN documentation for details: https://pyuavcan.readthedocs.io.
+    Refer to the PyCyphal documentation for details: https://pycyphal.readthedocs.io.
 
     The output contains a table of nodes that are (or were) online followed by the connectivity matrix.
     The matrix shows the real-time traffic split by session:
@@ -123,7 +123,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
         xfer_counts[x, y] += 1
         byte_counts[x, y] += sum(map(len, tr.fragmented_payload))
 
-    def on_transport_error(tr: pyuavcan.transport.ErrorTrace) -> None:
+    def on_transport_error(tr: pycyphal.transport.ErrorTrace) -> None:
         nonlocal total_transport_error_count
         total_transport_error_count += 1
         _ = tr
@@ -203,7 +203,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
             )
 
 
-def linearize_data_specifier(ds: pyuavcan.transport.DataSpecifier) -> int:
+def linearize_data_specifier(ds: pycyphal.transport.DataSpecifier) -> int:
     if isinstance(ds, MessageDataSpecifier):
         return int(ds.subject_id)
     if isinstance(ds, ServiceDataSpecifier):
@@ -250,9 +250,9 @@ class MovingAverage(Generic[_T]):
         return cast(_T, self._sum * (1.0 / len(self._samples)))
 
 
-def launch_centralized_plug_and_play_allocator(database_path: str, node: pyuavcan.application.Node) -> None:
-    from pyuavcan.application.plug_and_play import CentralizedAllocator
-    from pyuavcan.application.node_tracker import NodeTracker, Entry
+def launch_centralized_plug_and_play_allocator(database_path: str, node: pycyphal.application.Node) -> None:
+    from pycyphal.application.plug_and_play import CentralizedAllocator
+    from pycyphal.application.node_tracker import NodeTracker, Entry
 
     alloc = CentralizedAllocator(node, database_path)
     tracker = NodeTracker(node)

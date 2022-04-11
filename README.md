@@ -1,5 +1,8 @@
 # Yakut
 
+<!--suppress CheckImageSize, HtmlDeprecatedAttribute -->
+<img src="/docs/opencyphal-favicon-512.png" alt="OpenCyphal logo" width=128 align=right>
+
 [![Build status](https://ci.appveyor.com/api/projects/status/knl63ojynybi3co6/branch/main?svg=true)](https://ci.appveyor.com/project/Zubax/yakut/branch/main)
 [![PyPI - Version](https://img.shields.io/pypi/v/yakut.svg)](https://pypi.org/project/yakut/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -251,10 +254,15 @@ allowing the user to control these parameters interactively:
 
 ```bash
 yakut pub -T 0.1 \
-    5:uavcan.si.unit.angular_velocity.Vector3.1.0 'radian_per_second: !$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
-    6:uavcan.si.unit.power.Scalar.1.0 'watt: !$ A(2,10)*1e3' \
-    7:uavcan.primitive.scalar.Bit.1.0 'value: !$ T(1,5)'
+    5:uavcan.si.unit.angular_velocity.Vector3.1.0 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
+    6:uavcan.si.unit.power.Scalar.1.0 '!$ A(2,10)*1e3' \
+    7:uavcan.primitive.scalar.Bit.1.0 '!$ T(1,5)'
 ```
+
+Observe that we didn't spell out the field names here (`radian_per_second`, `watt`, `value`)
+because it is actually not required;
+information on the accepted formats can be found in the documentation in PyCyphal API for
+[`pycyphal.dsdl.update_from_builtin()`](https://pycyphal.readthedocs.io/en/stable/api/pycyphal.dsdl.html#pycyphal.dsdl.update_from_builtin).
 
 The list of connected controllers and how their axes are mapped can be seen using `yakut joystick`,
 as shown in the video:

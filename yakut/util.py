@@ -59,7 +59,7 @@ def construct_port_id_and_type(spec: str) -> tuple[int, Type[Any]]:
     except AttributeError:
         raise ValueError(f"The data spec string specifies a non-existent short type name: {spec!r}") from None
 
-    if pycyphal.dsdl.is_serializable(dtype):
+    if pycyphal.dsdl.is_message_type(dtype) or pycyphal.dsdl.is_service_type(dtype):
         model = pycyphal.dsdl.get_model(dtype)
         port_id = port_id if port_id is not None else model.fixed_port_id
         if port_id is None:

@@ -23,7 +23,6 @@ Ask questions and get assistance at [forum.opencyphal.org](https://forum.opencyp
 
 First, make sure to [have Python installed](https://docs.python.org/3/using/index.html).
 Windows users are recommended to grab the official distribution from Windows Store.
-Yakut requires **Python 3.7 or newer**.
 
 Install Yakut: **`pip install yakut`**
 

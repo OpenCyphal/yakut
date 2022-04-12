@@ -66,11 +66,11 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "555:uavcan.si.sample.temperature.Scalar.1.0",
         "{kelvin: 123.456}",
         "--count=3",
-        "--period=2",
+        "--period=5",
         "--priority=slow",
         environment_variables=env,
     )
-    time.sleep(3.0)  # Time to let the publisher boot up properly.
+    time.sleep(5.0)  # Time to let the publisher boot up properly.
 
     # Request GetInfo from the publisher we just launched.
     _, stdout, _ = execute_cli(

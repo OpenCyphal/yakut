@@ -66,7 +66,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "555:uavcan.si.sample.temperature.Scalar.1.0",
         "{kelvin: 123.456}",
         "--count=3",
-        "--period=5",
+        "--period=3",
         "--priority=slow",
         environment_variables=env,
     )

@@ -1,13 +1,14 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
+from __future__ import annotations
 import re
-import typing
+from typing import Any, Type
 import logging
 import decimal
 import importlib
-import pyuavcan.dsdl
+import pycyphal.dsdl
 
 
 _NAME_COMPONENT_SEPARATOR = "."
@@ -16,7 +17,7 @@ _NAME_COMPONENT_SEPARATOR = "."
 _logger = logging.getLogger(__name__)
 
 
-def construct_port_id_and_type(spec: str) -> typing.Tuple[int, typing.Type[pyuavcan.dsdl.CompositeObject]]:
+def construct_port_id_and_type(spec: str) -> tuple[int, Type[Any]]:
     r"""
     Parses a data specifier string of the form ``[port_id:]full_data_type_name.major_version.minor_version``.
     Name separators may be replaced with ``/`` or ``\`` for compatibility with file system paths;
@@ -58,8 +59,8 @@ def construct_port_id_and_type(spec: str) -> typing.Tuple[int, typing.Type[pyuav
     except AttributeError:
         raise ValueError(f"The data spec string specifies a non-existent short type name: {spec!r}") from None
 
-    if issubclass(dtype, pyuavcan.dsdl.CompositeObject):
-        model = pyuavcan.dsdl.get_model(dtype)
+    if pycyphal.dsdl.is_message_type(dtype) or pycyphal.dsdl.is_service_type(dtype):
+        model = pycyphal.dsdl.get_model(dtype)
         port_id = port_id if port_id is not None else model.fixed_port_id
         if port_id is None:
             raise ValueError(
@@ -71,8 +72,8 @@ def construct_port_id_and_type(spec: str) -> typing.Tuple[int, typing.Type[pyuav
 
 
 def convert_transfer_metadata_to_builtin(
-    transfer: pyuavcan.transport.TransferFrom, **extra_fields: typing.Dict[str, typing.Any]
-) -> typing.Dict[str, typing.Any]:
+    transfer: pycyphal.transport.TransferFrom, **extra_fields: dict[str, Any]
+) -> dict[str, Any]:
     out = {
         "timestamp": {
             "system": transfer.timestamp.system.quantize(_MICRO),
@@ -96,7 +97,7 @@ The version separators (the last two) may be underscores.
 """
 
 
-def _parse_data_spec(spec: str) -> typing.Tuple[typing.Optional[int], str, int, int]:
+def _parse_data_spec(spec: str) -> tuple[int | None, str, int, int]:
     r"""
     Transform the provided data spec into: [port-ID], full name, major version, minor version.
     Component separators may be ``/`` or ``\``. Version number separators (the last two) may also be underscores.

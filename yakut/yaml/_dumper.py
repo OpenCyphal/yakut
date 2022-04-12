@@ -1,6 +1,6 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 import io
 from typing import Any, TextIO
@@ -20,7 +20,7 @@ class Dumper:
         # noinspection PyTypeHints
         self._impl.explicit_start = explicit_start
         self._impl.default_flow_style = None  # Choose between block/inline automatically
-        self._impl.width = 2 ** 31  # Unlimited width
+        self._impl.width = 2**31  # Unlimited width
 
     def dump(self, data: Any, stream: TextIO) -> None:
         self._impl.dump(data, stream)

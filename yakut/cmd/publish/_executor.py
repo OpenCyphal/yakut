@@ -1,16 +1,16 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-from typing import Iterable, Callable, Any, Type, Optional, TYPE_CHECKING
+from typing import Iterable, Callable, Any, Optional, TYPE_CHECKING
 import time
 import asyncio
-import pyuavcan
+import pycyphal
 import yakut
 
 if TYPE_CHECKING:
-    import pyuavcan.application  # pylint: disable=ungrouped-imports
+    import pycyphal.application  # pylint: disable=ungrouped-imports
     from ._controller import ControllerReader, Sample
     from yakut.yaml import EvaluableLoader  # pylint: disable=ungrouped-imports
 
@@ -28,7 +28,7 @@ class Executor:
 
     def __init__(
         self,
-        node: pyuavcan.application.Node,
+        node: pycyphal.application.Node,
         loader: EvaluableLoader,
         publications: Iterable[Publication],
     ) -> None:
@@ -90,10 +90,10 @@ class Publication:
     def __init__(
         self,
         subject_id: int,
-        dtype: Type[pyuavcan.dsdl.CompositeObject],
+        dtype: Any,
         evaluator: Callable[..., Any],
-        presentation: pyuavcan.presentation.Presentation,
-        priority: pyuavcan.transport.Priority,
+        presentation: pycyphal.presentation.Presentation,
+        priority: pycyphal.transport.Priority,
         send_timeout: float,
     ):
         self._dtype = dtype
@@ -101,7 +101,7 @@ class Publication:
         self._publisher = presentation.make_publisher(self._dtype, subject_id)
         self._publisher.priority = priority
         self._publisher.send_timeout = send_timeout
-        self._next_message: Optional[pyuavcan.dsdl.CompositeObject] = None
+        self._next_message: Optional[Any] = None
         self._evaluation_context = {
             Executor.SYM_DTYPE: self._dtype,
         }
@@ -114,7 +114,7 @@ class Publication:
         started_at = time.monotonic()
         # We could make the evaluated expression call a specific function to conditionally cancel publication.
         content = self._evaluator(**self._evaluation_context)
-        self._next_message = pyuavcan.dsdl.update_from_builtin(self._dtype(), content if content is not None else {})
+        self._next_message = pycyphal.dsdl.update_from_builtin(self._dtype(), content if content is not None else {})
         _logger.info(
             "%s: Next message (constructed in %.3f sec) shown on the next line:\n%s",
             self,
@@ -131,6 +131,6 @@ class Publication:
         return True
 
     def __repr__(self) -> str:
-        out = pyuavcan.util.repr_attributes(self, self._publisher)
+        out = pycyphal.util.repr_attributes(self, self._publisher)
         assert isinstance(out, str)
         return out

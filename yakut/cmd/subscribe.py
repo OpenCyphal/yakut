@@ -1,20 +1,18 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
+from __future__ import annotations
 import sys
-import typing
+from typing import Any, Sequence
 import logging
 import contextlib
 import click
-import pyuavcan
-from pyuavcan.presentation import Presentation, Subscriber
+import pycyphal
+from pycyphal.presentation import Presentation, Subscriber
 import yakut
 from yakut.param.formatter import Formatter
 from yakut.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
-
-
-_M = typing.TypeVar("_M", bound=pyuavcan.dsdl.CompositeObject)
 
 
 _logger = yakut.get_logger(__name__)
@@ -42,9 +40,9 @@ Exit automatically after this many messages (or synchronous message groups) have
 @yakut.asynchronous
 async def subscribe(
     purser: yakut.Purser,
-    subject: typing.Tuple[str, ...],
+    subject: tuple[str, ...],
     with_metadata: bool,
-    count: typing.Optional[int],
+    count: int | None,
 ) -> None:
     """
     Subscribe to specified subjects and print messages into stdout.
@@ -100,26 +98,26 @@ async def subscribe(
                 _logger.info("%s", subscriber.sample_statistics())
 
 
-def _make_subscriber(subjects: typing.Sequence[str], presentation: Presentation) -> Subscriber[_M]:
+def _make_subscriber(subjects: Sequence[str], presentation: Presentation) -> Subscriber[Any]:
     group = [construct_port_id_and_type(ds) for ds in subjects]
     assert len(group) > 0
     if len(group) == 1:
         ((subject_id, dtype),) = group
         return presentation.make_subscriber(dtype, subject_id)
     raise NotImplementedError(
-        "Multi-subject subscription is not yet implemented. See https://github.com/UAVCAN/pyuavcan/issues/65"
+        "Multi-subject subscription is not yet implemented. See https://github.com/OpenCyphal/pycyphal/issues/65"
     )
 
 
-async def _run(subscriber: Subscriber[_M], formatter: Formatter, with_metadata: bool, count: int) -> None:
+async def _run(subscriber: Subscriber[Any], formatter: Formatter, with_metadata: bool, count: int) -> None:
     async for msg, transfer in subscriber:
-        assert isinstance(transfer, pyuavcan.transport.TransferFrom)
-        outer: typing.Dict[int, typing.Dict[str, typing.Any]] = {}
+        assert isinstance(transfer, pycyphal.transport.TransferFrom)
+        outer: dict[int, dict[str, Any]] = {}
 
-        bi: typing.Dict[str, typing.Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
+        bi: dict[str, Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
         if with_metadata:
             bi.update(convert_transfer_metadata_to_builtin(transfer))
-        bi.update(pyuavcan.dsdl.to_builtin(msg))
+        bi.update(pycyphal.dsdl.to_builtin(msg))
         outer[subscriber.port_id] = bi
 
         print(formatter(outer))

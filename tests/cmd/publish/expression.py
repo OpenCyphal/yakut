@@ -1,6 +1,6 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import time
@@ -80,7 +80,7 @@ def _unittest_publish_expression_b(compiled_dsdl: typing.Any, serial_broker: str
     execute_cli(
         "pub",
         "7654:uavcan.primitive.String.1.0",
-        "value: !$ str(pyuavcan.dsdl.get_model(dtype))",
+        "value: !$ str(pycyphal.dsdl.get_model(dtype))",
         "--count=1",
         timeout=10.0,
         environment_variables=env,

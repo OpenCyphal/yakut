@@ -1,13 +1,13 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 import http
 import typing
 import zipfile
 import tempfile
 from pathlib import Path
-import pyuavcan
+import pycyphal
 import click
 import yakut
 from yakut.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
@@ -44,9 +44,9 @@ If the value is an URI, it must point to an archive containing DSDL root namespa
 
 See also: top-level option `--path` and related environment variable `YAKUT_PATH`.
 
-This command may be removed after https://github.com/UAVCAN/pyuavcan/issues/153 is implemented.
+This command may be removed after https://github.com/OpenCyphal/pycyphal/issues/153 is implemented.
 
-Example path: ~/uavcan/public_regulated_data_types/uavcan/
+Example path: ~/OpenCyphal/public_regulated_data_types/OpenCyphal/
 
 Example URI: {DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI}
 
@@ -85,7 +85,7 @@ Existing packages will be overwritten entirely.
     help="""
 Instruct the DSDL front-end to accept unregulated data types with fixed port identifiers.
 Make sure you understand the implications before using this option.
-If not sure, ask for advice at https://forum.uavcan.org.
+If not sure, ask for advice at https://forum.opencyphal.org.
 """,
 )
 def compile_(
@@ -161,11 +161,11 @@ def _generate_dsdl_packages(
     lookup_root_namespace_dirs: typing.Iterable[Path],
     generated_packages_dir: Path,
     allow_unregulated_fixed_port_id: bool,
-) -> typing.Sequence[pyuavcan.dsdl.GeneratedPackageInfo]:
+) -> typing.Sequence[pycyphal.dsdl.GeneratedPackageInfo]:
     lookup_root_namespace_dirs = frozenset(list(lookup_root_namespace_dirs) + list(source_root_namespace_dirs))
     generated_packages_dir.mkdir(parents=True, exist_ok=True)
 
-    out: typing.List[pyuavcan.dsdl.GeneratedPackageInfo] = []
+    out: typing.List[pycyphal.dsdl.GeneratedPackageInfo] = []
     for ns in source_root_namespace_dirs:
         if ns.name.startswith("."):
             _logger.debug("Skipping hidden directory %r", ns)
@@ -177,7 +177,7 @@ def _generate_dsdl_packages(
             str(ns),
             list(map(str, lookup_root_namespace_dirs)),
         )
-        gpi = pyuavcan.dsdl.compile(
+        gpi = pycyphal.dsdl.compile(
             root_namespace_directory=ns,
             lookup_directories=list(lookup_root_namespace_dirs),
             output_directory=generated_packages_dir,

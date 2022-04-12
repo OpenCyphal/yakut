@@ -1,6 +1,6 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import os
@@ -13,15 +13,15 @@ import logging
 import pathlib
 import dataclasses
 import click
-import pyuavcan
-from pyuavcan.transport import Transport, OutputSessionSpecifier, Priority
-from pyuavcan.presentation import OutgoingTransferIDCounter
+import pycyphal
+from pycyphal.transport import Transport, OutputSessionSpecifier, Priority
+from pycyphal.presentation import OutgoingTransferIDCounter
 import yakut
 from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
 from yakut.helpers import EnumParam
 
 if typing.TYPE_CHECKING:
-    import pyuavcan.application  # pylint: disable=ungrouped-imports
+    import pycyphal.application  # pylint: disable=ungrouped-imports
 
 _logger = logging.getLogger(__name__)
 
@@ -39,8 +39,8 @@ class NodeFactory:
     node_info: typing.Dict[str, typing.Any] = dataclasses.field(
         default_factory=lambda: {
             "protocol_version": {
-                "major": pyuavcan.UAVCAN_SPECIFICATION_VERSION[0],
-                "minor": pyuavcan.UAVCAN_SPECIFICATION_VERSION[1],
+                "major": pycyphal.CYPHAL_SPECIFICATION_VERSION[0],
+                "minor": pycyphal.CYPHAL_SPECIFICATION_VERSION[1],
             },
             "software_version": {
                 "major": yakut.__version_info__[0],
@@ -49,7 +49,7 @@ class NodeFactory:
         }
     )
 
-    def __call__(self, transport: Transport, name_suffix: str, allow_anonymous: bool) -> pyuavcan.application.Node:
+    def __call__(self, transport: Transport, name_suffix: str, allow_anonymous: bool) -> pycyphal.application.Node:
         """
         We use ``object`` for return type instead of Node because the Node class requires generated code
         to be generated.
@@ -62,18 +62,18 @@ class NodeFactory:
             raise ValueError(f"Internal error: Poorly chosen node name suffix: {name_suffix!r}")
 
         try:
-            from pyuavcan import application
+            from pycyphal import application
         except ImportError as ex:
             from yakut.cmd.compile import make_usage_suggestion
 
             raise click.UsageError(make_usage_suggestion(ex.name))
 
         try:
-            node_info = pyuavcan.dsdl.update_from_builtin(application.NodeInfo(), self.node_info)
+            node_info = pycyphal.dsdl.update_from_builtin(application.NodeInfo(), self.node_info)
         except (ValueError, TypeError) as ex:
             raise click.UsageError(f"Node info fields are not valid: {ex}") from ex
         if len(node_info.name) == 0:
-            node_info.name = f"org.uavcan.yakut.{name_suffix}"
+            node_info.name = f"org.opencyphal.yakut.{name_suffix}"
         _logger.debug("Node info: %r", node_info)
 
         ctx = click.get_current_context()
@@ -111,7 +111,7 @@ class NodeFactory:
             # Register save on exit even if we're anonymous because the local node-ID may be provided later.
             _register_output_transfer_id_map_save_at_exit(node.presentation)
             # Restore if we have a node-ID. If we don't, no restoration will take place even if the node-ID is
-            # provided later. This behavior is acceptable for CLI; a regular UAVCAN application will not need
+            # provided later. This behavior is acceptable for CLI; a regular Cyphal application will not need
             # to deal with saving/restoration at all since this use case is specific to CLI only.
             path = _get_output_transfer_id_map_path(node.presentation.transport)
             tid_map_restored = False
@@ -226,7 +226,7 @@ def _restore_output_transfer_id_map(
     return {}
 
 
-def _register_output_transfer_id_map_save_at_exit(presentation: pyuavcan.presentation.Presentation) -> None:
+def _register_output_transfer_id_map_save_at_exit(presentation: pycyphal.presentation.Presentation) -> None:
     # We MUST sample the configuration early because if this is a redundant transport it may reset its
     # configuration (local node-ID) back to default after close().
     path = _get_output_transfer_id_map_path(presentation.transport)
@@ -259,8 +259,8 @@ def _get_output_transfer_id_map_path(transport: Transport) -> typing.Optional[pa
 
 
 def _unittest_output_tid_file_path() -> None:
-    from pyuavcan.transport.redundant import RedundantTransport
-    from pyuavcan.transport.loopback import LoopbackTransport
+    from pycyphal.transport.redundant import RedundantTransport
+    from pycyphal.transport.loopback import LoopbackTransport
 
     def once(tr: Transport) -> typing.Optional[pathlib.Path]:
         return _get_output_transfer_id_map_path(tr)

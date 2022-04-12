@@ -1,13 +1,13 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import abc
 import sys
 from typing import Iterable, Tuple, Callable
 import dataclasses
-import pyuavcan.util
+import pycyphal.util
 import yakut
 
 if sys.version_info >= (3, 9):
@@ -123,11 +123,11 @@ def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
             str(culprit) or repr(culprit),
         )
 
-    pyuavcan.util.import_submodules(sys.modules[__name__], handle_import_error)
+    pycyphal.util.import_submodules(sys.modules[__name__], handle_import_error)
     base = Controller
     # Order controller kinds by class name, but ensure that NullController always comes first.
     for ty in sorted(
-        pyuavcan.util.iter_descendants(base),
+        pycyphal.util.iter_descendants(base),
         key=lambda x: (x is not NullController, x.__name__),
     ):
         try:

@@ -1,6 +1,6 @@
-# Copyright (c) 2019 UAVCAN Consortium
+# Copyright (c) 2019 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 import pytest
 from tests.subprocess import execute_cli, CalledProcessError
@@ -13,7 +13,7 @@ def _unittest_help() -> None:
     """
     execute_cli("--help", timeout=10.0, log=False)
     for cmd in dir(yakut.cmd):
-        if not cmd.startswith("_") and cmd not in ("pyuavcan", "sys"):
+        if not cmd.startswith("_") and cmd not in ("pycyphal", "sys"):
             execute_cli(cmd, "--help", timeout=3.0, log=False)
 
 

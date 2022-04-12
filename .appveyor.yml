@@ -76,7 +76,7 @@ for:
 
       - echo "https://${GIT_TOKEN}:x-oauth-basic@github.com" > ~/.git-credentials
       - git config --global credential.helper store
-      - git config --global user.email "devnull@uavcan.org"
+      - git config --global user.email "devnull@opencyphal.org"
       - git config --global user.name  "Release Automation"
 
       - 'git tag "$(cat yakut/VERSION)"'

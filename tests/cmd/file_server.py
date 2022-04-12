@@ -1,6 +1,6 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import re
@@ -11,17 +11,17 @@ import tempfile
 from pathlib import Path
 from typing import Tuple, Optional
 import pytest
-import pyuavcan
-from pyuavcan.transport.serial import SerialTransport
+import pycyphal
+from pycyphal.transport.serial import SerialTransport
 from tests.subprocess import Subprocess
 from tests.dsdl import OUTPUT_DIR
 
 
 @pytest.mark.asyncio
 async def _unittest_file_server_pnp(compiled_dsdl: typing.Any, serial_broker: str) -> None:
-    from pyuavcan.application import make_node, NodeInfo, make_registry
-    from pyuavcan.application.file import FileClient
-    from pyuavcan.application.plug_and_play import Allocatee
+    from pycyphal.application import make_node, NodeInfo, make_registry
+    from pycyphal.application.file import FileClient
+    from pycyphal.application.plug_and_play import Allocatee
 
     _ = compiled_dsdl
     asyncio.get_running_loop().slow_callback_duration = 10.0
@@ -39,7 +39,7 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any, serial_broker: st
         },
     )
     cln_node = make_node(
-        NodeInfo(name="org.uavcan.yakut.test.file.client"),
+        NodeInfo(name="org.opencyphal.yakut.test.file.client"),
         make_registry(
             None,
             {
@@ -92,8 +92,8 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any, serial_broker: st
 
 @pytest.mark.asyncio
 async def _unittest_file_server_update(compiled_dsdl: typing.Any, serial_broker: str) -> None:
-    from pyuavcan.application import make_node, NodeInfo, make_registry, make_transport, Node
-    from pyuavcan.application.plug_and_play import Allocatee
+    from pycyphal.application import make_node, NodeInfo, make_registry, make_transport, Node
+    from pycyphal.application.plug_and_play import Allocatee
     from uavcan.node import ExecuteCommand_1_1 as ExecuteCommand
 
     _ = compiled_dsdl
@@ -107,7 +107,7 @@ async def _unittest_file_server_update(compiled_dsdl: typing.Any, serial_broker:
             self.node = node
 
             async def handle_execute_command(
-                req: ExecuteCommand.Request, _meta: pyuavcan.presentation.ServiceRequestMetadata
+                req: ExecuteCommand.Request, _meta: pycyphal.presentation.ServiceRequestMetadata
             ) -> Optional[ExecuteCommand.Response]:
                 print(f"COMMAND FOR {self.node}:", req, f"(response {execute_command_response})")
                 self.last_command = req

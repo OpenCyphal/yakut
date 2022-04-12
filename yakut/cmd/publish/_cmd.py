@@ -1,6 +1,6 @@
-# Copyright (c) 2021 UAVCAN Consortium
+# Copyright (c) 2021 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import math
@@ -9,7 +9,7 @@ import dataclasses
 import logging
 import textwrap
 import click
-import pyuavcan
+import pycyphal
 import yakut
 from yakut.helpers import EnumParam
 from yakut.yaml import EvaluableLoader
@@ -66,7 +66,7 @@ _EXPRESSION_CONTEXT_MODULES = [
     ExpressionContextModule("time", "https://docs.python.org/library/time.html", wildcard=True),
     ExpressionContextModule("math", "https://docs.python.org/library/math.html", wildcard=True),
     ExpressionContextModule("os", "https://docs.python.org/library/os.html"),
-    ExpressionContextModule("pyuavcan", "https://pyuavcan.readthedocs.io"),
+    ExpressionContextModule("pycyphal", "https://pycyphal.readthedocs.io"),
     ExpressionContextModule("numpy", "https://numpy.org", alias="np"),
     ExpressionContextModule("scipy.constants", "https://docs.scipy.org/doc/scipy/reference/constants.html"),
     ExpressionContextModule("scipy.interpolate", "https://docs.scipy.org/doc/scipy/reference/interpolate.html"),
@@ -124,7 +124,7 @@ The subject-ID may be omitted if a fixed one is defined for the data type.
 
 The second element specifies the values of the message fields in YAML format (or JSON, which is a subset of YAML).
 Missing fields will be left at their default values.
-For more info about the format see DSDL API docs at https://pyuavcan.readthedocs.io.
+For more info about the format see DSDL API docs at https://pycyphal.readthedocs.io.
 
 The number of such pairs can be arbitrary; all defined messages will be published synchronously.
 If no such pairs are specified, only the heartbeat will be published, unless the local node is anonymous.
@@ -141,7 +141,7 @@ The YAML-embedded expressions have access to the following variables (type is sp
 
 {Executor.SYM_TIME}: float --- time elapsed since first message (t=n*period).
 
-{Executor.SYM_DTYPE}: Type[pyuavcan.dsdl.CompositeType] --- message class.
+{Executor.SYM_DTYPE}: Type[pycyphal.dsdl.CompositeType] --- message class.
 
 {Executor.SYM_CTRL_AXIS}: (controller,axis:int)->float ---
 read the normalized value of `axis` from `controller` (e.g., joystick or MIDI fader).
@@ -202,16 +202,16 @@ The send timeout equals the period as long as it is not less than {_MIN_SEND_TIM
     "--count",
     "-N",
     type=int,
-    default=2 ** 64 - 1,
+    default=2**64 - 1,
     metavar="CARDINAL",
     help=f"Number of publication cycles before exiting normally. Unlimited by default.",
 )
 @click.option(
     "--priority",
     "-P",
-    default=pyuavcan.presentation.DEFAULT_PRIORITY,
-    type=EnumParam(pyuavcan.transport.Priority),
-    help=f"Priority of published message transfers. [default: {pyuavcan.presentation.DEFAULT_PRIORITY.name}]",
+    default=pycyphal.presentation.DEFAULT_PRIORITY,
+    type=EnumParam(pycyphal.transport.Priority),
+    help=f"Priority of published message transfers. [default: {pycyphal.presentation.DEFAULT_PRIORITY.name}]",
 )
 @yakut.pass_purser
 @yakut.asynchronous
@@ -220,11 +220,11 @@ async def publish(
     message: Sequence[Tuple[str, str]],
     period: float,
     count: int,
-    priority: pyuavcan.transport.Priority,
+    priority: pycyphal.transport.Priority,
 ) -> None:
     _logger.debug("period=%s, count=%s, priority=%s, message=%s", period, count, priority, message)
     assert all((isinstance(a, str) and isinstance(b, str)) for a, b in message)
-    assert isinstance(period, float) and isinstance(count, int) and isinstance(priority, pyuavcan.transport.Priority)
+    assert isinstance(period, float) and isinstance(count, int) and isinstance(priority, pycyphal.transport.Priority)
     if period < 1e-9 or not math.isfinite(period):
         raise click.BadParameter("Period shall be a positive real number of seconds")
     if count <= 0:
@@ -236,15 +236,15 @@ async def publish(
 
     def make_publication_factory(
         subject_spec: str, field_spec: str
-    ) -> Callable[[pyuavcan.presentation.Presentation], Publication]:
+    ) -> Callable[[pycyphal.presentation.Presentation], Publication]:
         subject_id, dtype = construct_port_id_and_type(subject_spec)
         # Catch errors as early as possible.
-        if issubclass(dtype, pyuavcan.dsdl.ServiceObject):
+        if pycyphal.dsdl.is_service_type(dtype):
             raise click.BadParameter(f"Subject spec {subject_spec!r} refers to a service type")
         # noinspection PyTypeChecker
-        if subject_id is None and pyuavcan.dsdl.get_fixed_port_id(dtype) is None:
+        if subject_id is None and pycyphal.dsdl.get_fixed_port_id(dtype) is None:
             raise click.UsageError(
-                f"Subject-ID is not provided and {pyuavcan.dsdl.get_model(dtype)} does not have a fixed one"
+                f"Subject-ID is not provided and {pycyphal.dsdl.get_model(dtype)} does not have a fixed one"
             )
         try:
             evaluator = loader.load_unevaluated(field_spec)
@@ -286,7 +286,7 @@ async def publish(
             _logger.info("%s", node.presentation.transport.sample_statistics())
             for s in node.presentation.transport.output_sessions:
                 ds = s.specifier.data_specifier
-                if isinstance(ds, pyuavcan.transport.MessageDataSpecifier):
+                if isinstance(ds, pycyphal.transport.MessageDataSpecifier):
                     _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
 
 

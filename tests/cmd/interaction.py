@@ -1,13 +1,13 @@
-# Copyright (c) 2020 UAVCAN Consortium
+# Copyright (c) 2020 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import time
 import json
 import typing
 import pytest
-import pyuavcan
+import pycyphal
 import yakut
 import yakut.yaml
 from tests.subprocess import execute_cli, Subprocess
@@ -85,15 +85,15 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     )
     parsed = yakut.yaml.Loader().load(stdout)
     assert parsed[430]["protocol_version"] == {
-        "major": pyuavcan.UAVCAN_SPECIFICATION_VERSION[0],
-        "minor": pyuavcan.UAVCAN_SPECIFICATION_VERSION[1],
+        "major": pycyphal.CYPHAL_SPECIFICATION_VERSION[0],
+        "minor": pycyphal.CYPHAL_SPECIFICATION_VERSION[1],
     }
     assert parsed[430]["software_version"] == {
         "major": yakut.__version_info__[0],
         "minor": yakut.__version_info__[1],
     }
     assert parsed[430]["software_image_crc"] == [0xDEADBEEF]
-    assert parsed[430]["name"] == "org.uavcan.yakut.publish"
+    assert parsed[430]["name"] == "org.opencyphal.yakut.publish"
 
     proc_pub.wait(10.0)
     time.sleep(1.0)  # Time to sync up

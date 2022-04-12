@@ -1,12 +1,12 @@
-# Copyright (c) 2020 UAVCAN Consortium
+# Copyright (c) 2020 OpenCyphal
 # This software is distributed under the terms of the MIT License.
-# Author: Pavel Kirienko <pavel@uavcan.org>
+# Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
 import json
 import asyncio
 import typing
-import pyuavcan
+import pycyphal
 import pytest
 from tests.subprocess import Subprocess, execute_cli
 from tests.dsdl import OUTPUT_DIR
@@ -28,13 +28,13 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
 
     # Set up the server that we will be testing the client against.
     server_transport = construct_transport(transport_factory(22).expression)
-    server_presentation = pyuavcan.presentation.Presentation(server_transport)
+    server_presentation = pycyphal.presentation.Presentation(server_transport)
     server = server_presentation.get_server(PerformLinearLeastSquaresFit_1_0, 222)
-    last_metadata: typing.Optional[pyuavcan.presentation.ServiceRequestMetadata] = None
+    last_metadata: typing.Optional[pycyphal.presentation.ServiceRequestMetadata] = None
 
     async def handle_request(
         request: PerformLinearLeastSquaresFit_1_0.Request,
-        metadata: pyuavcan.presentation.ServiceRequestMetadata,
+        metadata: pycyphal.presentation.ServiceRequestMetadata,
     ) -> PerformLinearLeastSquaresFit_1_0.Response:
         nonlocal last_metadata
         last_metadata = metadata
@@ -43,7 +43,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         sum_x = sum(map(lambda p: p.x, request.points))  # type: ignore
         sum_y = sum(map(lambda p: p.y, request.points))  # type: ignore
         a = sum_x * sum_y - len(request.points) * sum(map(lambda p: p.x * p.y, request.points))  # type: ignore
-        b = sum_x * sum_x - len(request.points) * sum(map(lambda p: p.x ** 2, request.points))  # type: ignore
+        b = sum_x * sum_x - len(request.points) * sum(map(lambda p: p.x**2, request.points))  # type: ignore
         slope = a / b
         y_intercept = (sum_y - slope * sum_x) / len(request.points)
         response = PerformLinearLeastSquaresFit_1_0.Response(slope=slope, y_intercept=y_intercept)
@@ -66,7 +66,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
     result, stdout, _ = proc.wait(5.0)
     assert result == 0
     assert last_metadata is not None
-    assert last_metadata.priority == pyuavcan.transport.Priority.SLOW
+    assert last_metadata.priority == pycyphal.transport.Priority.SLOW
     assert last_metadata.client_node_id == 88
 
     # Finalize to avoid warnings in the output.

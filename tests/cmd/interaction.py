@@ -25,6 +25,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "--format=json",
         "sub",
         "uavcan.node.Heartbeat",
+        "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic = Subprocess.cli(
@@ -32,6 +33,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "sub",
         "4321:uavcan.diagnostic.Record",
         "--count=3",
+        "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_wrong_pid = Subprocess.cli(
@@ -152,6 +154,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "--format=json",
         "sub",
         "uavcan.node.Heartbeat",
+        "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_with_meta = Subprocess.cli(
@@ -159,6 +162,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "--format=json",
         "sub",
         "uavcan.diagnostic.Record",
+        "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_no_meta = Subprocess.cli(

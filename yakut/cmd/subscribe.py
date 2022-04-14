@@ -24,7 +24,7 @@ _logger = yakut.get_logger(__name__)
 @click.option(
     "--with-metadata/--no-metadata",
     "+M/-M",
-    default=True,
+    default=False,
     show_default=True,
     help="When enabled, each message object is prepended with an extra field named `_metadata_`.",
 )
@@ -72,7 +72,7 @@ async def subscribe(
     Examples:
 
     \b
-        yakut sub 33:uavcan.si.unit.angle.Scalar --no-metadata
+        yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata
     """
     _logger.debug("subject=%r, with_metadata=%r, count=%r", subject, with_metadata, count)
     if not subject:

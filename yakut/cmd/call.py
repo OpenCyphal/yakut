@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import sys
-from typing import Any, Callable, TYPE_CHECKING, Type
+from typing import Any, Callable, TYPE_CHECKING
 import decimal
 import contextlib
 import click

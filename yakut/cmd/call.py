@@ -229,17 +229,20 @@ async def _resolve(raw_spec: str, server_node_id: int, node_provider: Callable[[
 
     (ty_or_srv,) = specs
     del specs
-    try:
-        dtype = dtype_loader.load_dtype(ty_or_srv)
-    except dtype_loader.LoadError:
-        _logger.info("Heuristic: %r does not appear to be a type name, assuming it to be a port name", ty_or_srv)
-    else:
-        fpid = pycyphal.dsdl.get_fixed_port_id(dtype)
-        if fpid is None:
-            raise click.ClickException(f"Type {pycyphal.dsdl.get_model(dtype)} does not have a fixed port-ID")
-        _logger.info("Using type %r with its fixed port-ID %r (network discovery not required)", dtype, fpid)
-        return fpid, dtype
+    possibly_dtype_name = ty_or_srv.count(".") >= 1 and any(x.isupper() for x in ty_or_srv)
+    if possibly_dtype_name:
+        try:
+            dtype = dtype_loader.load_dtype(ty_or_srv)
+        except dtype_loader.LoadError:
+            pass
+        else:
+            fpid = pycyphal.dsdl.get_fixed_port_id(dtype)
+            if fpid is None:
+                raise click.ClickException(f"Type {pycyphal.dsdl.get_model(dtype)} does not have a fixed port-ID")
+            _logger.info("Using type %r with its fixed port-ID %r (network discovery not required)", dtype, fpid)
+            return fpid, dtype
 
+    _logger.info("Heuristic: %r does not appear to be a type name, assuming it to be a port name", ty_or_srv)
     resolved = await _resolve_service_id_type(node_provider().presentation, ty_or_srv, server_node_id)
     if not resolved:
         raise click.ClickException(f"Could not resolve service {ty_or_srv!r} via node {server_node_id}")

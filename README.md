@@ -311,6 +311,22 @@ You might notice that the verbose initialization form used in this example is ha
 `points: [{x: 10, y: 1}, {x: 20, y: 2}]`.
 Instead, you can use positional initialization for convenience: `[[10, 1], [20, 2]]`.
 
+If the node provides the standard register service (`uavcan.register.Access`) (virtually all Cyphal nodes do),
+then it is not necessary to spell out the service-ID and its type (which gets old fast),
+as these parameters can be discovered automatically from service name:
+
+```bash
+yakut call 42 least_squares '[[10, 1], [20, 2]]'
+```
+
+In this case Yakut will send additional requests to the node beforehand to obtain the missing information.
+You can still override the type if you want to use a different one
+(e.g., if the remote node names the type of this service differently):
+
+```bash
+yakut call 42 least_squares:my_namespace.MySpecialType '[[10, 1], [20, 2]]'
+```
+
 ## Monitoring the network
 
 The command `yakut monitor` can be used to display *all* activity on the network in a compact representation.

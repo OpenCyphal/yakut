@@ -79,10 +79,10 @@ async def call(
     The second positional argument specifies which service to invoke on the server, which can be done in two ways:
     1. specify the numerical service-ID and its type separated by colon;
     2. specify the name of the service only and let Yakut retrieve the type information from the server.
-    The syntax of the available options is as follows (whitespace added for clarity):
+    The syntax of the available options is as follows:
 
     \b
-        [SERVICE_ID:] TYPE_NAME[.MAJOR[.MINOR]]
+        [SERVICE_ID:]TYPE_NAME[.MAJOR[.MINOR]]
         SERVICE_NAME[:TYPE_NAME[.MAJOR[.MINOR]]]
 
     In the data type name, "/" or "\\" can be used instead of "." for convenience and filesystem autocompletion.

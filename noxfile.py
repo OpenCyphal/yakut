@@ -72,7 +72,7 @@ def test(session):
         "PYTHONPATH": str(DEPS_DIR),
         "PATH": os.pathsep.join([session.env["PATH"], str(DEPS_DIR)]),
     }
-    session.run("pytest", "-x", *map(str, src_dirs), env=env)
+    session.run("pytest", *map(str, src_dirs), env=env)
 
     # The coverage threshold is intentionally set low for interactive runs because when running locally
     # in a reused virtualenv the DSDL compiler run may be skipped to save time, resulting in a reduced coverage.

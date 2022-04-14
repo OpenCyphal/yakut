@@ -68,7 +68,11 @@ def _load(name_components: list[str], major: int | None, minor: int | None) -> T
     )
     _logger.debug("Identifiers in %r matching %s.%s.%s: %r", mod, short_name, major, minor, matches)
     if not matches:
-        raise NotFoundError(f"Could not locate {short_name}.{major or '*'}.{minor or '*'} in module {mod.__name__!r}")
+        raise NotFoundError(
+            f"Could not locate "
+            f"{short_name}.{major if major is not None else '*'}.{minor if minor is not None else '*'} "
+            f"in module {mod.__name__!r}"
+        )
     return matches[0][1]  # type: ignore
 
 

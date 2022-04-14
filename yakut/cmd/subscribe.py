@@ -12,7 +12,8 @@ import pycyphal
 from pycyphal.presentation import Presentation, Subscriber
 import yakut
 from yakut.param.formatter import Formatter
-from yakut.util import convert_transfer_metadata_to_builtin, construct_port_id_and_type
+from yakut.util import convert_transfer_metadata_to_builtin
+from yakut import dtype_loader
 
 
 _logger = yakut.get_logger(__name__)
@@ -54,7 +55,7 @@ async def subscribe(
     the subject-ID may be omitted if the data type defines a fixed one:
 
     \b
-        [SUBJECT_ID:]TYPE_NAME.MAJOR.MINOR
+        [SUBJECT_ID:]TYPE_NAME[.MAJOR[.MINOR]]
 
     If multiple subjects are specified, a synchronous subscription will be used.
     It is useful for subscribing to a group of coupled subjects like lockstep sensor feeds,
@@ -71,7 +72,7 @@ async def subscribe(
     Examples:
 
     \b
-        yakut sub 33:uavcan.si.unit.angle.Scalar.1.0 --no-metadata
+        yakut sub 33:uavcan.si.unit.angle.Scalar --no-metadata
     """
     _logger.debug("subject=%r, with_metadata=%r, count=%r", subject, with_metadata, count)
     if not subject:
@@ -99,7 +100,7 @@ async def subscribe(
 
 
 def _make_subscriber(subjects: Sequence[str], presentation: Presentation) -> Subscriber[Any]:
-    group = [construct_port_id_and_type(ds) for ds in subjects]
+    group = [_construct_port_id_and_type(ds) for ds in subjects]
     assert len(group) > 0
     if len(group) == 1:
         ((subject_id, dtype),) = group
@@ -107,6 +108,19 @@ def _make_subscriber(subjects: Sequence[str], presentation: Presentation) -> Sub
     raise NotImplementedError(
         "Multi-subject subscription is not yet implemented. See https://github.com/OpenCyphal/pycyphal/issues/65"
     )
+
+
+def _construct_port_id_and_type(raw_specifier: str) -> tuple[int, Any]:
+    subject_spec_parts = raw_specifier.split(":")
+    if len(subject_spec_parts) == 2:
+        return int(subject_spec_parts[0]), dtype_loader.load_dtype(subject_spec_parts[1])
+    if len(subject_spec_parts) == 1:
+        dtype = dtype_loader.load_dtype(subject_spec_parts[0])
+        fpid = pycyphal.dsdl.get_fixed_port_id(dtype)
+        if fpid is None:
+            raise click.ClickException(f"{subject_spec_parts[0]} has no fixed port-ID")
+        return fpid, dtype
+    raise click.BadParameter(f"Invalid subject specifier: {raw_specifier!r}")
 
 
 async def _run(subscriber: Subscriber[Any], formatter: Formatter, with_metadata: bool, count: int) -> None:

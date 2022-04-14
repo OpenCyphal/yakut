@@ -24,27 +24,27 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     proc_sub_heartbeat = Subprocess.cli(
         "--format=json",
         "sub",
-        "uavcan.node.Heartbeat.1.0",
+        "uavcan.node.Heartbeat",
         environment_variables=env,
     )
     proc_sub_diagnostic = Subprocess.cli(
         "--format=json",
         "sub",
-        "4321:uavcan.diagnostic.Record.1.1",
+        "4321:uavcan.diagnostic.Record",
         "--count=3",
         environment_variables=env,
     )
     proc_sub_diagnostic_wrong_pid = Subprocess.cli(
         "--format=yaml",
         "sub",
-        "uavcan.diagnostic.Record.1.1",
+        "uavcan.diagnostic.Record",
         "--count=3",
         environment_variables=env,
     )
     proc_sub_temperature = Subprocess.cli(
         "--format=json",
         "sub",
-        "555:uavcan.si.sample.temperature.Scalar.1.0",
+        "555:uavcan.si.sample.temperature.Scalar",
         "--count=3",
         "--no-metadata",
         environment_variables=env,
@@ -59,11 +59,11 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "{software_image_crc: [0xdeadbeef]}",
         f"--transport={transport_factory(51).expression}",  # Takes precedence over the environment variable.
         "pub",
-        "4321:uavcan.diagnostic.Record.1.1",
+        "4321:uavcan.diagnostic.Record",
         '{severity: 6, timestamp: 123456, text: "Hello world!"}',  # Use shorthand init for severity, timestamp
-        "1234:uavcan.diagnostic.Record.1.1",
+        "1234:uavcan.diagnostic.Record",
         '{text: "Goodbye world."}',
-        "555:uavcan.si.sample.temperature.Scalar.1.0",
+        "555:uavcan.si.sample.temperature.Scalar",
         "{kelvin: 123.456}",
         "--count=3",
         "--period=3",
@@ -151,21 +151,21 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "-v",
         "--format=json",
         "sub",
-        "uavcan.node.Heartbeat.1.0",
+        "uavcan.node.Heartbeat",
         environment_variables=env,
     )
     proc_sub_diagnostic_with_meta = Subprocess.cli(
         "-v",
         "--format=json",
         "sub",
-        "uavcan.diagnostic.Record.1.1",
+        "uavcan.diagnostic.Record",
         environment_variables=env,
     )
     proc_sub_diagnostic_no_meta = Subprocess.cli(
         "-v",
         "--format=json",
         "sub",
-        "uavcan.diagnostic.Record.1.1",
+        "uavcan.diagnostic.Record",
         "--no-metadata",
         environment_variables=env,
     )
@@ -175,7 +175,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
     if transport_factory(None).can_transmit:
         proc = Subprocess.cli(
             "pub",
-            "uavcan.diagnostic.Record.1.1",
+            "uavcan.diagnostic.Record",
             "{}",
             "--count=2",
             "--period=2",
@@ -213,7 +213,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         proc = Subprocess.cli(
             "-v",
             "pub",
-            "uavcan.diagnostic.Record.1.1",
+            "uavcan.diagnostic.Record",
             "{}",
             "--count=2",
             "--period=2",

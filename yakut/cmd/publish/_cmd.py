@@ -13,7 +13,7 @@ import pycyphal
 import yakut
 from yakut.helpers import EnumParam
 from yakut.yaml import EvaluableLoader
-from yakut.util import construct_port_id_and_type
+from yakut import dtype_loader
 from ._executor import Executor, Publication
 
 _MIN_SEND_TIMEOUT = 0.1
@@ -78,33 +78,33 @@ _EXAMPLES = """
 Example: publish constant messages (no embedded expressions, just regular YAML):
 
 \b
-    yakut pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
-    yakut pub 33:uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
+    yakut pub uavcan.diagnostic.Record '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
+    yakut pub 33:uavcan/si/unit/angle/Scalar 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
 
 Example: publish sinewave with frequency 1 Hz, amplitude 10 meters:
 
 \b
-    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2) * 10"}'
+    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '{meter: !$ "sin(t * pi * 2) * 10"}'
 
 Example: as above, but control the frequency of the sinewave and its amplitude using sliders 10 and 11
 of the first connected controller (use `yakut joystick` to find connected controllers and their axis mappings):
 
 \b
-    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2 * A(1,10)) * 10 * A(1,11)"}'
+    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '{meter: !$ "sin(t * pi * 2 * A(1,10)) * 10 * A(1,11)"}'
 
 Example: publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state;
 use positional initialization instead of YAML dicts:
 
 \b
     yakut pub -T 0.1 \\
-        5:uavcan.si.unit.angular_velocity.Vector3.1.0 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \\
-        6:uavcan.si.unit.power.Scalar.1.0 '!$ A(2,10)*1e3' \\
-        7:uavcan.primitive.scalar.Bit.1.0 '!$ T(1,5)'
+        5:uavcan.si.unit.angular_velocity.Vector3 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \\
+        6:uavcan.si.unit.power.Scalar '!$ A(2,10)*1e3' \\
+        7:uavcan.primitive.scalar.Bit '!$ T(1,5)'
 
 Example: simulate timestamped measurement of voltage affected by white noise with standard deviation 0.25 V:
 
 \b
-    yakut pub -T 0.1 6:uavcan.si.sample.voltage.Scalar.1.0 \\
+    yakut pub -T 0.1 6:uavcan.si.sample.voltage.Scalar \\
         '{timestamp: !$ time()*1e6, volt: !$ "A(2,10)*100+normalvariate(0,0.25)"}'
 """.strip()
 
@@ -117,9 +117,10 @@ like GetInfo.
 The command accepts a list of space-separated pairs like:
 
 \b
-    [SUBJECT_ID:]TYPE_NAME.MAJOR.MINOR  YAML_FIELDS
+    [SUBJECT_ID:]TYPE_NAME[.MAJOR[.MINOR]]  YAML_FIELDS
 
 The first element is a name like `uavcan.node.Heartbeat.1.0` prepended by the subject-ID.
+The version numbers may be omitted to select the latest available version.
 The subject-ID may be omitted if a fixed one is defined for the data type.
 
 The second element specifies the values of the message fields in YAML format (or JSON, which is a subset of YAML).
@@ -237,15 +238,23 @@ async def publish(
     def make_publication_factory(
         subject_spec: str, field_spec: str
     ) -> Callable[[pycyphal.presentation.Presentation], Publication]:
-        subject_id, dtype = construct_port_id_and_type(subject_spec)
+        subject_spec_parts = subject_spec.split(":")
+        subject_id: int
+        dtype: Any
+        if len(subject_spec_parts) == 2:
+            subject_id = int(subject_spec_parts[0])
+            dtype = dtype_loader.load_dtype(subject_spec_parts[1])
+        elif len(subject_spec_parts) == 1:
+            dtype = dtype_loader.load_dtype(subject_spec_parts[0])
+            fpid = pycyphal.dsdl.get_fixed_port_id(dtype)
+            if fpid is None:
+                raise click.ClickException(f"{subject_spec_parts[0]} has no fixed port-ID")
+            subject_id = fpid
+        else:
+            raise click.BadParameter(f"Invalid subject specifier: {subject_spec!r}")
         # Catch errors as early as possible.
         if pycyphal.dsdl.is_service_type(dtype):
             raise click.BadParameter(f"Subject spec {subject_spec!r} refers to a service type")
-        # noinspection PyTypeChecker
-        if subject_id is None and pycyphal.dsdl.get_fixed_port_id(dtype) is None:
-            raise click.UsageError(
-                f"Subject-ID is not provided and {pycyphal.dsdl.get_model(dtype)} does not have a fixed one"
-            )
         try:
             evaluator = loader.load_unevaluated(field_spec)
         except ValueError as ex:

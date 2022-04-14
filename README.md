@@ -179,13 +179,14 @@ $ yakut monitor  # Whatever.
 
 ### Subscribing to subjects
 
-Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0` as shown below;
+Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar` as shown below;
 notice how we specify the subject-ID before the data type name.
+If the data type version number(s) are not specified (minor or both), the latest available is chosen automatically.
 You will see output if there is a publisher on this subject (more on this in the next section).
 
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
-$ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
+$ yakut sub 33:uavcan.si.unit.angle.Scalar
 ---
 33:
   _metadata_:
@@ -212,7 +213,7 @@ with headers prepended.
 The resulting data can be imported as-is into Excel, Wolfram Mathematica, etc.
 
 ```bash
-yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs.0.1 > rotation_data.tsv
+yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs > rotation_data.tsv
 ```
 
 ### Publishing messages
@@ -222,8 +223,8 @@ Publishing two messages synchronously twice (four messages total):
 ```bash
 export UAVCAN__UDP__IFACE=127.63.0.0
 export UAVCAN__NODE__ID=42
-yakut pub -N2 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' \
-                 uavcan.diagnostic.Record.1.1    'text: "2.31 rad"'
+yakut pub -N2 33:uavcan.si.unit.angle.Scalar 'radian: 2.31' \
+                 uavcan.diagnostic.Record    'text: "2.31 rad"'
 ```
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
@@ -236,7 +237,7 @@ and their results may be arbitrary as long as the final structure can initialize
 The following example will publish a sinewave with frequency 1 Hz, amplitude 10 meters:
 
 ```bash
-yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2) * 10"}'
+yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '{meter: !$ "sin(t * pi * 2) * 10"}'
 ```
 
 Notice that we make use of entities like the variable `t` or the standard function `sin` in the expression.
@@ -253,9 +254,9 @@ allowing the user to control these parameters interactively:
 
 ```bash
 yakut pub -T 0.1 \
-    5:uavcan.si.unit.angular_velocity.Vector3.1.0 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
-    6:uavcan.si.unit.power.Scalar.1.0 '!$ A(2,10)*1e3' \
-    7:uavcan.primitive.scalar.Bit.1.0 '!$ T(1,5)'
+    5:uavcan.si.unit.angular_velocity.Vector3 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
+    6:uavcan.si.unit.power.Scalar '!$ A(2,10)*1e3' \
+    7:uavcan.primitive.scalar.Bit '!$ T(1,5)'
 ```
 
 Observe that we didn't spell out the field names here (`radian_per_second`, `watt`, `value`)
@@ -299,7 +300,7 @@ Suppose that there is node 42 that serves `sirius_cyber_corp.PerformLinearLeastS
 $ export UAVCAN__UDP__IFACE=127.63.0.0
 $ export UAVCAN__NODE__ID=42
 $ yakut compile sirius_cyber_corp
-$ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+$ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
 ---
 123:
   slope: 0.1

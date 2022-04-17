@@ -112,6 +112,9 @@ _logger = logging.getLogger(__name__)
 
 
 def _unittest_register_dtypes_by_id() -> None:
+    from tests.dsdl import ensure_compiled_dsdl
+
+    ensure_compiled_dsdl()
     from pycyphal.application.register import ValueProxy, Natural16, String
 
     assert _register_dtypes_by_id({}, 123) == set()

@@ -23,18 +23,30 @@ class NotFoundError(LoadError):
     pass
 
 
-def load_dtype(name: str) -> Type[Any]:
+def load_dtype(name: str, allow_minor_version_mismatch: bool = False) -> Type[Any]:
     r"""
     Parses a data specifier string of the form ``full_data_type_name[.major_version[.minor_version]]``.
     Name separators may be replaced with ``/`` or ``\`` for compatibility with file system paths.
     Missing version numbers substituted with the latest one available.
+
+    :param name: Examples: ``uavcan.Heartbeat``, ``uavcan.Heartbeat.1``, ``uavcan.Heartbeat.1.0``.
+
+    :param allow_minor_version_mismatch:
+        If the minor version is specified and there is no matching data type,
+        repeat the search with the minor version omitted.
     """
     parsed = _parse(name)
     if not parsed:
         raise FormatError(f"Format not understood: f{name!r}")
     name_components, major, minor = parsed
     _logger.debug("Parsed %r: name_components=%r, major=%r, minor=%r", name, name_components, major, minor)
-    result = _load(name_components, major, minor)
+    try:
+        result = _load(name_components, major, minor)
+    except NotFoundError:
+        if allow_minor_version_mismatch and minor is not None:
+            result = _load(name_components, major, None)
+        else:
+            raise
     _logger.debug("Loaded %r as %r", name, result)
     return result
 

@@ -35,6 +35,12 @@ def _unittest_dtype_loader(compiled_dsdl: Any) -> None:
     with pytest.raises(NotFoundError):
         _ = load_dtype("sirius_cyber_corp.Foo.1.1")
 
+    ty = load_dtype("sirius_cyber_corp.Foo.1.1", allow_minor_version_mismatch=True)  # Same but relaxed.
+    assert isinstance(ty, type)
+    model = pycyphal.dsdl.get_model(ty)
+    assert model.full_name == "sirius_cyber_corp.Foo"
+    assert model.version == (1, 9)
+
     ty = load_dtype("sirius_cyber_corp.Foo.1")
     assert isinstance(ty, type)
     model = pycyphal.dsdl.get_model(ty)

@@ -253,7 +253,8 @@ async def _resolve(raw_spec: str, server_node_id: int, node_provider: Callable[[
             f"Remote node {server_node_id} does not provide data type information for service {ty_or_srv}, "
             f"nor is the type specified locally."
         )
-    return service_id, dtype_loader.load_dtype(dtype_name)
+    # When the type is obtained from remote node, allow the minor version to be different.
+    return service_id, dtype_loader.load_dtype(dtype_name, allow_minor_version_mismatch=True)
 
 
 async def _resolve_service_id_type(

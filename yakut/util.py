@@ -18,6 +18,8 @@ async def fetch_registers(
     local_node: pycyphal.application.Node,
     node_id: int,
     predicate: Callable[[str], bool] = lambda *_: True,
+    timeout: float = pycyphal.presentation.DEFAULT_SERVICE_REQUEST_TIMEOUT,
+    priority: pycyphal.transport.Priority = pycyphal.transport.Priority.LOW,
 ) -> dict[str, pycyphal.application.register.ValueProxy] | None:
     """
     Obtain registers from the specified remote node for whose names the predicate is true.
@@ -28,6 +30,8 @@ async def fetch_registers(
 
     # Fetch register names.
     c_list = local_node.make_client(List_1, node_id)
+    c_list.response_timeout = timeout
+    c_list.priority = priority
     names: list[str] = []
     while True:
         req: Any = List_1.Request(len(names))
@@ -41,11 +45,14 @@ async def fetch_registers(
         names.append(resp.name.name.tobytes().decode())
     _logger.debug("Register names fetched from node %r: %s", node_id, names)
     c_list.close()
+    del c_list
 
     names = list(filter(predicate, names))
 
     # Then fetch the registers themselves.
     c_access = local_node.make_client(Access_1, node_id)
+    c_access.response_timeout = timeout
+    c_access.priority = priority
     regs: dict[str, RegisterValue] = {}
     for nm in names:
         req = Access_1.Request(name=Name_1(nm))

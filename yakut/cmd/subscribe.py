@@ -4,17 +4,19 @@
 
 from __future__ import annotations
 import sys
-from typing import Any, Sequence
+from typing import Any, Sequence, TYPE_CHECKING, Callable, Iterable
 import logging
-import contextlib
+from functools import lru_cache
 import click
 import pycyphal
-from pycyphal.presentation import Presentation, Subscriber
+from pycyphal.presentation import Subscriber, subscription_synchronizer
 import yakut
 from yakut.param.formatter import Formatter
 from yakut.util import convert_transfer_metadata_to_builtin
-from yakut import dtype_loader
+from ._pubsub_common import process_subject_specifier, SubjectResolver
 
+if TYPE_CHECKING:
+    import pycyphal.application
 
 _logger = yakut.get_logger(__name__)
 
@@ -47,96 +49,155 @@ async def subscribe(
 ) -> None:
     """
     Subscribe to specified subjects and print messages into stdout.
-    This command does not instantiate a local node and does not disturb the network in any way,
-    so many instances can be cheaply executed concurrently.
-    It is recommended to use anonymous transport (i.e., without a node-ID).
+    It is recommended to make this node anonymous (i.e., without a node-ID)
+    to avoid additional traffic on the network from this tool.
 
     The arguments are a list of message data type names prepended with the subject-ID;
-    the subject-ID may be omitted if the data type defines a fixed one:
+    the subject-ID may be omitted if the data type defines a fixed one;
+    or the type can be omitted to engage automatic type discovery
+    (discovery may fail if the local node is anonymous as it will be unable to issue RPC-service requests).
+    The accepted forms are:
 
     \b
-        [SUBJECT_ID:]TYPE_NAME[.MAJOR[.MINOR]]
+        SUBJECT_ID:TYPE_NAME[.MAJOR[.MINOR]]
+        TYPE_NAME[.MAJOR[.MINOR]]
+        SUBJECT_ID
 
     If multiple subjects are specified, a synchronous subscription will be used.
-    It is useful for subscribing to a group of coupled subjects like lockstep sensor feeds,
-    but it will not work for subjects that are temporally unrelated or published at different rates.
+    It is intended for subscribing to a group of coupled subjects like lockstep sensor feeds or other coupled objects.
+    More on subscription synchronization is available in the PyCyphal docs.
 
-    Each object emitted into stdout is a key-value mapping where the number of elements equals the number
-    of subjects the command is asked to subscribe to;
+    Each received object or synchronized group is emitted to stdout as a key-value mapping,
+    where the number of elements equals the number of subjects the command is asked to subscribe to;
     the keys are subject-IDs and values are the received message objects.
-
-    In data type names forward or backward slashes can be used instead of ".";
-    version numbers can be also separated using underscores.
-    This is done to allow the user to rely on filesystem autocompletion when typing the command.
 
     Examples:
 
     \b
-        yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata
+        yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata --count=1
+        yakut sub 33 42 5789
+        yakut sub uavcan.node.Heartbeat
     """
+    try:
+        from pycyphal.application import Node
+    except ImportError as ex:
+        from yakut.cmd.compile import make_usage_suggestion
+
+        raise click.UsageError(make_usage_suggestion(ex.name))
+
     _logger.debug("subject=%r, with_metadata=%r, count=%r", subject, with_metadata, count)
-    if not subject:
-        _logger.info("Nothing to do because no subjects are specified")
-        return
     if count is not None and count <= 0:
-        _logger.info("Nothing to do because count=%s", count)
+        _logger.warning("Nothing to do because count=%s", count)
         return
 
     count = count if count is not None else sys.maxsize
     formatter = purser.make_formatter()
 
-    transport = purser.get_transport()
-    if transport.local_node_id is not None:
-        _logger.info("It is recommended to use an anonymous transport with this command.")
+    # Node construction should be delayed as much as possible to avoid unnecessary interference
+    # with the bus and hardware. This is why we use the factory here instead of constructing the node eagerly.
+    @lru_cache(None)
+    def get_node() -> Node:
+        return purser.get_node("subscribe", allow_anonymous=True)
 
-    with contextlib.closing(Presentation(transport)) as presentation:
-        subscriber = _make_subscriber(subject, presentation)
+    subscribers: list[Subscriber[Any]] = await _make_subscribers(subject, get_node)
+    synchronizer: subscription_synchronizer.Synchronizer
+    if len(subscribers) == 0:
+        _logger.warning("Nothing to do because no subjects are specified")
+        return
+    if len(subscribers) == 1:
+        synchronizer = _UnarySynchronizer(subscribers[0])
+    else:
+        # TODO FIXME parameterize synchronizer instantiation; automatic tolerance
+        from pycyphal.presentation.subscription_synchronizer import monotonic_clustering
+
+        synchronizer = monotonic_clustering.MonotonicClusteringSynchronizer(
+            subscribers, subscription_synchronizer.get_local_reception_timestamp, 1.0
+        )
+
+    with get_node() as node:
+        if node.id is not None:
+            _logger.info("It is recommended to use an anonymous node with this command to avoid extra network traffic")
         try:
-            await _run(subscriber, formatter, with_metadata=with_metadata, count=count)
+            await _run(synchronizer, formatter, with_metadata=with_metadata, count=count)
         finally:
             if _logger.isEnabledFor(logging.INFO):
-                _logger.info("%s", presentation.transport.sample_statistics())
-                _logger.info("%s", subscriber.sample_statistics())
+                _logger.info("%s", node.presentation.transport.sample_statistics())
+                for sub in subscribers:
+                    _logger.info("% 4s: %s", sub.port_id, sub.sample_statistics())
+            synchronizer.close()
 
 
-def _make_subscriber(subjects: Sequence[str], presentation: Presentation) -> Subscriber[Any]:
-    group = [_construct_port_id_and_type(ds) for ds in subjects]
-    assert len(group) > 0
-    if len(group) == 1:
-        ((subject_id, dtype),) = group
-        return presentation.make_subscriber(dtype, subject_id)
-    raise NotImplementedError(
-        "Multi-subject subscription is not yet implemented. See https://github.com/OpenCyphal/pycyphal/issues/65"
-    )
+async def _make_subscribers(
+    specifiers: Sequence[str],
+    node_provider: Callable[[], "pycyphal.application.Node"],
+) -> list[Subscriber[Any]]:
+    @lru_cache(None)
+    def get_resolver() -> SubjectResolver:
+        node = node_provider()
+        if node.id is None:
+            raise click.UsageError(
+                f"Cannot use automatic discovery because the local node is anonymous, "
+                f"so it cannot access the introspection services on remote nodes. "
+                f"You need to either fully specify the subjects explicitly or assign a local node-ID."
+            )
+        return SubjectResolver(node)
+
+    id_types = [await process_subject_specifier(ds, get_resolver) for ds in specifiers]
+
+    # Construct the node only after we have verified that the specifiers are valid and dtypes/ids are resolved.
+    return [node_provider().make_subscriber(dtype, subject_id) for subject_id, dtype in id_types]
 
 
-def _construct_port_id_and_type(raw_specifier: str) -> tuple[int, Any]:
-    subject_spec_parts = raw_specifier.split(":")
-    if len(subject_spec_parts) == 2:
-        return int(subject_spec_parts[0]), dtype_loader.load_dtype(subject_spec_parts[1])
-    if len(subject_spec_parts) == 1:
-        dtype = dtype_loader.load_dtype(subject_spec_parts[0])
-        fpid = pycyphal.dsdl.get_fixed_port_id(dtype)
-        if fpid is None:
-            raise click.ClickException(f"{subject_spec_parts[0]} has no fixed port-ID")
-        return fpid, dtype
-    raise click.BadParameter(f"Invalid subject specifier: {raw_specifier!r}")
+async def _run(
+    synchronizer: subscription_synchronizer.Synchronizer,
+    formatter: Formatter,
+    with_metadata: bool,
+    count: int,
+) -> None:
+    metadata_cache: dict[object, dict[str, Any]] = {}
 
+    def get_extra_metadata(sub: Subscriber[Any]) -> dict[str, Any]:
+        try:
+            return metadata_cache[sub]
+        except LookupError:  # This may be expensive so we only do it once.
+            model = pycyphal.dsdl.get_model(sub.dtype)
+            metadata_cache[sub] = {
+                "dtype": str(model),
+            }
+        return metadata_cache[sub]
 
-async def _run(subscriber: Subscriber[Any], formatter: Formatter, with_metadata: bool, count: int) -> None:
-    async for msg, transfer in subscriber:
-        assert isinstance(transfer, pycyphal.transport.TransferFrom)
+    async for synchronized_group in synchronizer:
         outer: dict[int, dict[str, Any]] = {}
+        # noinspection PyTypeChecker
+        for (msg, meta), subscriber in synchronized_group:
+            assert isinstance(meta, pycyphal.transport.TransferFrom) and isinstance(subscriber, Subscriber)
+            bi: dict[str, Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
+            if with_metadata:
+                bi.update(
+                    convert_transfer_metadata_to_builtin(
+                        meta,
+                        **get_extra_metadata(subscriber),
+                    )
+                )
+            bi.update(pycyphal.dsdl.to_builtin(msg))
+            outer[subscriber.port_id] = bi
 
-        bi: dict[str, Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
-        if with_metadata:
-            bi.update(convert_transfer_metadata_to_builtin(transfer))
-        bi.update(pycyphal.dsdl.to_builtin(msg))
-        outer[subscriber.port_id] = bi
-
-        print(formatter(outer))
-
+        sys.stdout.write(formatter(outer))
+        sys.stdout.write("\r\n")
+        sys.stdout.flush()
         count -= 1
         if count <= 0:
-            _logger.debug("Reached the specified message count, stopping")
+            _logger.debug("Reached the specified synchronized group count, stopping")
             break
+
+
+class _UnarySynchronizer(subscription_synchronizer.Synchronizer):  # type: ignore
+    def __init__(self, subscriber: Subscriber[Any]) -> None:
+        super().__init__([subscriber])
+
+    async def receive_for(self, timeout: float) -> tuple[tuple[Any, pycyphal.transport.TransferFrom], ...] | None:
+        res = await self._subscribers[0].receive_for(timeout)
+        return (res,) if res is not None else None
+
+    def receive_in_background(self, handler: Callable[..., None]) -> None:
+        raise NotImplementedError("Just read the instructions")

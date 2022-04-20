@@ -55,9 +55,9 @@ class SubjectResolver:
                 await asyncio.sleep(0.1)  # Wait for new nodes to come up online, if any.
             else:
                 self._reg_cache[nid] = await fetch_registers(
-                    self._local_node,
+                    self._local_node.presentation,
                     nid,
-                    lambda name: any(
+                    predicate=lambda name: any(
                         x.match(name)
                         for x in [
                             _REGEX_REG_PUBSUB_NAME_ID,

@@ -8,13 +8,14 @@ from typing import Tuple, List, Sequence, Callable, Any, Dict
 import dataclasses
 import logging
 import textwrap
+from functools import lru_cache
 import click
 import pycyphal
 import yakut
 from yakut.helpers import EnumParam
 from yakut.yaml import EvaluableLoader
-from yakut import dtype_loader
 from ._executor import Executor, Publication
+from .._pubsub_common import process_subject_specifier, SubjectResolver
 
 _MIN_SEND_TIMEOUT = 0.1
 """
@@ -79,7 +80,7 @@ Example: publish constant messages (no embedded expressions, just regular YAML):
 
 \b
     yakut pub uavcan.diagnostic.Record '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
-    yakut pub 33:uavcan/si/unit/angle/Scalar 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
+    yakut pub 33:uavcan.si.unit.angle.Scalar 'radian: 2.31' uavcan.diagnostic.Record 'text: "2.31 rad"'
 
 Example: publish sinewave with frequency 1 Hz, amplitude 10 meters:
 
@@ -117,13 +118,13 @@ like GetInfo.
 The command accepts a list of space-separated pairs like:
 
 \b
-    [SUBJECT_ID:]TYPE_NAME[.MAJOR[.MINOR]]  YAML_FIELDS
+    SUBJECT_SPECIFIER  YAML_FIELDS
 
-The first element is a name like `uavcan.node.Heartbeat.1.0` prepended by the subject-ID.
-The version numbers may be omitted to select the latest available version.
-The subject-ID may be omitted if a fixed one is defined for the data type.
+The first element -- SUBJECT_SPECIFIER -- defines the subject-ID and/or the data type name;
+refer to the subscription command for details.
 
-The second element specifies the values of the message fields in YAML format (or JSON, which is a subset of YAML).
+The second element -- YAML_FIELDS -- specifies the values of the message fields in YAML format
+(or JSON, which is a subset of YAML).
 Missing fields will be left at their default values.
 For more info about the format see DSDL API docs at https://pycyphal.readthedocs.io.
 
@@ -231,53 +232,56 @@ async def publish(
     if count <= 0:
         _logger.info("Nothing to do because count=%s", count)
         return
+    try:
+        from pycyphal.application import Node
+    except ImportError as ex:
+        from yakut.cmd.compile import make_usage_suggestion
+
+        raise click.UsageError(make_usage_suggestion(ex.name))
 
     send_timeout = max(_MIN_SEND_TIMEOUT, period)
     loader = EvaluableLoader(ExpressionContextModule.load(_EXPRESSION_CONTEXT_MODULES))
 
-    def make_publication_factory(
-        subject_spec: str, field_spec: str
-    ) -> Callable[[pycyphal.presentation.Presentation], Publication]:
-        subject_spec_parts = subject_spec.split(":")
-        subject_id: int
-        dtype: Any
-        if len(subject_spec_parts) == 2:
-            subject_id = int(subject_spec_parts[0])
-            dtype = dtype_loader.load_dtype(subject_spec_parts[1])
-        elif len(subject_spec_parts) == 1:
-            dtype = dtype_loader.load_dtype(subject_spec_parts[0])
-            fpid = pycyphal.dsdl.get_fixed_port_id(dtype)
-            if fpid is None:
-                raise click.ClickException(f"{subject_spec_parts[0]} has no fixed port-ID")
-            subject_id = fpid
-        else:
-            raise click.BadParameter(f"Invalid subject specifier: {subject_spec!r}")
-        # Catch errors as early as possible.
-        if pycyphal.dsdl.is_service_type(dtype):
-            raise click.BadParameter(f"Subject spec {subject_spec!r} refers to a service type")
+    # Node construction should be delayed as much as possible to avoid unnecessary interference
+    # with the bus and hardware. This is why we use the factory here instead of constructing the node eagerly.
+    @lru_cache(None)
+    def get_node() -> Node:
+        return purser.get_node("publish", allow_anonymous=True)
+
+    @lru_cache(None)
+    def get_subject_resolver() -> SubjectResolver:
+        node = get_node()
+        if node.id is None:
+            raise click.UsageError(
+                f"Cannot use automatic discovery because the local node is anonymous, "
+                f"so it cannot access the introspection services on remote nodes. "
+                f"You need to either fully specify the subjects explicitly or assign a local node-ID."
+            )
+        return SubjectResolver(node)
+
+    async def make_publication_factory(specifier: str, field_spec: str) -> Callable[[], Publication]:
+        subject_id, dtype = await process_subject_specifier(specifier, get_subject_resolver)
         try:
             evaluator = loader.load_unevaluated(field_spec)
         except ValueError as ex:
             raise click.BadParameter(f"Invalid field spec {field_spec!r}: {ex}") from None
-        _logger.debug("Publication spec appears valid: %r", subject_spec)
-        return lambda presentation: Publication(
+        return lambda: Publication(
             subject_id=subject_id,
             dtype=dtype,
             evaluator=evaluator,
-            presentation=presentation,
+            presentation=get_node().presentation,
             priority=priority,
             send_timeout=send_timeout,
         )
 
-    # This is to perform as much processing as possible before constructing the node.
+    # Such indirection is to perform as much processing as possible before constructing the node.
     # Catching errors early allows us to avoid disturbing the network and peripherals unnecessarily.
-    publication_factories = [make_publication_factory(*m) for m in message]
-
-    node = purser.get_node("publish", allow_anonymous=True)
+    publication_factories = [await make_publication_factory(*m) for m in message]
+    node = get_node()
     executor = Executor(
         node=node,
         loader=loader,
-        publications=(f(node.presentation) for f in publication_factories),
+        publications=(f() for f in publication_factories),
     )
     try:  # Even if the publication set is empty, we still have to publish the heartbeat.
         _logger.info(

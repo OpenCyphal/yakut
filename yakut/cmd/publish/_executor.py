@@ -87,13 +87,13 @@ class Publication:
         subject_id: int,
         dtype: Any,
         evaluator: Callable[..., Any],
-        presentation: pycyphal.presentation.Presentation,
+        node: "pycyphal.application.Node",
         priority: pycyphal.transport.Priority,
         send_timeout: float,
     ):
         self._dtype = dtype
         self._evaluator = evaluator
-        self._publisher = presentation.make_publisher(self._dtype, subject_id)
+        self._publisher = node.make_publisher(self._dtype, subject_id)  # This will expose the port info via registers
         self._publisher.priority = priority
         self._publisher.send_timeout = send_timeout
         self._next_message: Optional[Any] = None

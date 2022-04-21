@@ -224,3 +224,74 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
             environment_variables=env,
         )
         assert 0 < proc.wait(timeout=8, log=False)[0]
+
+
+def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    _ = compiled_dsdl
+    proc_sub = Subprocess.cli(
+        "--format=json",
+        "sub",
+        "1000:uavcan.primitive.String",
+        "2000:uavcan.primitive.String",
+        "--no-metadata",
+        "--count=3",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(10).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    time.sleep(3.0)  # Let the subscriber boot up.
+    proc_pub = Subprocess.cli(
+        "-v",
+        "pub",
+        "1000",  # Use discovery.
+        "hello",
+        "2000",  # Use discovery.
+        "world",
+        "--count=3",
+        "--period=3",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(11).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    proc_pub.wait(30.0)
+    time.sleep(1.0)
+    out_sub = proc_sub.wait(10.0)[1].splitlines()
+    msgs = list(map(json.loads, out_sub))
+    assert msgs == [{"1000": {"value": "hello"}, "2000": {"value": "world"}}] * 3
+
+
+def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    _ = compiled_dsdl
+    proc_pub = Subprocess.cli(
+        "-v",
+        "pub",
+        "1000:uavcan.primitive.String",
+        "hello",
+        "2000:uavcan.primitive.String",
+        "world",
+        "--period=3",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(11).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    time.sleep(3.0)  # Let the publisher boot up.
+    proc_sub = Subprocess.cli(
+        "--format=json",
+        "sub",
+        "1000",  # Use discovery.
+        "2000",  # Use discovery.
+        "--no-metadata",
+        "--count=3",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(10).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    out_sub = proc_sub.wait(30.0)[1].splitlines()  # discovery takes a while
+    proc_pub.wait(10.0, interrupt=True)
+    time.sleep(1.0)
+    msgs = list(map(json.loads, out_sub))
+    assert msgs == [{"1000": {"value": "hello"}, "2000": {"value": "world"}}] * 3

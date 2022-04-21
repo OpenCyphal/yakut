@@ -286,7 +286,7 @@ async def publish(
                 subject_id=sbj_id,
                 dtype=dty,
                 evaluator=evl,
-                presentation=node.presentation,
+                node=node,
                 priority=priority,
                 send_timeout=send_timeout,
             )

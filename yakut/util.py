@@ -41,7 +41,7 @@ async def fetch_registers(
             _logger.warning("Request to %r has timed out: %s", node_id, req)
             return None
         assert isinstance(resp, List_1.Response)
-        if not resp.name.name:
+        if not resp.name.name.tobytes():
             break
         names.append(resp.name.name.tobytes().decode())
     _logger.debug("Register names fetched from node %r: %s", node_id, names)

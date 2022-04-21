@@ -14,7 +14,7 @@ from pycyphal.presentation import Subscriber, subscription_synchronizer
 import yakut
 from yakut.param.formatter import Formatter
 from yakut.util import convert_transfer_metadata_to_builtin
-from ._pubsub_common import process_subject_specifier, SubjectResolver
+from yakut.subject_specifier_processor import process_subject_specifier, SubjectResolver
 
 if TYPE_CHECKING:
     import pycyphal.application

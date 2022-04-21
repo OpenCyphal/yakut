@@ -15,8 +15,8 @@ import pycyphal
 import yakut
 from yakut.helpers import EnumParam
 from yakut.yaml import EvaluableLoader
+from yakut.subject_specifier_processor import process_subject_specifier, SubjectResolver
 from ._executor import Executor, Publication
-from .._pubsub_common import process_subject_specifier, SubjectResolver
 
 _MIN_SEND_TIMEOUT = 0.1
 """

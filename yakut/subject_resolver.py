@@ -26,7 +26,7 @@ class SubjectResolver:
         self._reg_cache: dict[int, dict[str, ValueProxy] | None] = {}
         self._seen_nodes: set[int] = set()
         self._sub_heart = self._local_node.make_subscriber(Heartbeat_1)
-        self._sub_heart.transport_session.transfer_id_timeout = 0
+        self._sub_heart.transport_session.transfer_id_timeout = 1e-3
         self._sub_heart.receive_in_background(
             lambda _, meta: self._seen_nodes.add(meta.source_node_id) if meta.source_node_id is not None else None
         )

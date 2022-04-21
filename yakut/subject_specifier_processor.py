@@ -4,11 +4,26 @@
 
 from __future__ import annotations
 from typing import Any, Callable
-import click
 import pycyphal
 import yakut
 from yakut.subject_resolver import SubjectResolver as SubjectResolver
 from yakut import dtype_loader
+
+
+class SubjectSpecifierProcessingError(RuntimeError):
+    pass
+
+
+class BadSpecifierError(SubjectSpecifierProcessingError):
+    pass
+
+
+class NoFixedPortIDError(SubjectSpecifierProcessingError):
+    pass
+
+
+class NetworkDiscoveryError(SubjectSpecifierProcessingError):
+    pass
 
 
 async def process_subject_specifier(
@@ -22,33 +37,26 @@ async def process_subject_specifier(
     This enables lazy construction of the local node and stuff, which is desirable as it may be very costly.
     The caller is responsible for closing the resolver afterwards (unless it was not needed).
     """
-    specs = specifier.split(":")
-    if not (1 <= len(specs) <= 2):
-        click.BadParameter(f"Subject specifier invalid: {specifier!r}")
-    if len(specs) == 2:  # The simplest case -- full information is given explicitly.
-        _logger.info("Subject specifier interpreted as explicit: %r", specs)
-        return int(specs[0]), dtype_loader.load_dtype(specs[1])
+    if specifier.count(":") == 1:  # The simplest case -- full information is given explicitly.
+        sp_sbj_id, sp_dty = specifier.split(":")
+        _logger.info("Subject specifier interpreted as explicit: %r", (sp_sbj_id, sp_dty))
+        subject_id = _parse_subject_id(sp_sbj_id)
+        if not subject_id:
+            raise BadSpecifierError(f"{subject_id} is not a valid subject-ID")
+        return subject_id, dtype_loader.load_dtype(sp_dty)
 
-    (spec,) = specs
-    del specs
-    try:
-        subject_id: int | None = int(spec)
-    except ValueError:
-        subject_id = None
-    else:
-        assert isinstance(subject_id, int)
-        if not (0 <= subject_id <= pycyphal.transport.MessageDataSpecifier.SUBJECT_ID_MASK):
-            raise click.BadParameter(f"{subject_id} is not a valid subject-ID")
-
+    subject_id = _parse_subject_id(specifier)
     if subject_id is None:
-        _logger.debug("Subject specifier is not a number, assume it is dtype name with fixed port-ID: %r", spec)
-        dtype = dtype_loader.load_dtype(spec)
+        _logger.debug(
+            "Subject specifier is not a valid subject-ID, assume it is dtype name with fixed port-ID: %r", specifier
+        )
+        dtype = dtype_loader.load_dtype(specifier)
         subject_id = pycyphal.dsdl.get_fixed_port_id(dtype)
         _logger.debug("Loaded dtype %s with fixed port-ID %r", dtype, subject_id)
         if subject_id is None:
-            raise click.ClickException(
-                f"Type specified as {spec!r} is found but it has no fixed port-ID. "
-                f"Consider specifying the subject-ID manually? The syntax is like 1234:{spec}"
+            raise NoFixedPortIDError(
+                f"Type specified as {specifier!r} is found but it has no fixed port-ID. "
+                f"Consider specifying the subject-ID manually? The syntax is like 1234:{specifier}"
             )
         return subject_id, dtype
 
@@ -65,7 +73,7 @@ async def process_subject_specifier(
             if dtype is not None and pycyphal.dsdl.is_message_type(dtype) and not pycyphal.dsdl.is_service_type(dtype)
         )
     except StopIteration:
-        raise click.ClickException(
+        raise NetworkDiscoveryError(
             f"Automatic network discovery did not return suitable dtypes for subject {subject_id}. "
             f"Either the subject-ID is incorrect, or the nodes that utilize it are currently offline, "
             f"or they do not support the introspection services required for automatic discovery. "
@@ -74,6 +82,16 @@ async def process_subject_specifier(
     _logger.debug("Network discovery for subject %s done with dtype %s", subject_id, dtype)
     assert isinstance(dtype, type)
     return subject_id, dtype
+
+
+def _parse_subject_id(spec: str) -> int | None:
+    try:
+        val = int(spec)
+    except ValueError:
+        return None
+    if 0 <= val <= pycyphal.transport.MessageDataSpecifier.SUBJECT_ID_MASK:
+        return val
+    return None
 
 
 _logger = yakut.get_logger(__name__)

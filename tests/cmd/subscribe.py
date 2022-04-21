@@ -28,14 +28,19 @@ def _unittest_subscribe(compiled_dsdl: Any) -> None:
     assert "nothing to do" in stderr.lower()
     assert "count" in stderr.lower()
 
-    # Compiled DSDL not found.
+    # Transport not specified.
+    result, _, stderr = execute_cli("sub", "4444:uavcan.si.unit.force.Scalar", timeout=5.0, ensure_success=False)
+    assert result != 0
+    assert "transport" in stderr.lower()
+
+
+def _unittest_dsdl_not_found() -> None:
+    env = {
+        "UAVCAN__LOOPBACK": "1",
+        "UAVCAN__NODE__ID": "1234",
+    }
     result, _, stderr = execute_cli(
         "sub", "4444:uavcan.si.unit.force.Scalar", timeout=5.0, ensure_success=False, environment_variables=env
     )
     assert result != 0
     assert "yakut compile" in stderr.lower()
-
-    # Transport not specified.
-    result, _, stderr = execute_cli("sub", "4444:uavcan.si.unit.force.Scalar", timeout=5.0, ensure_success=False)
-    assert result != 0
-    assert "transport" in stderr.lower()

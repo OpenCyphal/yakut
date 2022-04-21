@@ -214,7 +214,7 @@ async def _resolve(raw_spec: str, server_node_id: int, node_provider: Callable[[
     Otherwise we have to query the server node to find out the type and/or ID of the service.
     """
     specs = raw_spec.split(":")
-    if not (1 <= len(specs) <= 2):
+    if not 1 <= len(specs) <= 2:
         click.BadParameter(f"Service specifier invalid: {raw_spec!r}")
 
     if len(specs) == 2:
@@ -280,7 +280,7 @@ async def _resolve_service_id_type(
             return None
         assert isinstance(resp, Access_1.Response)
         port_id = int(ValueProxy(resp.value))
-        if not (0 <= port_id <= pycyphal.transport.ServiceDataSpecifier.SERVICE_ID_MASK):
+        if not 0 <= port_id <= pycyphal.transport.ServiceDataSpecifier.SERVICE_ID_MASK:
             _logger.debug("Service %r at node %r is not configured", port_name, server_node_id)
             return None
 

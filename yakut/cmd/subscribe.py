@@ -5,7 +5,7 @@
 from __future__ import annotations
 import sys
 import asyncio
-from typing import Any, Sequence, TYPE_CHECKING, Callable, Iterable
+from typing import Any, Sequence, TYPE_CHECKING, Callable
 import logging
 from functools import lru_cache
 import click

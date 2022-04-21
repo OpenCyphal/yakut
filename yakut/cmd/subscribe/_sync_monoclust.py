@@ -36,7 +36,7 @@ def make_sync_monoclust(
                     tolerance_minmax,
                     (sync.tolerance + _tolerance_from_key_delta(prev_key, key)) * 0.5,
                 )
-            _logger.debug("Tolerance update: prev_key=%r key=%r tolerance=%r", prev_key, key, sync.tolerance)
+            _logger.info("Tolerance autotune: prev_key=%r key=%r tolerance=%r", prev_key, key, sync.tolerance)
             prev_key = key
 
     return fun

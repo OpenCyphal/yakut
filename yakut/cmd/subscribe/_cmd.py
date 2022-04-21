@@ -129,8 +129,8 @@ Exit automatically after this many messages (or synchronous message groups) have
 """,
 )
 @click.option(
-    "--sync-monoclust-timestamp",
-    "--sync-mct",
+    "--sync-monoclust",
+    "--sync-mc",
     callback=_handle_option_synchronizer_monoclust_timestamp_field,
     expose_value=False,
     type=float,
@@ -138,11 +138,7 @@ Exit automatically after this many messages (or synchronous message groups) have
     flag_value=float("nan"),
     help=f"""
 Use the monotonic clustering synchronizer with the message timestamp field as the clustering key.
-Execution will fail if any of the message types does not have this field:
-
-\b
-    uavcan.time.SynchronizedTimestamp timestamp
-
+All data types shall be timestamped for this to work.
 The optional value is the synchronization tolerance in seconds; autodetect if not specified.
 """,
 )
@@ -156,7 +152,7 @@ The optional value is the synchronization tolerance in seconds; autodetect if no
     flag_value=float("nan"),
     help=f"""
 Use the monotonic clustering synchronizer with the local arrival timestamp as the clustering key.
-Works for any data type but may perform poorly for high-frequency subjects.
+Works with all data types but may perform poorly depending on the timing and system latency.
 The optional value is the synchronization tolerance in seconds; autodetect if not specified.
 """,
 )
@@ -208,7 +204,7 @@ async def subscribe(
 
     \b
         yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata --count=1
-        yakut sub 33 42 5789
+        yakut sub 33 42 5789 --sync-monoclust-arrival=0.1
         yakut sub uavcan.node.Heartbeat
     """
     config = click.get_current_context().ensure_object(Config)

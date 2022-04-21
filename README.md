@@ -189,7 +189,7 @@ You will see output if there is a publisher on this subject (more on this in the
 
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
-$ yakut sub 33:uavcan.si.unit.angle.Scalar
+$ yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata
 ---
 33:
   _metadata_:

@@ -37,8 +37,11 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
-Installation & configuration screencasts for Windows and GNU/Linux are
-[available on the forum](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197).
+Installation & configuration screencasts are available for
+[Windows](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197/2?u=pavel.kirienko),
+[GNU/Linux](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197/1?u=pavel.kirienko),
+and
+[macOS](https://www.youtube.com/watch?v=dQw4w9WgXcQ).
 
 ### Additional third-party tools
 

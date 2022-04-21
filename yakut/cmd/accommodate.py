@@ -2,7 +2,6 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-import sys
 import random
 import asyncio
 import contextlib
@@ -104,14 +103,12 @@ async def accommodate(purser: yakut.Purser) -> None:
                     deadline = max(deadline, asyncio.get_event_loop().time() + advancement)
 
     if not candidates:
-        click.secho(f"All {node_id_set_cardinality} of the available node-ID values are occupied.", err=True, fg="red")
-        sys.exit(1)
-    else:
-        pick = random.choice(list(candidates))
-        _logger.info(
-            "The set of unoccupied node-ID values contains %d elements out of %d possible; the chosen value is %d",
-            len(candidates),
-            node_id_set_cardinality,
-            pick,
-        )
-        click.echo(pick)
+        raise click.ClickException(f"All {node_id_set_cardinality} of the available node-ID values are occupied")
+    pick = random.choice(list(candidates))
+    _logger.info(
+        "The set of unoccupied node-ID values contains %d elements out of %d possible; the chosen value is %d",
+        len(candidates),
+        node_id_set_cardinality,
+        pick,
+    )
+    click.echo(pick)

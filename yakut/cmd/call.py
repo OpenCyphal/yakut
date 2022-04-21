@@ -3,10 +3,10 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-import sys
 from typing import Any, Callable, TYPE_CHECKING
 import decimal
-import contextlib
+from functools import lru_cache
+import asyncio
 import click
 import pycyphal
 import yakut
@@ -122,27 +122,34 @@ async def call(
         priority,
         with_metadata,
     )
-
-    def get_node() -> Node:
-        return purser.get_node("call", allow_anonymous=False)
-
-    service_id, dtype = await _resolve(service, server_node_id, get_node)
+    finalizers: list[Callable[[], None]] = []
     try:
-        request = dtype.Request()
-    except AttributeError:
-        raise click.ClickException(f"{pycyphal.dsdl.get_model(dtype)} is not a service type") from None
-    request = pycyphal.dsdl.update_from_builtin(request, request_fields)
-    _logger.info("Request object: %r", request)
+        formatter = purser.make_formatter()
 
-    formatter = purser.make_formatter()
-    node = get_node()
-    assert isinstance(node, Node) and callable(formatter)
-    with contextlib.closing(node):
-        client = node.presentation.make_client(dtype, service_id, server_node_id)
+        # The cached factory is needed to postpone node initialization as much as possible because it disturbs
+        # the network and the networking hardware (if any) and is usually costly.
+        @lru_cache(None)
+        def get_node() -> Node:
+            node = purser.get_node("call", allow_anonymous=False)
+            finalizers.append(node.close)
+            return node
+
+        service_id, dtype = await _resolve(service, server_node_id, get_node)
+        if not pycyphal.dsdl.is_service_type(dtype):
+            raise click.ClickException(f"{pycyphal.dsdl.get_model(dtype)} is not a service type") from None
+        request = pycyphal.dsdl.update_from_builtin(dtype.Request(), request_fields)
+        _logger.info("Request object: %r", request)
+
+        client = get_node().make_client(dtype, server_node_id, service_id)
+        finalizers.append(client.close)
         client.response_timeout = timeout
         client.priority = priority
-        node.start()
+
+        get_node().start()
         await _run(client, request, formatter, with_metadata=with_metadata)
+    finally:
+        pycyphal.util.broadcast(finalizers[::-1])()
+        await asyncio.sleep(1e-3)  # Let the background tasks finalize before leaving the loop.
 
 
 async def _run(
@@ -163,8 +170,7 @@ async def _run(
     result = await client.call(request)
     response_ts_application = pycyphal.transport.Timestamp.now()
     if result is None:
-        click.secho(f"The request has timed out after {client.response_timeout:0.1f} seconds", err=True, fg="red")
-        sys.exit(1)
+        raise click.ClickException(f"The request has timed out after {client.response_timeout:0.1f} seconds")
     if not request_ts_transport:  # pragma: no cover
         request_ts_transport = request_ts_application
         _logger.warning(

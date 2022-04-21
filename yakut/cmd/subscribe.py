@@ -191,12 +191,7 @@ async def _run(
             assert isinstance(meta, pycyphal.transport.TransferFrom) and isinstance(subscriber, Subscriber)
             bi: dict[str, Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
             if with_metadata:
-                bi.update(
-                    convert_transfer_metadata_to_builtin(
-                        meta,
-                        **get_extra_metadata(subscriber),
-                    )
-                )
+                bi.update(convert_transfer_metadata_to_builtin(meta, **get_extra_metadata(subscriber)))
             bi.update(pycyphal.dsdl.to_builtin(msg))
             outer[subscriber.port_id] = bi
 

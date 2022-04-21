@@ -47,10 +47,10 @@ class Config:
         return self._synchronizer_factory
 
 
-def _has_field(model: pydsdl.CompositeType, name: str, field_full_type_name: str) -> bool:
+def _has_field(model: pydsdl.CompositeType, name: str, type_full_name: str) -> bool:
     for field in model.fields:
         dt = field.data_type
-        if field.name == name and isinstance(dt, pydsdl.CompositeType) and dt.full_name == field_full_type_name:
+        if field.name == name and isinstance(dt, pydsdl.CompositeType) and dt.full_name == type_full_name:
             return True
     return False
 

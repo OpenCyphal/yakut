@@ -60,7 +60,7 @@ async def process_subject_specifier(
             )
         return subject_id, dtype
 
-    _logger.debug("Subject specifier is a number, will resolve dtype using network discovery: %r", subject_id)
+    _logger.info("Subject specifier is a number (%r), using network resolver (this may take a few seconds)", subject_id)
     assert isinstance(subject_id, int)
     resolver = resolver_provider()
     # Sorting to bubble newer types higher up. This should be natural sort.

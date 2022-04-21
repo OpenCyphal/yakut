@@ -4,7 +4,9 @@
 
 from __future__ import annotations
 import asyncio
+import sys
 from typing import Optional, Dict, TypeVar, Generic, cast, Any, TYPE_CHECKING
+import shutil
 import click
 import pycyphal
 from pycyphal.transport import MessageDataSpecifier, ServiceDataSpecifier, Timestamp, AlienTransfer
@@ -53,7 +55,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
     The output contains a table of nodes that are (or were) online followed by the connectivity matrix.
     The matrix shows the real-time traffic split by session:
     if node X emits transfers over port Y, the matrix cell (Y, X) will contain the averaged rate
-    in transfers per second for this session.
+    in transfers per second (t/s) for this session.
     The rightmost/bottom cells show the totals per port/node, respectively.
     These values allow one to assess how much load each element contributes to the total.
     The summary load in bytes per second (B/s) is also provided per port/node.
@@ -188,6 +190,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
                 byte_rates=byte_rates,
                 total_transport_errors=total_transport_error_count,
                 fir_window_duration=fir_window_duration,
+                max_width=shutil.get_terminal_size((sys.maxsize, 0))[0],
             )
             elapsed_render = loop.time() - ts_render_started
 

@@ -66,15 +66,18 @@ class TableRenderer:
             data, style = value, None
         self.set_cell(row, col, data, style=style)
 
-    def flip_buffer(self) -> str:
+    def render(self, max_width: int) -> str:
         # Make all rows equal length.
         m_row, m_col = self._canvas.extent
         for row in range(m_row):
             self._canvas.put(row, m_col, "")
-        return self._canvas.flip_buffer()
+        return self._canvas.render(max_width)
 
 
 class Canvas:
+    _MIN_MAX_WIDTH = 80
+    _MARGIN = 3
+
     @dataclasses.dataclass(frozen=True)
     class _Block:
         column: int
@@ -100,20 +103,25 @@ class Canvas:
         self._rows[row].append(bl)
         return column + len(text)
 
-    def flip_buffer(self) -> str:
-        out = "\n".join(map(self._render_row, self._rows)) + click.style("", reset=True)
+    def render(self, max_width: int) -> str:
+        max_width = max(Canvas._MIN_MAX_WIDTH, max_width - Canvas._MARGIN)
+        out = "\n".join(self._render_row(r, max_width) for r in self._rows) + click.style("", reset=True)
         self._rows = []
         return out
 
-    def _render_row(self, ln: list[Canvas._Block]) -> str:
+    def _render_row(self, ln: list[Canvas._Block], max_width: int) -> str:
         col = 0
         out: list[str] = [self._begin_style(None)]
         for b in sorted(ln, key=lambda x: x.column):
+            if b.column >= max_width:
+                break
             out.append(" " * (b.column - col))
-            col = b.column
+            margin = max_width - b.column
+            assert margin > 0
+            addition = b.text[:margin]
             out.append(self._begin_style(b.style))
-            out.append(b.text)
-            col += len(b.text)
+            out.append(addition)
+            col = b.column + len(addition)
         return "".join(out)
 
     @staticmethod

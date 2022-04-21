@@ -47,7 +47,7 @@ class View:
 
         legend_canvas = Canvas()
         row = 0
-        col = legend_canvas.put(row, 0, "APPLICATION LAYER CONNECTIVITY MATRIX [t/s=transfer/second] Colors: ")
+        col = legend_canvas.put(row, 0, "Legend: ")
         col = legend_canvas.put(
             row, col, "pub/cln", style=get_matrix_cell_style(tx=True, rx=False, recently_active=False)
         )
@@ -72,7 +72,7 @@ class View:
         col = legend_canvas.put(row, col, "not", style=S_POOR)
         legend_canvas.put(row, col, "│")
 
-        self._connectivity_matrix_legend = legend_canvas.flip_buffer()
+        self._connectivity_matrix_legend = legend_canvas.render(sys.maxsize)
 
     def flip_buffer(self) -> str:
         out = "\n".join(self._fragments)
@@ -87,14 +87,17 @@ class View:
         byte_rates: spmatrix,
         total_transport_errors: int,
         fir_window_duration: float,
+        *,
+        max_width: int = sys.maxsize,
     ) -> None:
-        self._fragments.append(self._render_node_table(states))
-
+        self._fragments.append(self._render_node_table(states, max_width=max_width))
         self._fragments.append(self._connectivity_matrix_legend)
-        self._fragments.append(self._render_connectivity_matrix(states, xfer_deltas, xfer_rates, byte_rates))
+        self._fragments.append(
+            self._render_connectivity_matrix(states, xfer_deltas, xfer_rates, byte_rates, max_width=max_width)
+        )
 
         annotation_canvas = Canvas()
-        col = annotation_canvas.put(0, 0, "Total transport layer errors:")
+        col = annotation_canvas.put(0, 0, "Transport errors:")
         col = annotation_canvas.put(
             0,
             col,
@@ -102,9 +105,9 @@ class View:
             style=S_POOR if total_transport_errors > 0 else S_NICE,
         )
         col += 9
-        col = annotation_canvas.put(0, col, f"Values averaged over {fir_window_duration:.1f} sec")
+        col = annotation_canvas.put(0, col, f"Average over {fir_window_duration:.1f} sec")
         _ = col
-        self._fragments.append(annotation_canvas.flip_buffer())
+        self._fragments.append(annotation_canvas.render(max_width))
 
     # noinspection SpellCheckingInspection
     _NODE_TABLE_HEADER = [
@@ -120,7 +123,7 @@ class View:
         "Name",
     ]
 
-    def _render_node_table(self, states: dict[Optional[int], NodeState]) -> str:
+    def _render_node_table(self, states: dict[Optional[int], NodeState], max_width: int) -> str:
         for idx, s in enumerate(View._NODE_TABLE_HEADER):
             self._node_table_renderer[0, idx] = s
 
@@ -192,7 +195,7 @@ class View:
                 for _ in range(5):
                     put("?", S_MUTED)
 
-        return self._node_table_renderer.flip_buffer()
+        return self._node_table_renderer.render(max_width)
 
     # noinspection SpellCheckingInspection
     def _render_connectivity_matrix(
@@ -201,6 +204,8 @@ class View:
         xfer_delta: spmatrix,
         xfer_rates: spmatrix,
         byte_rates: spmatrix,
+        *,
+        max_width: int,
     ) -> str:
         tbl = self._connectivity_matrix_renderer
         online_states: dict[Optional[int], NodeState] = {k: v for k, v in states.items() if v.online}
@@ -318,7 +323,7 @@ class View:
         tbl[row_total + 1, num_nodes + 3] = ""
         tbl[row_total + 2, num_nodes + 3] = ""
 
-        return tbl.flip_buffer()
+        return tbl.render(max_width)
 
     @staticmethod
     def _render_subject_matrix_contents(

@@ -130,7 +130,7 @@ async def _unittest_monitor_errors(compiled_dsdl: Any, serial_broker: str) -> No
     assert cells[5][0] == "3333"
 
     # Error counter
-    assert cells[-1][4] == "1"
+    assert cells[-1][2] == "1"
 
     await asyncio.sleep(3.0)
 

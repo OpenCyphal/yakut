@@ -39,7 +39,7 @@ async def accommodate(purser: yakut.Purser) -> None:
     except (ImportError, AttributeError):
         from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(make_usage_suggestion("uavcan")) from None
+        raise click.ClickException(make_usage_suggestion("uavcan")) from None
 
     transport = purser.get_transport()
     node_id_set_cardinality = transport.protocol_parameters.max_nodes

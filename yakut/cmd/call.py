@@ -111,7 +111,7 @@ async def call(
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(make_usage_suggestion(ex.name))
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
     _logger.debug(
         "server_node_id=%s, service=%r, request_fields=%r, timeout=%.6f, priority=%s, with_metadata=%s",

@@ -84,7 +84,7 @@ async def subscribe(
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(make_usage_suggestion(ex.name))
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
     finalizers: list[Callable[[], None]] = []
     try:
@@ -149,7 +149,7 @@ async def _make_subscribers(
         if subject_resolver is None:
             node = node_provider()
             if node.id is None:
-                raise click.UsageError(
+                raise click.ClickException(
                     f"Cannot use automatic discovery because the local node is anonymous, "
                     f"so it cannot access the introspection services on remote nodes. "
                     f"You need to either fully specify the subjects explicitly or assign a local node-ID."

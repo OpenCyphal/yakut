@@ -231,14 +231,14 @@ async def publish(
     if period < 1e-9 or not math.isfinite(period):
         raise click.BadParameter("Period shall be a positive real number of seconds")
     if count <= 0:
-        _logger.info("Nothing to do because count=%s", count)
+        _logger.warning("Nothing to do because count=%s", count)
         return
     try:
         from pycyphal.application import Node
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(make_usage_suggestion(ex.name))
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
     finalizers: list[Callable[[], None]] = []
     try:
@@ -264,7 +264,7 @@ async def publish(
         def get_subject_resolver() -> SubjectResolver:
             node = get_node()
             if node.id is None:
-                raise click.UsageError(
+                raise click.ClickException(
                     f"Cannot use automatic discovery because the local node is anonymous, "
                     f"so it cannot access the introspection services on remote nodes. "
                     f"You need to either fully specify the subjects explicitly or assign a local node-ID."

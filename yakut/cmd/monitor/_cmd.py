@@ -82,7 +82,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(make_usage_suggestion(ex.name))
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
     allow_anonymous = not plug_and_play
 

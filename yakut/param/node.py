@@ -66,7 +66,7 @@ class NodeFactory:
         except ImportError as ex:
             from yakut.cmd.compile import make_usage_suggestion
 
-            raise click.UsageError(make_usage_suggestion(ex.name))
+            raise click.ClickException(make_usage_suggestion(ex.name))
 
         try:
             node_info = pycyphal.dsdl.update_from_builtin(application.NodeInfo(), self.node_info)
@@ -103,7 +103,7 @@ class NodeFactory:
 
             # Check the node-ID configuration.
             if not allow_anonymous and node.presentation.transport.local_node_id is None:
-                raise click.UsageError(
+                raise click.ClickException(
                     "The specified transport is configured in anonymous mode, which cannot be used with this command."
                 )
 

@@ -146,7 +146,7 @@ async def file_server(
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(make_usage_suggestion(ex.name))
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
     with purser.get_node("file_server", allow_anonymous=False) as node:
         node_tracker: Optional[NodeTracker] = None  # Initialized lazily only if needed.

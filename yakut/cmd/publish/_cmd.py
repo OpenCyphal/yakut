@@ -13,7 +13,7 @@ from functools import lru_cache
 import click
 import pycyphal
 import yakut
-from yakut.helpers import EnumParam
+from yakut.enum_param import EnumParam
 from yakut.yaml import EvaluableLoader
 from yakut.subject_specifier_processor import process_subject_specifier, SubjectResolver
 from ._executor import Executor, Publication

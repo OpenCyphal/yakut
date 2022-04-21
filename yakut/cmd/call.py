@@ -10,7 +10,7 @@ import asyncio
 import click
 import pycyphal
 import yakut
-from yakut.helpers import EnumParam
+from yakut.enum_param import EnumParam
 from yakut.param.formatter import Formatter
 from yakut.util import convert_transfer_metadata_to_builtin
 from yakut import dtype_loader

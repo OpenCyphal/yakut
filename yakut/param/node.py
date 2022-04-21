@@ -18,7 +18,7 @@ from pycyphal.transport import Transport, OutputSessionSpecifier, Priority
 from pycyphal.presentation import OutgoingTransferIDCounter
 import yakut
 from yakut.paths import OUTPUT_TRANSFER_ID_MAP_DIR, OUTPUT_TRANSFER_ID_MAP_MAX_AGE
-from yakut.helpers import EnumParam
+from yakut.enum_param import EnumParam
 
 if typing.TYPE_CHECKING:
     import pycyphal.application  # pylint: disable=ungrouped-imports

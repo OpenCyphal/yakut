@@ -3,12 +3,14 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+from typing import Any
 from tests.subprocess import execute_cli
 
 
-def _unittest_subscribe() -> None:
+def _unittest_subscribe(compiled_dsdl: Any) -> None:
+    _ = compiled_dsdl
     env = {
-        "YAKUT_TRANSPORT": "Loopback(1234)",  # Can't use registers here because DSDL is not compiled.
+        "YAKUT_TRANSPORT": "Loopback(1234)",
     }
 
     # No subjects specified.

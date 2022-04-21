@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import asyncio
 import math
 from typing import Tuple, List, Sequence, Callable, Any, Dict
 import dataclasses
@@ -239,68 +240,88 @@ async def publish(
 
         raise click.UsageError(make_usage_suggestion(ex.name))
 
-    send_timeout = max(_MIN_SEND_TIMEOUT, period)
-    loader = EvaluableLoader(ExpressionContextModule.load(_EXPRESSION_CONTEXT_MODULES))
+    finalizers: list[Callable[[], None]] = []
+    try:
+        # Parse the field specs we were given to validate syntax.
+        # Do this early before other resources are initialized.
+        yaml_loader = EvaluableLoader(ExpressionContextModule.load(_EXPRESSION_CONTEXT_MODULES))
+        evaluators: list[Callable[..., Any]] = []
+        for _, field_spec in message:
+            try:
+                evaluators.append(yaml_loader.load_unevaluated(field_spec))
+            except ValueError as ex:
+                raise click.BadParameter(f"Invalid field spec {field_spec!r}: {ex}") from None
 
-    # Node construction should be delayed as much as possible to avoid unnecessary interference
-    # with the bus and hardware. This is why we use the factory here instead of constructing the node eagerly.
-    @lru_cache(None)
-    def get_node() -> Node:
-        return purser.get_node("publish", allow_anonymous=True)
+        # Node construction should be delayed as much as possible to avoid unnecessary interference
+        # with the bus and hardware. This is why we use the factory here instead of constructing the node eagerly.
+        @lru_cache(None)
+        def get_node() -> Node:
+            node = purser.get_node("publish", allow_anonymous=True)
+            finalizers.append(node.close)
+            return node
 
-    @lru_cache(None)
-    def get_subject_resolver() -> SubjectResolver:
+        @lru_cache(None)
+        def get_subject_resolver() -> SubjectResolver:
+            node = get_node()
+            if node.id is None:
+                raise click.UsageError(
+                    f"Cannot use automatic discovery because the local node is anonymous, "
+                    f"so it cannot access the introspection services on remote nodes. "
+                    f"You need to either fully specify the subjects explicitly or assign a local node-ID."
+                )
+            sr = SubjectResolver(node)
+            finalizers.append(sr.close)
+            return sr
+
+        # Resolve subject-IDs and dtypes. This may or may not require the local node.
+        subject_id_dtype_pairs: list[tuple[int, Any]] = [
+            await process_subject_specifier(subject_spec, get_subject_resolver) for subject_spec, _ in message
+        ]
+
+        # We delayed node construction as much as possible. It may already be constructed if subject resolver was used.
+        send_timeout = max(_MIN_SEND_TIMEOUT, period)
         node = get_node()
-        if node.id is None:
-            raise click.UsageError(
-                f"Cannot use automatic discovery because the local node is anonymous, "
-                f"so it cannot access the introspection services on remote nodes. "
-                f"You need to either fully specify the subjects explicitly or assign a local node-ID."
+        publications = [
+            Publication(
+                subject_id=sbj_id,
+                dtype=dty,
+                evaluator=evl,
+                presentation=node.presentation,
+                priority=priority,
+                send_timeout=send_timeout,
             )
-        return SubjectResolver(node)
+            for (sbj_id, dty), evl in zip(subject_id_dtype_pairs, evaluators)
+        ]
+        executor = Executor(loader=yaml_loader, publications=publications)
+        finalizers.append(executor.close)
 
-    async def make_publication_factory(specifier: str, field_spec: str) -> Callable[[], Publication]:
-        subject_id, dtype = await process_subject_specifier(specifier, get_subject_resolver)
+        # Everything is ready, the node can be started now.
         try:
-            evaluator = loader.load_unevaluated(field_spec)
-        except ValueError as ex:
-            raise click.BadParameter(f"Invalid field spec {field_spec!r}: {ex}") from None
-        return lambda: Publication(
-            subject_id=subject_id,
-            dtype=dtype,
-            evaluator=evaluator,
-            presentation=get_node().presentation,
-            priority=priority,
-            send_timeout=send_timeout,
-        )
-
-    # Such indirection is to perform as much processing as possible before constructing the node.
-    # Catching errors early allows us to avoid disturbing the network and peripherals unnecessarily.
-    publication_factories = [await make_publication_factory(*m) for m in message]
-    node = get_node()
-    executor = Executor(
-        node=node,
-        loader=loader,
-        publications=(f() for f in publication_factories),
-    )
-    try:  # Even if the publication set is empty, we still have to publish the heartbeat.
-        _logger.info(
-            "Publishing %d subjects with period %.3fs, send timeout %.3fs, count %d, priority %s",
-            len(publication_factories),
-            period,
-            send_timeout,
-            count,
-            priority.name,
-        )
-        await executor.run(count=count, period=period)
+            with node:
+                _logger.info(
+                    "Publishing %d subjects with period %.3fs, send timeout %.3fs, count %d, priority %s",
+                    len(message),
+                    period,
+                    send_timeout,
+                    count,
+                    priority.name,
+                )
+                await executor.run(count=count, period=period)
+        except KeyboardInterrupt:
+            pass
+        _log_final_report(node.presentation)
     finally:
-        executor.close()
-        if _logger.isEnabledFor(logging.INFO):
-            _logger.info("%s", node.presentation.transport.sample_statistics())
-            for s in node.presentation.transport.output_sessions:
-                ds = s.specifier.data_specifier
-                if isinstance(ds, pycyphal.transport.MessageDataSpecifier):
-                    _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
+        pycyphal.util.broadcast(finalizers[::-1])()
+        await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop
+
+
+def _log_final_report(presentation: pycyphal.presentation.Presentation) -> None:
+    if _logger.isEnabledFor(logging.INFO):
+        _logger.info("%s", presentation.transport.sample_statistics())
+        for s in presentation.transport.output_sessions:
+            ds = s.specifier.data_specifier
+            if isinstance(ds, pycyphal.transport.MessageDataSpecifier):
+                _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
 
 
 _logger = yakut.get_logger(__name__)

@@ -20,6 +20,7 @@ async def process_subject_specifier(
     The resolver factory will be invoked if the user is asking us to perform automatic discovery through the network.
     If the specifier is complete (provides both subject-ID and dtype), the resolver will not be needed.
     This enables lazy construction of the local node and stuff, which is desirable as it may be very costly.
+    The caller is responsible for closing the resolver afterwards (unless it was not needed).
     """
     specs = specifier.split(":")
     if not (1 <= len(specs) <= 2):

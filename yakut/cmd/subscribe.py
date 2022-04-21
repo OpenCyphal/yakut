@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 import sys
+import asyncio
 from typing import Any, Sequence, TYPE_CHECKING, Callable, Iterable
 import logging
 from functools import lru_cache
@@ -85,67 +86,84 @@ async def subscribe(
 
         raise click.UsageError(make_usage_suggestion(ex.name))
 
-    _logger.debug("subject=%r, with_metadata=%r, count=%r", subject, with_metadata, count)
-    if count is not None and count <= 0:
-        _logger.warning("Nothing to do because count=%s", count)
-        return
+    finalizers: list[Callable[[], None]] = []
+    try:
+        _logger.debug("subject=%r, with_metadata=%r, count=%r", subject, with_metadata, count)
+        if count is not None and count <= 0:
+            _logger.warning("Nothing to do because count=%s", count)
+            return
 
-    count = count if count is not None else sys.maxsize
-    formatter = purser.make_formatter()
+        count = count if count is not None else sys.maxsize
+        formatter = purser.make_formatter()
 
-    # Node construction should be delayed as much as possible to avoid unnecessary interference
-    # with the bus and hardware. This is why we use the factory here instead of constructing the node eagerly.
-    @lru_cache(None)
-    def get_node() -> Node:
-        return purser.get_node("subscribe", allow_anonymous=True)
+        # Node construction should be delayed as much as possible to avoid unnecessary interference
+        # with the bus and hardware. This is why we use the factory here instead of constructing the node eagerly.
+        @lru_cache(None)
+        def get_node() -> Node:
+            node = purser.get_node("subscribe", allow_anonymous=True)
+            finalizers.append(node.close)
+            return node
 
-    subscribers: list[Subscriber[Any]] = await _make_subscribers(subject, get_node)
-    synchronizer: subscription_synchronizer.Synchronizer
-    if len(subscribers) == 0:
-        _logger.warning("Nothing to do because no subjects are specified")
-        return
-    if len(subscribers) == 1:
-        synchronizer = _UnarySynchronizer(subscribers[0])
-    else:
-        # TODO FIXME parameterize synchronizer instantiation; automatic tolerance
-        from pycyphal.presentation.subscription_synchronizer import monotonic_clustering
+        subscribers: list[Subscriber[Any]] = await _make_subscribers(subject, get_node)
+        finalizers += [s.close for s in subscribers]
 
-        synchronizer = monotonic_clustering.MonotonicClusteringSynchronizer(
-            subscribers, subscription_synchronizer.get_local_reception_timestamp, 1.0
-        )
+        synchronizer: subscription_synchronizer.Synchronizer
+        if len(subscribers) == 0:
+            _logger.warning("Nothing to do because no subjects are specified")
+            return
+        if len(subscribers) == 1:
+            synchronizer = _UnarySynchronizer(subscribers[0])
+        else:
+            # TODO FIXME parameterize synchronizer instantiation; automatic tolerance
+            from pycyphal.presentation.subscription_synchronizer import monotonic_clustering
 
-    with get_node() as node:
-        if node.id is not None:
-            _logger.info("It is recommended to use an anonymous node with this command to avoid extra network traffic")
-        try:
-            await _run(synchronizer, formatter, with_metadata=with_metadata, count=count)
-        finally:
-            if _logger.isEnabledFor(logging.INFO):
-                _logger.info("%s", node.presentation.transport.sample_statistics())
-                for sub in subscribers:
-                    _logger.info("% 4s: %s", sub.port_id, sub.sample_statistics())
-            synchronizer.close()
+            synchronizer = monotonic_clustering.MonotonicClusteringSynchronizer(
+                subscribers, subscription_synchronizer.get_local_reception_timestamp, 1.0
+            )
+        finalizers.append(synchronizer.close)
+
+        with get_node() as node:
+            if node.id is not None:
+                _logger.info("It is recommended to use an anonymous node with this command")
+            try:
+                await _run(synchronizer, formatter, with_metadata=with_metadata, count=count)
+            finally:
+                if _logger.isEnabledFor(logging.INFO):
+                    _logger.info("%s", node.presentation.transport.sample_statistics())
+                    for sub in subscribers:
+                        _logger.info("% 4s: %s", sub.port_id, sub.sample_statistics())
+                synchronizer.close()
+    finally:
+        pycyphal.util.broadcast(finalizers[::-1])()
+        await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop
 
 
 async def _make_subscribers(
     specifiers: Sequence[str],
     node_provider: Callable[[], "pycyphal.application.Node"],
 ) -> list[Subscriber[Any]]:
-    @lru_cache(None)
+    subject_resolver: SubjectResolver | None = None
+
     def get_resolver() -> SubjectResolver:
-        node = node_provider()
-        if node.id is None:
-            raise click.UsageError(
-                f"Cannot use automatic discovery because the local node is anonymous, "
-                f"so it cannot access the introspection services on remote nodes. "
-                f"You need to either fully specify the subjects explicitly or assign a local node-ID."
-            )
-        return SubjectResolver(node)
+        nonlocal subject_resolver
+        if subject_resolver is None:
+            node = node_provider()
+            if node.id is None:
+                raise click.UsageError(
+                    f"Cannot use automatic discovery because the local node is anonymous, "
+                    f"so it cannot access the introspection services on remote nodes. "
+                    f"You need to either fully specify the subjects explicitly or assign a local node-ID."
+                )
+            subject_resolver = SubjectResolver(node)
+        return subject_resolver
 
-    id_types = [await process_subject_specifier(ds, get_resolver) for ds in specifiers]
-
-    # Construct the node only after we have verified that the specifiers are valid and dtypes/ids are resolved.
-    return [node_provider().make_subscriber(dtype, subject_id) for subject_id, dtype in id_types]
+    try:
+        id_types = [await process_subject_specifier(ds, get_resolver) for ds in specifiers]
+        # Construct the node only after we have verified that the specifiers are valid and dtypes/ids are resolved.
+        return [node_provider().make_subscriber(dtype, subject_id) for subject_id, dtype in id_types]
+    finally:
+        if subject_resolver:
+            subject_resolver.close()
 
 
 async def _run(

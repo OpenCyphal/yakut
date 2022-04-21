@@ -28,11 +28,9 @@ class Executor:
 
     def __init__(
         self,
-        node: pycyphal.application.Node,
         loader: EvaluableLoader,
         publications: Iterable[Publication],
     ) -> None:
-        self._node = node
         self._ctl: Optional[ControllerReader] = None
         self._publications = list(publications)
 
@@ -42,8 +40,6 @@ class Executor:
         self._loader.evaluation_context[Executor.SYM_CTRL_TOGGLE] = lambda s, i: self._sample_controller(s).toggle[i]
 
     async def run(self, count: int, period: float) -> None:
-        self._node.start()
-
         started_at: Optional[float] = None
         for index in range(count):
             # Update the expression states. Notice that the controls are sampled once atomically.
@@ -71,7 +67,6 @@ class Executor:
             await asyncio.sleep(sleep_duration)
 
     def close(self) -> None:
-        self._node.close()
         if self._ctl:
             self._ctl.close()
 

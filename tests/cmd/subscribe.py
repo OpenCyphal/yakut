@@ -4,13 +4,16 @@
 
 from __future__ import annotations
 from typing import Any
+from tests.dsdl import OUTPUT_DIR
 from tests.subprocess import execute_cli
 
 
 def _unittest_subscribe(compiled_dsdl: Any) -> None:
     _ = compiled_dsdl
     env = {
-        "YAKUT_TRANSPORT": "Loopback(1234)",
+        "UAVCAN__LOOPBACK": "1",
+        "UAVCAN__NODE__ID": "1234",
+        "YAKUT_PATH": str(OUTPUT_DIR),
     }
 
     # No subjects specified.

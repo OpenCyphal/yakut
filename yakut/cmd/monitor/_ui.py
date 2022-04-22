@@ -6,7 +6,7 @@ from __future__ import annotations
 import sys
 import dataclasses
 import functools
-from typing import Optional, Iterable, Any
+from typing import Optional, Iterable, Any, IO
 from numbers import Number
 import enum
 import click
@@ -17,10 +17,20 @@ _TEXT_STREAM = click.get_text_stream("stdout", errors="ignore")
 
 
 def refresh_screen(contents: str) -> None:
-    click.echo("\n")  # Mark the boundary between screens when redirecting to file.
-    click.clear()
+    if _isatty(sys.stdout):
+        click.clear()
+    else:
+        click.echo("\n\n")
     sys.stdout.flush()  # Synchronize clear with the following output since it is buffered separately.
-    click.echo(contents, file=_TEXT_STREAM)
+    click.echo(contents, file=_TEXT_STREAM, nl=False)
+
+
+def _isatty(stream: IO[str]) -> bool:
+    # noinspection PyBroadException
+    try:
+        return stream.isatty()
+    except Exception:
+        return False
 
 
 class Color(enum.Enum):
@@ -66,18 +76,15 @@ class TableRenderer:
             data, style = value, None
         self.set_cell(row, col, data, style=style)
 
-    def render(self, max_width: int) -> str:
+    def render(self, max_width_height: tuple[int, int]) -> str:
         # Make all rows equal length.
         m_row, m_col = self._canvas.extent
         for row in range(m_row):
             self._canvas.put(row, m_col, "")
-        return self._canvas.render(max_width)
+        return self._canvas.render(max_width_height)
 
 
 class Canvas:
-    _MIN_MAX_WIDTH = 80
-    _MARGIN = 1
-
     @dataclasses.dataclass(frozen=True)
     class _Block:
         column: int
@@ -103,9 +110,9 @@ class Canvas:
         self._rows[row].append(bl)
         return column + len(text)
 
-    def render(self, max_width: int) -> str:
-        max_width = max(Canvas._MIN_MAX_WIDTH, max_width - Canvas._MARGIN)
-        out = "\n".join(self._render_row(r, max_width) for r in self._rows) + click.style("", reset=True)
+    def render(self, max_width_height: tuple[int, int]) -> str:
+        width, height = max_width_height
+        out = "\n".join(self._render_row(r, width) for r in self._rows[:height]) + click.style("", reset=True)
         self._rows = []
         return out
 

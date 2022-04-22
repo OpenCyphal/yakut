@@ -190,7 +190,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
                 byte_rates=byte_rates,
                 total_transport_errors=total_transport_error_count,
                 fir_window_duration=fir_window_duration,
-                max_width=shutil.get_terminal_size((sys.maxsize, 0))[0],
+                max_width_height=shutil.get_terminal_size((sys.maxsize, sys.maxsize)),
             )
             elapsed_render = loop.time() - ts_render_started
 

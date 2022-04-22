@@ -26,6 +26,18 @@ if TYPE_CHECKING:
 
 _logger = yakut.get_logger(__name__)
 
+SYNC_MONOCLUST_TOLERANCE_MINMAX_TS_FIELD = 1e-6, 10.0
+"""
+Assume that externally provided timestamp is accurate at least for high-frequency topics.
+"""
+
+SYNC_MONOCLUST_TOLERANCE_MINMAX_TS_ARRIVAL = 0.02, 60.0
+"""
+A large minimum is needed due to low arrival timestamping accuracy.
+This may be especially bad on Windows where the timestamping resolution may be as low as ~16 ms,
+so the minimum tolerance should not be lower than that.
+"""
+
 
 class Config:
     def __init__(self) -> None:
@@ -42,7 +54,13 @@ class Config:
             from ._sync_monoclust import make_sync_monoclust
             from pycyphal.presentation.subscription_synchronizer import get_local_reception_timestamp
 
-            self.set_synchronizer_factory(lambda subs: make_sync_monoclust(subs, f_key=get_local_reception_timestamp))
+            self.set_synchronizer_factory(
+                lambda subs: make_sync_monoclust(
+                    subs,
+                    f_key=get_local_reception_timestamp,
+                    tolerance_minmax=SYNC_MONOCLUST_TOLERANCE_MINMAX_TS_ARRIVAL,
+                )
+            )
         assert self._synchronizer_factory is not None
         return self._synchronizer_factory
 
@@ -70,10 +88,10 @@ def _handle_option_synchronizer_monoclust_timestamp_field(
 ) -> None:
     if value is not None:
         from pycyphal.presentation.subscription_synchronizer import get_timestamp_field
-        from ._sync_monoclust import make_sync_monoclust, TOLERANCE_MINMAX_DEFAULT
+        from ._sync_monoclust import make_sync_monoclust
 
         value = float(value)
-        tol = TOLERANCE_MINMAX_DEFAULT if not math.isfinite(value) else (value, value)
+        tol = SYNC_MONOCLUST_TOLERANCE_MINMAX_TS_FIELD if not math.isfinite(value) else (value, value)
         _logger.debug("Configuring field timestamp monoclust synchronizer with tolerance=%r", tol)
 
         def fac(subs: Iterable[Subscriber[Any]]) -> Synchronizer:
@@ -92,10 +110,10 @@ def _handle_option_synchronizer_monoclust_timestamp_arrival(
 ) -> None:
     if value is not None:
         from pycyphal.presentation.subscription_synchronizer import get_local_reception_timestamp
-        from ._sync_monoclust import make_sync_monoclust, TOLERANCE_MINMAX_DEFAULT
+        from ._sync_monoclust import make_sync_monoclust
 
         value = float(value)
-        tol = TOLERANCE_MINMAX_DEFAULT if not math.isfinite(value) else (value, value)
+        tol = SYNC_MONOCLUST_TOLERANCE_MINMAX_TS_ARRIVAL if not math.isfinite(value) else (value, value)
         _logger.debug("Configuring arrival timestamp monoclust synchronizer; tolerance=%r", tol)
         ctx.ensure_object(Config).set_synchronizer_factory(
             lambda subs: make_sync_monoclust(subs, f_key=get_local_reception_timestamp, tolerance_minmax=tol)
@@ -127,6 +145,13 @@ def _handle_option_synchronizer_transfer_id(ctx: click.Context, _param: click.Pa
     help=f"""
 Exit automatically after this many messages (or synchronous message groups) have been received. No limit by default.
 """,
+)
+@click.option(
+    "--redraw",
+    "--no-scroll",
+    "-R",
+    is_flag=True,
+    help="Clear terminal output before printing output. This option only has effect if stdout is a tty.",
 )
 @click.option(
     "--sync-monoclust",
@@ -174,6 +199,7 @@ async def subscribe(
     subject: tuple[str, ...],
     with_metadata: bool,
     count: int | None,
+    redraw: bool,
 ) -> None:
     """
     Subscribe to specified subjects and print messages to stdout.
@@ -247,7 +273,7 @@ async def subscribe(
             if node.id is not None:
                 _logger.info("It is recommended to use an anonymous node with this command")
             try:
-                await _run(synchronizer, formatter, with_metadata=with_metadata, count=count)
+                await _run(synchronizer, formatter, with_metadata=with_metadata, count=count, redraw=redraw)
             finally:
                 if _logger.isEnabledFor(logging.INFO):
                     _logger.info("%s", node.presentation.transport.sample_statistics())
@@ -286,10 +312,7 @@ async def _make_subscribers(
             subject_resolver.close()
 
 
-async def _run(synchronizer: Synchronizer, formatter: Formatter, with_metadata: bool, count: int) -> None:
-    class Break(Exception):
-        pass
-
+async def _run(synchronizer: Synchronizer, formatter: Formatter, with_metadata: bool, count: int, redraw: bool) -> None:
     metadata_cache: dict[object, dict[str, Any]] = {}
 
     def get_extra_metadata(sub: Subscriber[Any]) -> dict[str, Any]:
@@ -314,15 +337,21 @@ async def _run(synchronizer: Synchronizer, formatter: Formatter, with_metadata: 
             bi.update(pycyphal.dsdl.to_builtin(msg))
             outer[subscriber.port_id] = bi
 
+        if redraw:
+            click.clear()
         sys.stdout.write(formatter(outer))
         sys.stdout.write("\r\n")
         sys.stdout.flush()
         count -= 1
         if count <= 0:
             _logger.debug("Reached the specified synchronized group count, stopping")
-            raise Break
+            raise _Break
 
     try:
         await synchronizer(process_group)
-    except Break:
+    except _Break:
         pass
+
+
+class _Break(Exception):
+    pass

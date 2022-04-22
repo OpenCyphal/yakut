@@ -12,14 +12,12 @@ from ._sync import SynchronizerOutput, Synchronizer
 
 T = TypeVar("T")
 
-TOLERANCE_MINMAX_DEFAULT = 1e-6, 60.0
-
 
 def make_sync_monoclust(
     subscribers: Iterable[Subscriber[Any]],
     *,
     f_key: MonotonicClusteringSynchronizer.KeyFunction,
-    tolerance_minmax: tuple[float, float] = TOLERANCE_MINMAX_DEFAULT,
+    tolerance_minmax: tuple[float, float],
 ) -> Synchronizer:
     tolerance_minmax = float(tolerance_minmax[0]), float(tolerance_minmax[1])
     sync = MonotonicClusteringSynchronizer(subscribers, f_key=f_key, tolerance=max(tolerance_minmax))
@@ -36,7 +34,7 @@ def make_sync_monoclust(
                     tolerance_minmax,
                     (sync.tolerance + _tolerance_from_key_delta(prev_key, key)) * 0.5,
                 )
-            _logger.info("Tolerance autotune: prev_key=%r key=%r tolerance=%r", prev_key, key, sync.tolerance)
+            _logger.info("Tolerance autotune: %r", sync.tolerance)
             prev_key = key
 
     return fun

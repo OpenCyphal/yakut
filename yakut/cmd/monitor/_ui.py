@@ -76,7 +76,7 @@ class TableRenderer:
 
 class Canvas:
     _MIN_MAX_WIDTH = 80
-    _MARGIN = 3
+    _MARGIN = 1
 
     @dataclasses.dataclass(frozen=True)
     class _Block:

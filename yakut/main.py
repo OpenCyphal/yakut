@@ -142,6 +142,17 @@ class AliasedGroup(click.Group):
         cmd_name = self._aliases.get(cmd_name, cmd_name)
         return super().get_command(ctx, cmd_name)
 
+    def resolve_command(self, ctx: click.Context, args: list[Any]) -> tuple[str | None, click.Command, list[str]]:
+        """
+        This is a workaround for this bug in v7 and v8: https://github.com/pallets/click/issues/1422.
+        If this is not overridden, then abbreviated commands cause the automatic envvar prefix to be constructed
+        incorrectly, such that instead of the full command name the abbreviated name is used.
+        For example, if the user invokes `yakut co` meaning `yakut compile`,
+        the auto-constructed envvar prefix would be `YAKUT_CO_` instead of `YAKUT_COMPILE_`.
+        """
+        _, cmd, out_args = super().resolve_command(ctx, args)
+        return (cmd.name if cmd else None), cmd, out_args
+
     def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         rows: list[tuple[str, str]] = []
         sub_commands = self.list_commands(ctx)
@@ -275,6 +286,7 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
         err(f"Internal error, please report: {ex}")
         _logger.error("%s: %s", type(ex).__name__, ex, exc_info=True)
 
+    _logger.debug("EXIT %r", status)
     sys.exit(status)
 
 

@@ -37,7 +37,7 @@ def load_dtype(name: str, allow_minor_version_mismatch: bool = False) -> Type[An
     """
     parsed = _parse(name)
     if not parsed:
-        raise FormatError(f"Format not understood: f{name!r}")
+        raise FormatError(f"Data type name format not understood: {name!r}")
     name_components, major, minor = parsed
     _logger.debug("Parsed %r: name_components=%r, major=%r, minor=%r", name, name_components, major, minor)
     try:

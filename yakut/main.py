@@ -5,6 +5,8 @@
 from __future__ import annotations
 import os
 import sys
+import asyncio
+import functools
 from typing import TYPE_CHECKING, Iterable, Optional, Any, Callable, Awaitable
 import logging
 from pathlib import Path
@@ -101,11 +103,11 @@ class AliasedGroup(click.Group):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._commands: dict[str, list[str]] = {}
+        self._commands: dict[str, set[str]] = {}
         self._aliases: dict[str, str] = {}
 
     def command(self, *args: Any, **kwargs: Any) -> Any:
-        aliases = AliasedGroup._mk_alias_list(kwargs.pop("aliases", []))
+        aliases = AliasedGroup._mk_aliases(kwargs.pop("aliases", []))
         decorator: Any = super().command(*args, **kwargs)
         if not aliases:
             return decorator
@@ -121,7 +123,7 @@ class AliasedGroup(click.Group):
         return _decorator
 
     def group(self, *args: Any, **kwargs: Any) -> Any:
-        aliases = AliasedGroup._mk_alias_list(kwargs.pop("aliases", []))
+        aliases = AliasedGroup._mk_aliases(kwargs.pop("aliases", []))
         decorator: Any = super().group(*args, **kwargs)
         if not aliases:
             return decorator
@@ -156,11 +158,11 @@ class AliasedGroup(click.Group):
                 formatter.write_dl(rows)
 
     @staticmethod
-    def _mk_alias_list(item: Any) -> list[str]:
+    def _mk_aliases(item: Any) -> set[str]:
         if isinstance(item, str):
-            return [item]
+            return {item}
         if isinstance(item, (list, tuple, set)) and all(isinstance(x, str) for x in item):
-            return list(item)
+            return set(item)
         raise TypeError(f"Bad aliases: {item}")
 
 
@@ -200,7 +202,7 @@ Examples:
 @transport_factory_option
 @node_factory_option
 @click.pass_context
-def main(
+def _click_main(
     ctx: click.Context,
     verbose: int,
     path: tuple[str, ...],
@@ -240,17 +242,73 @@ def main(
     )
 
 
-subcommand: Callable[..., Callable[..., Any]] = main.command  # type: ignore
+def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
+    def err(text: str) -> None:
+        click.secho(text, err=True, fg="red", bold=True)
+
+    status: Any = 1
+    # noinspection PyBroadException
+    try:
+        status = _click_main.main(prog_name="yakut", standalone_mode=False)
+
+    except (KeyboardInterrupt, click.Abort):
+        status = 127
+        _logger.info("Interrupted")
+
+    except click.ClickException as ex:
+        status = ex.exit_code
+        try:
+            click.secho("", err=True, fg="red", bold=True, reset=False, nl=False)
+            ex.show()
+        finally:
+            click.secho("", err=True, nl=False)
+
+    except Exception as ex:
+        err(f"{type(ex).__name__}: {ex}")
+        _logger.debug("EXCEPTION %s: %s", type(ex).__name__, ex, exc_info=True)
+
+    except BaseException as ex:
+        err(f"Internal error, please report: {ex}")
+        _logger.error("%s: %s", type(ex).__name__, ex, exc_info=True)
+
+    sys.exit(status)
+
+
+subcommand: Callable[..., Callable[..., Any]] = _click_main.command  # type: ignore
 
 
 def asynchronous(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
-    import asyncio
-    from functools import update_wrapper
+    def handle_task_exception(_loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+        message = context.get("message", "Unhandled exception in event loop")
+        exc = context.get("exception")
+        exc_info: Any = (type(exc), exc, exc.__traceback__) if exc else False
+        _logger.debug("Task exception during shutdown: %s", message, exc_info=exc_info)
 
+    # This is similar to asyncio.run().
+    # The difference is that we configure logging differently to avoid unhelpful stack traces during shutdown.
+    # Appearance of such errors is not the expected behavior and should be fixed, but the user need not
+    # know about these errors as they are unlikely to affect the behavior of the application.
+    # See https://github.com/OpenCyphal/yakut/issues/40
     def proxy(*args: Any, **kwargs: Any) -> Any:
-        return asyncio.run(f(*args, **kwargs))
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            return loop.run_until_complete(f(*args, **kwargs))
+        finally:
+            try:
+                loop.set_exception_handler(handle_task_exception)
+                orphans = asyncio.all_tasks(loop)
+                if orphans:
+                    for ts in orphans:
+                        ts.cancel()
+                    for e in loop.run_until_complete(asyncio.gather(*orphans, return_exceptions=True)):
+                        if isinstance(e, BaseException):
+                            handle_task_exception(loop, {"exception": e})
+            finally:
+                asyncio.set_event_loop(None)
+                loop.close()
 
-    return update_wrapper(proxy, f)
+    return functools.update_wrapper(proxy, f)
 
 
 def _configure_logging(verbosity_level: int) -> None:

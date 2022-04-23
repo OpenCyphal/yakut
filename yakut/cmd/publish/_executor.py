@@ -55,7 +55,12 @@ class Executor:
             # Run the publication. We initialize the time late to ensure that lazy init doesn't cause phase distortion.
             if started_at is None:
                 started_at = asyncio.get_event_loop().time()
-            out = await asyncio.gather(*[p.publish() for p in self._publications])
+            # We must wait for all tasks to complete before raising the exception.
+            # Leaving orphans is undesirable as it leads to error handling issues.
+            out = await asyncio.gather(*[p.publish() for p in self._publications], return_exceptions=True)
+            for ex in out:
+                if isinstance(ex, BaseException):
+                    raise ex
             assert len(out) == len(self._publications) and all(isinstance(x, bool) for x in out)
             if not all(out):
                 timed_out = [self._publications[idx] for idx, res in enumerate(out) if not res]
@@ -67,6 +72,7 @@ class Executor:
             await asyncio.sleep(sleep_duration)
 
     def close(self) -> None:
+        pycyphal.util.broadcast(p.close for p in self._publications)()
         if self._ctl:
             self._ctl.close()
 
@@ -124,6 +130,9 @@ class Publication:
             assert isinstance(out, bool)
             return out
         return True
+
+    def close(self) -> None:
+        self._publisher.close()
 
     def __repr__(self) -> str:
         out = pycyphal.util.repr_attributes(self, self._publisher)

@@ -269,16 +269,19 @@ async def subscribe(
             _logger.warning("Nothing to do because no subjects are specified")
             return
 
-        with get_node() as node:
-            if node.id is not None:
-                _logger.info("It is recommended to use an anonymous node with this command")
-            try:
-                await _run(synchronizer, formatter, with_metadata=with_metadata, count=count, redraw=redraw)
-            finally:
-                if _logger.isEnabledFor(logging.INFO):
-                    _logger.info("%s", node.presentation.transport.sample_statistics())
-                    for sub in subscribers:
-                        _logger.info("% 4s: %s", sub.port_id, sub.sample_statistics())
+        # The node is closed through the finalizers at exit.
+        # Note that we can't close the node before closing the subscribers to avoid resource errors inside PyCyphal.
+        node = get_node()
+        if node.id is not None:
+            _logger.info("It is recommended to use an anonymous node with this command")
+        node.start()
+        try:
+            await _run(synchronizer, formatter, with_metadata=with_metadata, count=count, redraw=redraw)
+        finally:
+            if _logger.isEnabledFor(logging.INFO):
+                _logger.info("%s", node.presentation.transport.sample_statistics())
+                for sub in subscribers:
+                    _logger.info("% 4s: %s", sub.port_id, sub.sample_statistics())
     finally:
         pycyphal.util.broadcast(finalizers[::-1])()
         await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop

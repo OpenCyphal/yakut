@@ -14,7 +14,7 @@ def _unittest_help() -> None:
     execute_cli("--help", timeout=10.0, log=False)
     for cmd in dir(yakut.cmd):
         if not cmd.startswith("_") and cmd not in ("pycyphal", "sys"):
-            execute_cli(cmd, "--help", timeout=3.0, log=False)
+            execute_cli(cmd.replace("_", "-"), "--help", timeout=3.0, log=False)
 
 
 def _unittest_error() -> None:

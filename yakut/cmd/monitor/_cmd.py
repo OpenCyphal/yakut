@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     import pycyphal.application  # pylint: disable=ungrouped-imports
 
 
-@yakut.subcommand()
+@yakut.subcommand(aliases="mon")
 @click.option(
     "--plug-and-play",
     "-P",

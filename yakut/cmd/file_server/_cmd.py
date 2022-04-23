@@ -32,7 +32,7 @@ def _validate_root_directory(ctx: click.Context, param: click.Parameter, value: 
     return out
 
 
-@yakut.subcommand()
+@yakut.subcommand(aliases="fsrv")
 @click.argument(
     "roots",
     metavar="PATH",

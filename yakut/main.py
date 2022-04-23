@@ -92,25 +92,83 @@ class Purser:
 pass_purser = click.make_pass_decorator(Purser)
 
 
-class AbbreviatedGroup(click.Group):
-    def get_command(self, ctx: click.Context, cmd_name: str) -> Optional[click.Command]:
-        cmd_name = cmd_name.replace("_", "-")
-        rv = click.Group.get_command(self, ctx, cmd_name)
-        if rv is not None:
-            return rv
-        matches = [x for x in self.list_commands(ctx) if x.startswith(cmd_name)]
-        if not matches:
-            return None
-        if len(matches) == 1:
-            return click.Group.get_command(self, ctx, matches[0])
-        ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
+class AliasedGroup(click.Group):
+    """
+    This class is inspired by "click-aliases" from Robbin Bonthond published at
+    https://github.com/click-contrib/click-aliases/blob/master/click_aliases/__init__.py
+    under the terms of the MIT license.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._commands: dict[str, list[str]] = {}
+        self._aliases: dict[str, str] = {}
+
+    def command(self, *args: Any, **kwargs: Any) -> Any:
+        aliases = AliasedGroup._mk_alias_list(kwargs.pop("aliases", []))
+        decorator: Any = super().command(*args, **kwargs)
+        if not aliases:
+            return decorator
+
+        def _decorator(f: Any) -> Any:
+            cmd: Any = decorator(f)
+            if aliases:
+                self._commands[cmd.name] = aliases
+                for alias in aliases:
+                    self._aliases[alias] = cmd.name
+            return cmd
+
+        return _decorator
+
+    def group(self, *args: Any, **kwargs: Any) -> Any:
+        aliases = AliasedGroup._mk_alias_list(kwargs.pop("aliases", []))
+        decorator: Any = super().group(*args, **kwargs)
+        if not aliases:
+            return decorator
+
+        def _decorator(f: Any) -> Any:
+            cmd: Any = decorator(f)
+            if aliases:
+                self._commands[cmd.name] = aliases
+                for alias in aliases:
+                    self._aliases[alias] = cmd.name
+            return cmd
+
+        return _decorator
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> Any:
+        cmd_name = self._aliases.get(cmd_name, cmd_name)
+        return super().get_command(ctx, cmd_name)
+
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        rows: list[tuple[str, str]] = []
+        sub_commands = self.list_commands(ctx)
+        max_len = max(len(cmd) for cmd in sub_commands)
+        limit = formatter.width - 6 - max_len
+        for subcmd in sub_commands:
+            cmd = self.get_command(ctx, subcmd)
+            if cmd is not None and not getattr(cmd, "hidden", False):
+                if subcmd in self._commands:
+                    subcmd = ",".join([subcmd] + list(sorted(self._commands[subcmd])))
+                rows.append((subcmd, cmd.get_short_help_str(limit)))
+        if rows:
+            with formatter.section("Commands"):
+                formatter.write_dl(rows)
+
+    @staticmethod
+    def _mk_alias_list(item: Any) -> list[str]:
+        if isinstance(item, str):
+            return [item]
+        if isinstance(item, (list, tuple, set)) and all(isinstance(x, str) for x in item):
+            return list(item)
+        raise TypeError(f"Bad aliases: {item}")
 
 
 _ENV_VAR_PATH = "YAKUT_PATH"
 
 
 @click.command(
-    cls=AbbreviatedGroup,
+    cls=AliasedGroup,
     context_settings={
         "max_content_width": get_terminal_size()[0],
         "auto_envvar_prefix": "YAKUT",  # Specified here, not in __main__.py, otherwise doesn't work when installed.
@@ -166,9 +224,6 @@ def main(
     Any long option can be provided via environment variable prefixed with `YAKUT_`
     such that an option `--foo-bar` for command `baz`, if not provided as a command-line argument,
     will be read from `YAKUT_BAZ_FOO_BAR`.
-
-    Any command can be abbreviated arbitrarily as long as the resulting abridged name is not ambiguous.
-    For example, `publish`, `publ` and `pub` are all valid and equivalent.
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
 

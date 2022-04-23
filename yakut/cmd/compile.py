@@ -30,6 +30,7 @@ def make_usage_suggestion(root_namespace_name: typing.Optional[str]) -> str:
 
 @yakut.subcommand(
     name=_NAME,
+    aliases="co",
     help=f"""
 Compile DSDL namespaces for use by Yakut.
 This needs to be done before using any data types with pub/sub/call and other commands.

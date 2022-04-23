@@ -180,7 +180,7 @@ def _validate_message_spec(
     return [(s, f) for s, f in (value[i : i + 2] for i in range(0, len(value), 2))]  # pylint: disable=R1721
 
 
-@yakut.subcommand(help=_HELP)
+@yakut.subcommand(help=_HELP, aliases="pub")
 @click.argument(
     "message",
     type=str,

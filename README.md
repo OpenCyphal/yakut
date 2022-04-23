@@ -64,9 +64,6 @@ yakut --path=/the/path compile path/to/my_namespace --output=destination/directo
 
 In this example, the corresponding environment variables are `YAKUT_PATH` and `YAKUT_COMPILE_OUTPUT`.
 
-Any subcommand like `yakut compile` can be used in an abbreviated form like `yakut com`
-as long as the resulting abbreviation is unambiguous.
-
 There is a dedicated `--help` option for every subcommand.
 
 Yakut may also be invoked via its alias **`y`** as long as this name does not conflict with another installed program.
@@ -302,7 +299,7 @@ Suppose that there is node 42 that serves `sirius_cyber_corp.PerformLinearLeastS
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
 $ export UAVCAN__NODE__ID=42
-$ yakut compile sirius_cyber_corp
+$ yakut compile sirius_cyber_corp ~/public_regulated_data_types/uavcan
 $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
 ---
 123:
@@ -319,7 +316,7 @@ then it is not necessary to spell out the service-ID and its type (which gets ol
 as these parameters can be discovered automatically from service name:
 
 ```bash
-yakut call 42 least_squares '[[10, 1], [20, 2]]'
+y q 42 least_squares '[[10, 1], [20, 2]]'  # "y q" is shorthand for "yakut call" (see --help for more)
 ```
 
 In this case Yakut will send additional requests to the node beforehand to obtain the missing information.
@@ -327,7 +324,7 @@ You can still override the type if you want to use a different one
 (e.g., if the remote node names the type of this service differently):
 
 ```bash
-yakut call 42 least_squares:my_namespace.MySpecialType '[[10, 1], [20, 2]]'
+y q 42 least_squares:my_namespace.MySpecialType '[[10, 1], [20, 2]]'
 ```
 
 ## Monitoring the network
@@ -344,7 +341,7 @@ Read `yakut monitor --help` for details.
 $ export UAVCAN__CAN__IFACE="socketcan:can0 socketcan:can1 socketcan:can2"  # Triply-redundant Cyphal/CAN
 $ export UAVCAN__CAN__MTU=8                     # Force MTU = 8 bytes
 $ export UAVCAN__CAN__BITRATE="1000000 1000000" # Disable BRS, use the same bit rate for arbitration/data
-$ y mon                                         # Abbreviation of "yakut monitor"
+$ y mon                                         # "y mon" is shorthand for "yakut monitor"
 ```
 
 <img src="/docs/monitor.gif" alt="yakut monitor">

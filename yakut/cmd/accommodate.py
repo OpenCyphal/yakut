@@ -13,7 +13,7 @@ import yakut
 _logger = yakut.get_logger(__name__)
 
 
-@yakut.subcommand()
+@yakut.subcommand(aliases="acmd")
 @yakut.pass_purser
 @yakut.asynchronous
 async def accommodate(purser: yakut.Purser) -> None:

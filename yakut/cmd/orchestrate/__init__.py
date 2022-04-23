@@ -268,7 +268,7 @@ The stdout of the above composition is:
 """
 
 
-@yakut.subcommand(help=_HELP)
+@yakut.subcommand(help=_HELP, aliases="orc")
 @click.argument("file", type=str)
 @yakut.pass_purser
 def orchestrate(purser: yakut.Purser, file: str) -> None:

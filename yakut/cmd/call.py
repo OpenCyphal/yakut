@@ -32,7 +32,7 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
     return fields
 
 
-@yakut.subcommand()
+@yakut.subcommand(aliases="q")
 @click.argument("server_node_id", metavar="SERVER_NODE_ID", type=int, required=True)
 @click.argument("service", metavar="SERVICE", type=str, required=True)
 @click.argument("request_fields", metavar="FIELDS", type=str, callback=_validate_request_fields, default="{}")

@@ -15,7 +15,7 @@ from yakut.controller import list_controllers, Controller
 _logger = yakut.get_logger(__name__)
 
 
-@yakut.subcommand()
+@yakut.subcommand(aliases="joy")
 def joystick() -> None:
     """
     Show the state of all joysticks and MIDI controllers connected to this computer, htop-style.

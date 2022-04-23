@@ -81,12 +81,12 @@ Example: publish constant messages (no embedded expressions, just regular YAML):
 
 \b
     yakut pub uavcan.diagnostic.Record '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
-    yakut pub 33:uavcan.si.unit.angle.Scalar 'radian: 2.31' uavcan.diagnostic.Record 'text: "2.31 rad"'
+    yakut pub 33:uavcan.si.unit.angle.Scalar 2.31 uavcan.diagnostic.Record 'text: "2.31 radian"'
 
 Example: publish sinewave with frequency 1 Hz, amplitude 10 meters:
 
 \b
-    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '{meter: !$ "sin(t * pi * 2) * 10"}'
+    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '!$ "sin(t * pi * 2) * 10"'
 
 Example: as above, but control the frequency of the sinewave and its amplitude using sliders 10 and 11
 of the first connected controller (use `yakut joystick` to find connected controllers and their axis mappings):
@@ -94,8 +94,7 @@ of the first connected controller (use `yakut joystick` to find connected contro
 \b
     yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '{meter: !$ "sin(t * pi * 2 * A(1,10)) * 10 * A(1,11)"}'
 
-Example: publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state;
-use positional initialization instead of YAML dicts:
+Example: publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state:
 
 \b
     yakut pub -T 0.1 \\
@@ -138,17 +137,17 @@ The result of such expression is substituted into the original YAML structure;
 as such, the result can be of arbitrary type as long as the final YAML structure can be applied to the specified
 DSDL instance.
 
-The YAML-embedded expressions have access to the following variables (type is specified after the colon):
+The YAML-embedded expressions have access to the following variables:
 
 {Executor.SYM_INDEX}: int --- index of the current publication cycle, zero initially.
 
 {Executor.SYM_TIME}: float --- time elapsed since first message (t=n*period).
 
-{Executor.SYM_DTYPE}: Type[pycyphal.dsdl.CompositeType] --- message class.
+{Executor.SYM_DTYPE}: type --- message class.
 
 {Executor.SYM_CTRL_AXIS}: (controller,axis:int)->float ---
 read the normalized value of `axis` from `controller` (e.g., joystick or MIDI fader).
-To see the list of available controllers and determine their channel mapping, refer to `yakut joystick --help`.
+To see the list of available controllers and determine their channel mapping, refer to `yakut joystick`.
 
 {Executor.SYM_CTRL_BUTTON}: (controller,button:int)->bool ---
 read the state of `button` from `controller` (true while held down).

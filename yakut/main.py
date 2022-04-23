@@ -142,7 +142,9 @@ class AliasedGroup(click.Group):
         cmd_name = self._aliases.get(cmd_name, cmd_name)
         return super().get_command(ctx, cmd_name)
 
-    def resolve_command(self, ctx: click.Context, args: list[Any]) -> tuple[str | None, click.Command, list[str]]:
+    def resolve_command(
+        self, ctx: click.Context, args: list[Any]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
         """
         This is a workaround for this bug in v7 and v8: https://github.com/pallets/click/issues/1422.
         If this is not overridden, then abbreviated commands cause the automatic envvar prefix to be constructed

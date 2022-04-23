@@ -35,7 +35,7 @@ at https://pycyphal.readthedocs.io.
 """,
 )
 @yakut.pass_purser
-@yakut.asynchronous
+@yakut.asynchronous(interrupted_ok=True)
 async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
     """
     Display information about online nodes and network traffic in real time (like htop).

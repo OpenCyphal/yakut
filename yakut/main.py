@@ -251,9 +251,10 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
     try:
         status = _click_main.main(prog_name="yakut", standalone_mode=False)
 
-    except (KeyboardInterrupt, click.Abort):
+    except (KeyboardInterrupt, click.Abort) as ex:
         status = 127
         _logger.info("Interrupted")
+        _logger.debug("%s: %s", type(ex).__name__, ex, exc_info=True)
 
     except click.ClickException as ex:
         status = ex.exit_code
@@ -277,38 +278,45 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
 subcommand: Callable[..., Callable[..., Any]] = _click_main.command  # type: ignore
 
 
-def asynchronous(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
-    def handle_task_exception(_loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
-        message = context.get("message", "Unhandled exception in event loop")
-        exc = context.get("exception")
-        exc_info: Any = (type(exc), exc, exc.__traceback__) if exc else False
-        _logger.debug("Task exception during shutdown: %s", message, exc_info=exc_info)
+def asynchronous(*, interrupted_ok: bool = False) -> Callable[[Callable[..., Awaitable[Any]]], Callable[..., Any]]:
+    def impl(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
+        def handle_task_exception(_loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+            message = context.get("message", "Unhandled exception in event loop")
+            exc = context.get("exception")
+            exc_info: Any = (type(exc), exc, exc.__traceback__) if exc else False
+            _logger.debug("Task exception during shutdown: %s", message, exc_info=exc_info)
 
-    # This is similar to asyncio.run().
-    # The difference is that we configure logging differently to avoid unhelpful stack traces during shutdown.
-    # Appearance of such errors is not the expected behavior and should be fixed, but the user need not
-    # know about these errors as they are unlikely to affect the behavior of the application.
-    # See https://github.com/OpenCyphal/yakut/issues/40
-    def proxy(*args: Any, **kwargs: Any) -> Any:
-        loop = asyncio.new_event_loop()
-        try:
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(f(*args, **kwargs))
-        finally:
+        # This is similar to asyncio.run().
+        # The difference is that we configure logging differently to avoid unhelpful stack traces during shutdown.
+        # Appearance of such errors is not the expected behavior and should be fixed, but the user need not
+        # know about these errors as they are unlikely to affect the behavior of the application.
+        # See https://github.com/OpenCyphal/yakut/issues/40
+        def proxy(*args: Any, **kwargs: Any) -> Any:
+            loop = asyncio.new_event_loop()
             try:
-                loop.set_exception_handler(handle_task_exception)
-                orphans = asyncio.all_tasks(loop)
-                if orphans:
-                    for ts in orphans:
-                        ts.cancel()
-                    for e in loop.run_until_complete(asyncio.gather(*orphans, return_exceptions=True)):
-                        if isinstance(e, BaseException):
-                            handle_task_exception(loop, {"exception": e})
+                asyncio.set_event_loop(loop)
+                return loop.run_until_complete(f(*args, **kwargs))
+            except KeyboardInterrupt:
+                if not interrupted_ok:
+                    raise
             finally:
-                asyncio.set_event_loop(None)
-                loop.close()
+                _logger.debug("Event loop finalization with exc=%r", sys.exc_info())
+                try:
+                    loop.set_exception_handler(handle_task_exception)
+                    orphans = asyncio.all_tasks(loop)
+                    if orphans:
+                        for ts in orphans:
+                            ts.cancel()
+                        for e in loop.run_until_complete(asyncio.gather(*orphans, return_exceptions=True)):
+                            if isinstance(e, BaseException) and not isinstance(e, asyncio.CancelledError):
+                                handle_task_exception(loop, {"exception": e})
+                finally:
+                    asyncio.set_event_loop(None)
+                    loop.close()
 
-    return functools.update_wrapper(proxy, f)
+        return functools.update_wrapper(proxy, f)
+
+    return impl
 
 
 def _configure_logging(verbosity_level: int) -> None:

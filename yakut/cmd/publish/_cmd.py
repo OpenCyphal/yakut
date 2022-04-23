@@ -217,7 +217,7 @@ The send timeout equals the period as long as it is not less than {_MIN_SEND_TIM
     help=f"Priority of published message transfers. [default: {pycyphal.presentation.DEFAULT_PRIORITY.name}]",
 )
 @yakut.pass_purser
-@yakut.asynchronous
+@yakut.asynchronous(interrupted_ok=True)
 async def publish(
     purser: yakut.Purser,
     message: Sequence[Tuple[str, str]],
@@ -295,21 +295,20 @@ async def publish(
         executor = Executor(loader=yaml_loader, publications=publications)
         finalizers.append(executor.close)
 
-        # Everything is ready, the node can be started now.
+        # Everything is ready, the node can be started now. It will be stopped during finalization.
+        node.start()
+        _logger.info(
+            "Publishing %d subjects with period %.3fs, send timeout %.3fs, count %d, priority %s",
+            len(message),
+            period,
+            send_timeout,
+            count,
+            priority.name,
+        )
         try:
-            with node:
-                _logger.info(
-                    "Publishing %d subjects with period %.3fs, send timeout %.3fs, count %d, priority %s",
-                    len(message),
-                    period,
-                    send_timeout,
-                    count,
-                    priority.name,
-                )
-                await executor.run(count=count, period=period)
-        except KeyboardInterrupt:
-            pass
-        _log_final_report(node.presentation)
+            await executor.run(count=count, period=period)
+        finally:
+            _log_final_report(node.presentation)
     finally:
         pycyphal.util.broadcast(finalizers[::-1])()
         await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop

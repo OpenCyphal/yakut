@@ -60,7 +60,7 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
     help="When enabled, the response object is prepended with an extra field named `_metadata_`.",
 )
 @yakut.pass_purser
-@yakut.asynchronous
+@yakut.asynchronous()
 async def call(
     purser: yakut.Purser,
     server_node_id: int,

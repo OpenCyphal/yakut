@@ -120,7 +120,7 @@ the names are matching, the hardware version is compatible, and either condition
 """,
 )
 @yakut.pass_purser
-@yakut.asynchronous
+@yakut.asynchronous(interrupted_ok=True)
 async def file_server(
     purser: yakut.Purser, roots: list[Path], plug_and_play: Optional[str], update_software: bool
 ) -> None:

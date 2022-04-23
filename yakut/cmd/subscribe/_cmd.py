@@ -193,7 +193,7 @@ Messages that originate from the same node AND share the same transfer-ID will b
 """,
 )
 @yakut.pass_purser
-@yakut.asynchronous
+@yakut.asynchronous(interrupted_ok=True)
 async def subscribe(
     purser: yakut.Purser,
     subject: tuple[str, ...],

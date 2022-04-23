@@ -15,7 +15,7 @@ _logger = yakut.get_logger(__name__)
 
 @yakut.subcommand(aliases="acmd")
 @yakut.pass_purser
-@yakut.asynchronous
+@yakut.asynchronous()
 async def accommodate(purser: yakut.Purser) -> None:
     """
     Automatically find a node-ID value that is not used by any other node that is currently online.

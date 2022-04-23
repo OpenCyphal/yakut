@@ -271,7 +271,7 @@ The stdout of the above composition is:
 @yakut.subcommand(help=_HELP, aliases="orc")
 @click.argument("file", type=str)
 @yakut.pass_purser
-def orchestrate(purser: yakut.Purser, file: str) -> None:
+def orchestrate(purser: yakut.Purser, file: str) -> int:
     sig_num = 0
 
     def on_signal(s: int, _: Any) -> None:
@@ -287,4 +287,4 @@ def orchestrate(purser: yakut.Purser, file: str) -> None:
     ctx = Context(lookup_paths=purser.paths)
     res = exec_file(ctx, file, {}, gate=lambda: sig_num == 0)
 
-    sys.exit(res if res != 0 else -sig_num)
+    return res if res != 0 else -sig_num

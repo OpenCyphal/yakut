@@ -251,6 +251,9 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
     try:
         status = _click_main.main(prog_name="yakut", standalone_mode=False)
 
+    except SystemExit as ex:
+        status = ex.code
+
     except (KeyboardInterrupt, click.Abort) as ex:
         status = 127
         _logger.info("Interrupted")

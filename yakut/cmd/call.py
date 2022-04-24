@@ -18,6 +18,9 @@ from yakut import dtype_loader
 if TYPE_CHECKING:
     from pycyphal.application import Node
 
+
+_RESOLVER_MIN_RESPONSE_TIMEOUT = 1.0
+
 _logger = yakut.get_logger(__name__)
 
 
@@ -134,7 +137,12 @@ async def call(
             finalizers.append(node.close)
             return node
 
-        service_id, dtype = await _resolve(service, server_node_id, get_node)
+        service_id, dtype = await _resolve(
+            service,
+            server_node_id,
+            get_node,
+            response_timeout=max(_RESOLVER_MIN_RESPONSE_TIMEOUT, timeout),
+        )
         if not pycyphal.dsdl.is_service_type(dtype):
             raise click.ClickException(f"{pycyphal.dsdl.get_model(dtype)} is not a service type") from None
         request = pycyphal.dsdl.update_from_builtin(dtype.Request(), request_fields)
@@ -208,7 +216,13 @@ async def _run(
     print(formatter({client.port_id: bi}))
 
 
-async def _resolve(raw_spec: str, server_node_id: int, node_provider: Callable[[], Node]) -> tuple[int, Any]:
+async def _resolve(
+    raw_spec: str,
+    server_node_id: int,
+    node_provider: Callable[[], Node],
+    *,
+    response_timeout: float,
+) -> tuple[int, Any]:
     """
     Decentralized discovery: if service-ID and type are given by the user, simply load the specified type and return.
     Otherwise we have to query the server node to find out the type and/or ID of the service.
@@ -226,7 +240,12 @@ async def _resolve(raw_spec: str, server_node_id: int, node_provider: Callable[[
         _logger.info(
             "Querying server node %r for service-ID information; locally specified type is %r", server_node_id, dtype
         )
-        resolved = await _resolve_service_id_type(node_provider().presentation, specs[0], server_node_id)
+        resolved = await _resolve_service_id_type(
+            node_provider().presentation,
+            specs[0],
+            server_node_id,
+            response_timeout=response_timeout,
+        )
         if not resolved:
             raise click.ClickException(f"Could not resolve service {specs[0]!r} via node {server_node_id}")
         service_id, dtype_name_remote = resolved
@@ -249,7 +268,12 @@ async def _resolve(raw_spec: str, server_node_id: int, node_provider: Callable[[
             return fpid, dtype
 
     _logger.info("Heuristic: %r does not appear to be a type name, assuming it to be a port name", ty_or_srv)
-    resolved = await _resolve_service_id_type(node_provider().presentation, ty_or_srv, server_node_id)
+    resolved = await _resolve_service_id_type(
+        node_provider().presentation,
+        ty_or_srv,
+        server_node_id,
+        response_timeout=response_timeout,
+    )
     if not resolved:
         raise click.ClickException(
             f"Could not resolve service {ty_or_srv!r} via node {server_node_id}. "
@@ -271,12 +295,15 @@ async def _resolve_service_id_type(
     pres: pycyphal.presentation.Presentation,
     port_name: str,
     server_node_id: int,
+    *,
+    response_timeout: float,
 ) -> tuple[int, str | None] | None:
     from pycyphal.application.register import ValueProxy
     from uavcan.register import Access_1, Name_1
 
     c_access = pres.make_client_with_fixed_service_id(Access_1, server_node_id)
     try:
+        c_access.response_timeout = response_timeout
         req = Access_1.Request(name=Name_1(f"uavcan.srv.{port_name}.id"))
         resp = await c_access(req)
         if resp is None:

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 import json
+import logging
 import asyncio
 import typing
 import pytest
@@ -11,6 +12,9 @@ from tests.subprocess import Subprocess, execute_cli
 from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 from yakut.param.transport import construct_transport
+
+
+_logger = logging.getLogger(__name__)
 
 
 @pytest.mark.asyncio
@@ -70,8 +74,11 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         "--with-metadata",
         environment_variables=env,
     )
+    _logger.info("Checkpoint A")
     await server.serve_for(handle_request, 3.0)
+    _logger.info("Checkpoint B")
     result, stdout, _ = proc.wait(5.0)
+    _logger.info("Checkpoint C")
     assert result == 0
     assert last_metadata is not None
     assert last_metadata.priority == pycyphal.transport.Priority.SLOW
@@ -98,8 +105,11 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         "--timeout=5",
         environment_variables=env,
     )
+    _logger.info("Checkpoint A")
     await server.serve_for(handle_request, 5.0)
+    _logger.info("Checkpoint B")
     result, stdout, _ = proc.wait(10.0)
+    _logger.info("Checkpoint C")
     assert result == 0
     assert last_metadata is not None
     assert last_metadata.priority == pycyphal.transport.Priority.FAST
@@ -125,8 +135,11 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         "--timeout=5",
         environment_variables=env,
     )
+    _logger.info("Checkpoint A")
     await server.serve_for(handle_request, 5.0)
+    _logger.info("Checkpoint B")
     result, stdout, _ = proc.wait(10.0)
+    _logger.info("Checkpoint C")
     assert result == 0
     assert last_metadata is not None
     assert last_metadata.priority == pycyphal.transport.Priority.NOMINAL

@@ -110,6 +110,7 @@
       <w>hdlc</w>
       <w>hitl</w>
       <w>hostmask</w>
+      <w>htmlcov</w>
       <w>hwgrep</w>
       <w>hwmaj</w>
       <w>hwmin</w>
@@ -300,8 +301,10 @@
       <w>undoc</w>
       <w>unhashable</w>
       <w>unicast</w>
+      <w>unraisableexception</w>
       <w>unseparate</w>
       <w>unstropped</w>
+      <w>unsubscriptable</w>
       <w>upvote</w>
       <w>usec</w>
       <w>usercustomize</w>

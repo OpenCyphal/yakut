@@ -72,7 +72,13 @@ def test(session):
         "PYTHONPATH": str(DEPS_DIR),
         "PATH": os.pathsep.join([session.env["PATH"], str(DEPS_DIR)]),
     }
-    session.run("pytest", *map(str, src_dirs), env=env)
+    session.run(
+        "pytest",
+        *map(str, src_dirs),
+        # Log format cannot be specified in setup.cfg https://github.com/pytest-dev/pytest/issues/3062
+        r"--log-file-format=%(asctime)s %(levelname)-3.3s %(name)s: %(message)s",
+        env=env,
+    )
 
     # The coverage threshold is intentionally set low for interactive runs because when running locally
     # in a reused virtualenv the DSDL compiler run may be skipped to save time, resulting in a reduced coverage.

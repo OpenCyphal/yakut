@@ -95,10 +95,11 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         "points: [{x: 0, y: 0}, {x: 10, y: 3}]",
         "--priority=FAST",
         "--with-metadata",
+        "--timeout=5",
         environment_variables=env,
     )
-    await server.serve_for(handle_request, 3.0)
-    result, stdout, _ = proc.wait(5.0)
+    await server.serve_for(handle_request, 5.0)
+    result, stdout, _ = proc.wait(10.0)
     assert result == 0
     assert last_metadata is not None
     assert last_metadata.priority == pycyphal.transport.Priority.FAST
@@ -121,10 +122,11 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         "least_squares",  # Type not specified -- discovered.
         "points: [{x: 0, y: 0}, {x: 10, y: 4}]",
         "--with-metadata",
+        "--timeout=5",
         environment_variables=env,
     )
-    await server.serve_for(handle_request, 3.0)
-    result, stdout, _ = proc.wait(5.0)
+    await server.serve_for(handle_request, 5.0)
+    result, stdout, _ = proc.wait(10.0)
     assert result == 0
     assert last_metadata is not None
     assert last_metadata.priority == pycyphal.transport.Priority.NOMINAL

@@ -20,8 +20,8 @@ def refresh_screen(contents: str) -> None:
     if _isatty(sys.stdout):
         click.clear()
     else:
-        click.echo("\n\n")
-    sys.stdout.flush()  # Synchronize clear with the following output since it is buffered separately.
+        _TEXT_STREAM.write("\n" * 2)
+    _TEXT_STREAM.flush()  # Synchronize clear with the following output since it is buffered separately.
     click.echo(contents, file=_TEXT_STREAM, nl=False)
 
 

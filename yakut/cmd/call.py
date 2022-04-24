@@ -251,7 +251,11 @@ async def _resolve(raw_spec: str, server_node_id: int, node_provider: Callable[[
     _logger.info("Heuristic: %r does not appear to be a type name, assuming it to be a port name", ty_or_srv)
     resolved = await _resolve_service_id_type(node_provider().presentation, ty_or_srv, server_node_id)
     if not resolved:
-        raise click.ClickException(f"Could not resolve service {ty_or_srv!r} via node {server_node_id}")
+        raise click.ClickException(
+            f"Could not resolve service {ty_or_srv!r} via node {server_node_id}. "
+            f"The remote node might be offline or it may not support automatic discovery. "
+            f"Consider specifying the service-ID and the data type explicitly?"
+        )
     service_id, dtype_name = resolved
     _logger.info("Resolved from server %r: id=%r dtype=%r", server_node_id, service_id, dtype_name)
     if dtype_name is None:

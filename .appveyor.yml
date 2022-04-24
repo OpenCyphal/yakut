@@ -85,5 +85,8 @@ for:
 
       - git push --tags
 
+on_failure:  # https://github.com/appveyor/ci/issues/401#issuecomment-301649481
+- ps: appveyor PushArtifact .nox/*/*/*.log
+
 artifacts:
   - path: '.nox/*/*/*.log'

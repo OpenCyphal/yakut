@@ -29,7 +29,7 @@ def _isatty(stream: IO[str]) -> bool:
     # noinspection PyBroadException
     try:
         return stream.isatty()
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         return False
 
 

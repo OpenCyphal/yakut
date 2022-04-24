@@ -125,7 +125,7 @@ def _handle_option_synchronizer_transfer_id(ctx: click.Context, _param: click.Pa
         from ._sync_transfer_id import make_sync_transfer_id
 
         _logger.debug("Configuring transfer-ID synchronizer")
-        ctx.ensure_object(Config).set_synchronizer_factory(lambda subs: make_sync_transfer_id(subs))
+        ctx.ensure_object(Config).set_synchronizer_factory(make_sync_transfer_id)
 
 
 @yakut.subcommand(aliases="sub")

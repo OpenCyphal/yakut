@@ -280,11 +280,11 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
         finally:
             click.secho("", err=True, nl=False)
 
-    except Exception as ex:
+    except Exception as ex:  # pylint: disable=broad-except
         err(f"{type(ex).__name__}: {ex}")
         _logger.debug("EXCEPTION %s: %s", type(ex).__name__, ex, exc_info=True)
 
-    except BaseException as ex:
+    except BaseException as ex:  # pylint: disable=broad-except
         err(f"Internal error, please report: {ex}")
         _logger.error("%s: %s", type(ex).__name__, ex, exc_info=True)
 

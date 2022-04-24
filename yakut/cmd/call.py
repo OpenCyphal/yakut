@@ -248,7 +248,7 @@ async def _resolve(
         )
         if not resolved:
             raise click.ClickException(
-                f"Could not resolve service {specs[0]!r} via node {server_node_id}"
+                f"Could not resolve service {specs[0]!r} via node {server_node_id}. "
                 f"The remote node might be offline or it may not support automatic discovery. "
                 f"Consider specifying the service-ID and the data type explicitly?"
             )

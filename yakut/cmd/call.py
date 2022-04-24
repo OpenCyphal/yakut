@@ -247,7 +247,11 @@ async def _resolve(
             response_timeout=response_timeout,
         )
         if not resolved:
-            raise click.ClickException(f"Could not resolve service {specs[0]!r} via node {server_node_id}")
+            raise click.ClickException(
+                f"Could not resolve service {specs[0]!r} via node {server_node_id}"
+                f"The remote node might be offline or it may not support automatic discovery. "
+                f"Consider specifying the service-ID and the data type explicitly?"
+            )
         service_id, dtype_name_remote = resolved
         _logger.debug("Using locally specified type %r; server uses %r", dtype, dtype_name_remote)
         return service_id, dtype

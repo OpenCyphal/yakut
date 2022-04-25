@@ -26,7 +26,7 @@ def _unittest_monoclust_ts_field_auto(transport_factory: TransportFactory, compi
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(3.0)
+    time.sleep(10.0)
     proc_pub = Subprocess.cli(
         "-v",
         "pub",
@@ -72,7 +72,7 @@ def _unittest_monoclust_ts_field_manual(transport_factory: TransportFactory, com
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(3.0)
+    time.sleep(10.0)
     proc_pub = Subprocess.cli(
         "-v",
         "pub",

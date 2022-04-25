@@ -240,7 +240,7 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(3.0)  # Let the subscriber boot up.
+    time.sleep(10.0)  # Let the subscriber boot up.
     proc_pub = Subprocess.cli(
         "-v",
         "pub",
@@ -277,7 +277,7 @@ def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_ds
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(3.0)  # Let the publisher boot up.
+    time.sleep(10.0)  # Let the publisher boot up.
     proc_sub = Subprocess.cli(
         "--format=json",
         "sub",

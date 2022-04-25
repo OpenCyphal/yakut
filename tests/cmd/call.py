@@ -75,7 +75,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         environment_variables=env,
     )
     _logger.info("Checkpoint A")
-    await server.serve_for(handle_request, 3.0)
+    await server.serve_for(handle_request, 5.0)
     _logger.info("Checkpoint B")
     result, stdout, _ = proc.wait(5.0)
     _logger.info("Checkpoint C")
@@ -106,7 +106,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         environment_variables=env,
     )
     _logger.info("Checkpoint A")
-    await server.serve_for(handle_request, 5.0)
+    await server.serve_for(handle_request, 10.0)  # The tested process may take a few seconds to start (see logs).
     _logger.info("Checkpoint B")
     result, stdout, _ = proc.wait(10.0)
     _logger.info("Checkpoint C")
@@ -136,7 +136,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         environment_variables=env,
     )
     _logger.info("Checkpoint A")
-    await server.serve_for(handle_request, 5.0)
+    await server.serve_for(handle_request, 10.0)  # The tested process may take a few seconds to start (see logs).
     _logger.info("Checkpoint B")
     result, stdout, _ = proc.wait(10.0)
     _logger.info("Checkpoint C")
@@ -213,9 +213,10 @@ async def _unittest_call_fixed(transport_factory: TransportFactory, compiled_dsd
         "call",
         "22",
         "uavcan.node.GetInfo",
+        "--timeout=5.0",
         environment_variables=env,
     )
-    await asyncio.sleep(3.0)
+    await asyncio.sleep(10.0)  # The tested process may take a few seconds to start (see logs).
     result, stdout, _ = proc.wait(10.0)
     assert 0 == result
     parsed = json.loads(stdout)

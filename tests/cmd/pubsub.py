@@ -24,53 +24,54 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     proc_sub_heartbeat = Subprocess.cli(
         "--format=json",
         "sub",
-        "uavcan.node.Heartbeat.1.0",
+        "uavcan.node.Heartbeat",
+        "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic = Subprocess.cli(
         "--format=json",
         "sub",
-        "4321:uavcan.diagnostic.Record.1.1",
+        "4321:uavcan.diagnostic.Record",
         "--count=3",
+        "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_wrong_pid = Subprocess.cli(
         "--format=yaml",
         "sub",
-        "uavcan.diagnostic.Record.1.1",
+        "uavcan.diagnostic.Record",
         "--count=3",
         environment_variables=env,
     )
     proc_sub_temperature = Subprocess.cli(
         "--format=json",
         "sub",
-        "555:uavcan.si.sample.temperature.Scalar.1.0",
+        "555:uavcan.si.sample.temperature.Scalar",
         "--count=3",
         "--no-metadata",
         environment_variables=env,
     )
     time.sleep(1.0)  # Time to let the background processes finish initialization
 
-    proc_pub = Subprocess.cli(
-        "-v",
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--heartbeat-vssc=54",
         "--heartbeat-priority=high",
         "--node-info",
         "{software_image_crc: [0xdeadbeef]}",
         f"--transport={transport_factory(51).expression}",  # Takes precedence over the environment variable.
         "pub",
-        "4321:uavcan.diagnostic.Record.1.1",
+        "4321:uavcan.diagnostic.Record",
         '{severity: 6, timestamp: 123456, text: "Hello world!"}',  # Use shorthand init for severity, timestamp
-        "1234:uavcan.diagnostic.Record.1.1",
+        "1234:uavcan.diagnostic.Record",
         '{text: "Goodbye world."}',
-        "555:uavcan.si.sample.temperature.Scalar.1.0",
+        "555:uavcan.si.sample.temperature.Scalar",
         "{kelvin: 123.456}",
         "--count=3",
-        "--period=2",
+        "--period=3",
         "--priority=slow",
         environment_variables=env,
     )
-    time.sleep(3.0)  # Time to let the publisher boot up properly.
+    time.sleep(5.0)  # Time to let the publisher boot up properly.
 
     # Request GetInfo from the publisher we just launched.
     _, stdout, _ = execute_cli(
@@ -147,25 +148,24 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "YAKUT_TRANSPORT": transport_factory(None).expression,
         "YAKUT_PATH": str(OUTPUT_DIR),
     }
-    proc_sub_heartbeat = Subprocess.cli(
-        "-v",
+    proc_sub_heartbeat = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
-        "uavcan.node.Heartbeat.1.0",
+        "uavcan.node.Heartbeat",
+        "--with-metadata",
         environment_variables=env,
     )
-    proc_sub_diagnostic_with_meta = Subprocess.cli(
-        "-v",
+    proc_sub_diagnostic_with_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
-        "uavcan.diagnostic.Record.1.1",
+        "uavcan.diagnostic.Record",
+        "--with-metadata",
         environment_variables=env,
     )
-    proc_sub_diagnostic_no_meta = Subprocess.cli(
-        "-v",
+    proc_sub_diagnostic_no_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
-        "uavcan.diagnostic.Record.1.1",
+        "uavcan.diagnostic.Record",
         "--no-metadata",
         environment_variables=env,
     )
@@ -175,7 +175,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
     if transport_factory(None).can_transmit:
         proc = Subprocess.cli(
             "pub",
-            "uavcan.diagnostic.Record.1.1",
+            "uavcan.diagnostic.Record",
             "{}",
             "--count=2",
             "--period=2",
@@ -210,13 +210,81 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
             assert m["8184"]["timestamp"]["microsecond"] == 0
             assert m["8184"]["text"] == ""
     else:
-        proc = Subprocess.cli(
-            "-v",
+        proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
             "pub",
-            "uavcan.diagnostic.Record.1.1",
+            "uavcan.diagnostic.Record",
             "{}",
             "--count=2",
             "--period=2",
             environment_variables=env,
         )
         assert 0 < proc.wait(timeout=8, log=False)[0]
+
+
+def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    _ = compiled_dsdl
+    proc_sub = Subprocess.cli(
+        "--format=json",
+        "sub",
+        "1000:uavcan.primitive.String",
+        "2000:uavcan.primitive.String",
+        "--no-metadata",
+        "--count=3",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(10).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    time.sleep(10.0)  # Let the subscriber boot up.
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+        "pub",
+        "1000",  # Use discovery.
+        "hello",
+        "2000",  # Use discovery.
+        "world",
+        "--count=3",
+        "--period=3",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(11).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    proc_pub.wait(30.0)
+    time.sleep(1.0)
+    out_sub = proc_sub.wait(10.0)[1].splitlines()
+    msgs = list(map(json.loads, out_sub))
+    assert msgs == [{"1000": {"value": "hello"}, "2000": {"value": "world"}}] * 3
+
+
+def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    _ = compiled_dsdl
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+        "pub",
+        "1000:uavcan.primitive.String",
+        "hello",
+        "2000:uavcan.primitive.String",
+        "world",
+        "--period=3",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(11).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    time.sleep(10.0)  # Let the publisher boot up.
+    proc_sub = Subprocess.cli(
+        "--format=json",
+        "sub",
+        "1000",  # Use discovery.
+        "2000",  # Use discovery.
+        "--no-metadata",
+        "--count=3",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(10).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    out_sub = proc_sub.wait(30.0)[1].splitlines()  # discovery takes a while
+    proc_pub.wait(10.0, interrupt=True)
+    time.sleep(1.0)
+    msgs = list(map(json.loads, out_sub))
+    assert msgs == [{"1000": {"value": "hello"}, "2000": {"value": "world"}}] * 3

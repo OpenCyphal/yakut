@@ -15,7 +15,7 @@ from yakut.controller import list_controllers, Controller
 _logger = yakut.get_logger(__name__)
 
 
-@yakut.subcommand()
+@yakut.subcommand(aliases="joy")
 def joystick() -> None:
     """
     Show the state of all joysticks and MIDI controllers connected to this computer, htop-style.
@@ -57,32 +57,32 @@ def _run(controllers: List[Controller]) -> None:
 
 
 def _render_all(controllers: List[Controller]) -> Iterable[str]:
-    for index, ctl in enumerate(controllers):
-        yield click.style(f"{index} ", fg="bright_cyan") + click.style(ctl.name, fg="bright_white", bg="blue")
+    yield "Legend: A -- analog axis, B -- push button, T -- toggle switch"
+    for idx, ctl in enumerate(controllers):
+        yield ""
+        yield click.style(f"{idx} ", fg="bright_cyan") + click.style(ctl.name, fg="bright_white", bg="blue")
         sample = ctl.sample()
 
         if sample.axis:
             yield " ".join(
-                click.style(f"axis[{axis}]=", fg="green") + click.style(f"{value:+.2f}", fg="bright_white")
-                for axis, value in sample.axis.items()
+                click.style(f"A({idx},{axis})=", fg="green") + click.style(f"{value:+.2f}", fg="bright_white")
+                for axis, value in sorted(sample.axis.items())
             )
         else:
             yield click.style("No analog axes detected (try moving the controls)", fg="bright_red")
 
         if sample.button:
             yield " ".join(
-                click.style(f"button[{axis}]=", fg="cyan") + click.style(f"{value:d}", fg="bright_white")
-                for axis, value in sample.button.items()
+                click.style(f"B({idx},{axis})=", fg="cyan") + click.style(f"{value:d}", fg="bright_white")
+                for axis, value in sorted(sample.button.items())
             )
         else:
             yield click.style("No buttons detected (try pushing them)", fg="bright_red")
 
         if sample.toggle:
             yield " ".join(
-                click.style(f"toggle[{axis}]=", fg="yellow") + click.style(f"{value:d}", fg="bright_white")
-                for axis, value in sample.toggle.items()
+                click.style(f"T({idx},{axis})=", fg="yellow") + click.style(f"{value:d}", fg="bright_white")
+                for axis, value in sorted(sample.toggle.items())
             )
         else:
             yield click.style("No toggles detected (try switching them)", fg="bright_red")
-
-        yield ""

@@ -5,6 +5,8 @@
 from __future__ import annotations
 import os
 import sys
+import asyncio
+import functools
 from typing import TYPE_CHECKING, Iterable, Optional, Any, Callable, Awaitable
 import logging
 from pathlib import Path
@@ -92,25 +94,96 @@ class Purser:
 pass_purser = click.make_pass_decorator(Purser)
 
 
-class AbbreviatedGroup(click.Group):
-    def get_command(self, ctx: click.Context, cmd_name: str) -> Optional[click.Command]:
-        cmd_name = cmd_name.replace("_", "-")
-        rv = click.Group.get_command(self, ctx, cmd_name)
-        if rv is not None:
-            return rv
-        matches = [x for x in self.list_commands(ctx) if x.startswith(cmd_name)]
-        if not matches:
-            return None
-        if len(matches) == 1:
-            return click.Group.get_command(self, ctx, matches[0])
-        ctx.fail(f"Abbreviated command {cmd_name!r} is ambiguous. Possible matches: {list(matches)}")
+class AliasedGroup(click.Group):
+    """
+    This class is inspired by "click-aliases" from Robbin Bonthond published at
+    https://github.com/click-contrib/click-aliases/blob/master/click_aliases/__init__.py
+    under the terms of the MIT license.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._commands: dict[str, set[str]] = {}
+        self._aliases: dict[str, str] = {}
+
+    def command(self, *args: Any, **kwargs: Any) -> Any:
+        aliases = AliasedGroup._mk_aliases(kwargs.pop("aliases", []))
+        decorator: Any = super().command(*args, **kwargs)
+        if not aliases:
+            return decorator
+
+        def _decorator(f: Any) -> Any:
+            cmd: Any = decorator(f)
+            if aliases:
+                self._commands[cmd.name] = aliases
+                for alias in aliases:
+                    self._aliases[alias] = cmd.name
+            return cmd
+
+        return _decorator
+
+    def group(self, *args: Any, **kwargs: Any) -> Any:
+        aliases = AliasedGroup._mk_aliases(kwargs.pop("aliases", []))
+        decorator: Any = super().group(*args, **kwargs)
+        if not aliases:
+            return decorator
+
+        def _decorator(f: Any) -> Any:
+            cmd: Any = decorator(f)
+            if aliases:
+                self._commands[cmd.name] = aliases
+                for alias in aliases:
+                    self._aliases[alias] = cmd.name
+            return cmd
+
+        return _decorator
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> Any:
+        cmd_name = self._aliases.get(cmd_name, cmd_name)
+        return super().get_command(ctx, cmd_name)
+
+    def resolve_command(
+        self, ctx: click.Context, args: list[Any]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        """
+        This is a workaround for this bug in v7 and v8: https://github.com/pallets/click/issues/1422.
+        If this is not overridden, then abbreviated commands cause the automatic envvar prefix to be constructed
+        incorrectly, such that instead of the full command name the abbreviated name is used.
+        For example, if the user invokes `yakut co` meaning `yakut compile`,
+        the auto-constructed envvar prefix would be `YAKUT_CO_` instead of `YAKUT_COMPILE_`.
+        """
+        _, cmd, out_args = super().resolve_command(ctx, args)
+        return (cmd.name if cmd else None), cmd, out_args
+
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        rows: list[tuple[str, str]] = []
+        sub_commands = self.list_commands(ctx)
+        max_len = max(len(cmd) for cmd in sub_commands)
+        limit = formatter.width - 6 - max_len
+        for subcmd in sub_commands:
+            cmd = self.get_command(ctx, subcmd)
+            if cmd is not None and not getattr(cmd, "hidden", False):
+                if subcmd in self._commands:
+                    subcmd = ",".join([subcmd] + list(sorted(self._commands[subcmd])))
+                rows.append((subcmd, cmd.get_short_help_str(limit)))
+        if rows:
+            with formatter.section("Commands"):
+                formatter.write_dl(rows)
+
+    @staticmethod
+    def _mk_aliases(item: Any) -> set[str]:
+        if isinstance(item, str):
+            return {item}
+        if isinstance(item, (list, tuple, set)) and all(isinstance(x, str) for x in item):
+            return set(item)
+        raise TypeError(f"Bad aliases: {item}")
 
 
 _ENV_VAR_PATH = "YAKUT_PATH"
 
 
 @click.command(
-    cls=AbbreviatedGroup,
+    cls=AliasedGroup,
     context_settings={
         "max_content_width": get_terminal_size()[0],
         "auto_envvar_prefix": "YAKUT",  # Specified here, not in __main__.py, otherwise doesn't work when installed.
@@ -142,7 +215,7 @@ Examples:
 @transport_factory_option
 @node_factory_option
 @click.pass_context
-def main(
+def _click_main(
     ctx: click.Context,
     verbose: int,
     path: tuple[str, ...],
@@ -166,9 +239,6 @@ def main(
     Any long option can be provided via environment variable prefixed with `YAKUT_`
     such that an option `--foo-bar` for command `baz`, if not provided as a command-line argument,
     will be read from `YAKUT_BAZ_FOO_BAR`.
-
-    Any command can be abbreviated arbitrarily as long as the resulting abridged name is not ambiguous.
-    For example, `publish`, `publ` and `pub` are all valid and equivalent.
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
 
@@ -185,17 +255,85 @@ def main(
     )
 
 
-subcommand: Callable[..., Callable[..., Any]] = main.command  # type: ignore
+def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
+    def err(text: str) -> None:
+        click.secho(text, err=True, fg="red", bold=True)
+
+    status: Any = 1
+    # noinspection PyBroadException
+    try:
+        status = _click_main.main(prog_name="yakut", standalone_mode=False)
+
+    except SystemExit as ex:
+        status = ex.code
+
+    except (KeyboardInterrupt, click.Abort) as ex:
+        status = 127
+        _logger.info("Interrupted")
+        _logger.debug("%s: %s", type(ex).__name__, ex, exc_info=True)
+
+    except click.ClickException as ex:
+        status = ex.exit_code
+        try:
+            click.secho("", err=True, fg="red", bold=True, reset=False, nl=False)
+            ex.show()
+        finally:
+            click.secho("", err=True, nl=False)
+
+    except Exception as ex:  # pylint: disable=broad-except
+        err(f"{type(ex).__name__}: {ex}")
+        _logger.debug("EXCEPTION %s: %s", type(ex).__name__, ex, exc_info=True)
+
+    except BaseException as ex:  # pylint: disable=broad-except
+        err(f"Internal error, please report: {ex}")
+        _logger.error("%s: %s", type(ex).__name__, ex, exc_info=True)
+
+    _logger.debug("EXIT %r", status)
+    sys.exit(status)
 
 
-def asynchronous(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
-    import asyncio
-    from functools import update_wrapper
+subcommand: Callable[..., Callable[..., Any]] = _click_main.command  # type: ignore
 
-    def proxy(*args: Any, **kwargs: Any) -> Any:
-        return asyncio.run(f(*args, **kwargs))
 
-    return update_wrapper(proxy, f)
+def asynchronous(*, interrupted_ok: bool = False) -> Callable[[Callable[..., Awaitable[Any]]], Callable[..., Any]]:
+    def impl(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
+        def handle_task_exception(_loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+            message = context.get("message", "Unhandled exception in event loop")
+            exc = context.get("exception")
+            exc_info: Any = (type(exc), exc, exc.__traceback__) if exc else False
+            _logger.debug("Task exception during shutdown: %s", message, exc_info=exc_info)
+
+        # This is similar to asyncio.run().
+        # The difference is that we configure logging differently to avoid unhelpful stack traces during shutdown.
+        # Appearance of such errors is not the expected behavior and should be fixed, but the user need not
+        # know about these errors as they are unlikely to affect the behavior of the application.
+        # See https://github.com/OpenCyphal/yakut/issues/40
+        def proxy(*args: Any, **kwargs: Any) -> Any:
+            loop = asyncio.new_event_loop()
+            try:
+                asyncio.set_event_loop(loop)
+                return loop.run_until_complete(f(*args, **kwargs))
+            except KeyboardInterrupt:
+                if not interrupted_ok:
+                    raise
+            finally:
+                _logger.debug("Event loop finalization with exc=%r", sys.exc_info())
+                try:
+                    loop.set_exception_handler(handle_task_exception)
+                    orphans = asyncio.all_tasks(loop)
+                    if orphans:
+                        for ts in orphans:
+                            ts.cancel()
+                        for e in loop.run_until_complete(asyncio.gather(*orphans, return_exceptions=True)):
+                            if isinstance(e, BaseException) and not isinstance(e, asyncio.CancelledError):
+                                handle_task_exception(loop, {"exception": e})
+                finally:
+                    asyncio.set_event_loop(None)
+                    loop.close()
+
+        return functools.update_wrapper(proxy, f)
+
+    return impl
 
 
 def _configure_logging(verbosity_level: int) -> None:

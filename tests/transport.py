@@ -76,15 +76,21 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
         # The sleep is needed to let the broker initialize before starting the tests to avoid connection error.
         # This is only relevant for Windows. See details: https://github.com/OpenCyphal/yakut/issues/26
         time.sleep(2)
+        if not out.alive:
+            status, _stdout, stderr = out.wait(1.0)
+            raise RuntimeError(f"Cyphal/serial broker could not be launched. Exit status: {status}; stderr:\n" + stderr)
         return out
 
     def serial_tunneled_via_tcp() -> typing.Iterator[TransportFactory]:
         broker = launch_serial_broker()
+        assert broker.alive
         yield lambda nid: TransportConfig(
             expression=f"Serial('{serial_endpoint}',local_node_id={nid})",
             can_transmit=True,
         )
+        assert broker.alive
         time.sleep(1.0)  # Ensure all clients have disconnected to avoid warnings in the test logs.
+        assert broker.alive
         broker.wait(5.0, interrupt=True)
 
     def udp_loopback() -> typing.Iterator[TransportFactory]:
@@ -96,6 +102,7 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
 
     def heterogeneous_udp_serial() -> typing.Iterator[TransportFactory]:
         broker = launch_serial_broker()
+        assert broker.alive
         yield lambda nid: TransportConfig(
             expression=(
                 ",".join(
@@ -107,7 +114,9 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
             ),
             can_transmit=nid is not None,
         )
+        assert broker.alive
         time.sleep(1.0)  # Ensure all clients have disconnected to avoid warnings in the test logs.
+        assert broker.alive
         broker.wait(5.0, interrupt=True)
 
     yield serial_tunneled_via_tcp

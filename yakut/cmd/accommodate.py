@@ -2,7 +2,6 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-import sys
 import random
 import asyncio
 import contextlib
@@ -14,9 +13,9 @@ import yakut
 _logger = yakut.get_logger(__name__)
 
 
-@yakut.subcommand()
+@yakut.subcommand(aliases="acmd")
 @yakut.pass_purser
-@yakut.asynchronous
+@yakut.asynchronous()
 async def accommodate(purser: yakut.Purser) -> None:
     """
     Automatically find a node-ID value that is not used by any other node that is currently online.
@@ -40,7 +39,7 @@ async def accommodate(purser: yakut.Purser) -> None:
     except (ImportError, AttributeError):
         from yakut.cmd.compile import make_usage_suggestion
 
-        raise click.UsageError(make_usage_suggestion("uavcan")) from None
+        raise click.ClickException(make_usage_suggestion("uavcan")) from None
 
     transport = purser.get_transport()
     node_id_set_cardinality = transport.protocol_parameters.max_nodes
@@ -104,14 +103,12 @@ async def accommodate(purser: yakut.Purser) -> None:
                     deadline = max(deadline, asyncio.get_event_loop().time() + advancement)
 
     if not candidates:
-        click.secho(f"All {node_id_set_cardinality} of the available node-ID values are occupied.", err=True, fg="red")
-        sys.exit(1)
-    else:
-        pick = random.choice(list(candidates))
-        _logger.info(
-            "The set of unoccupied node-ID values contains %d elements out of %d possible; the chosen value is %d",
-            len(candidates),
-            node_id_set_cardinality,
-            pick,
-        )
-        click.echo(pick)
+        raise click.ClickException(f"All {node_id_set_cardinality} of the available node-ID values are occupied")
+    pick = random.choice(list(candidates))
+    _logger.info(
+        "The set of unoccupied node-ID values contains %d elements out of %d possible; the chosen value is %d",
+        len(candidates),
+        node_id_set_cardinality,
+        pick,
+    )
+    click.echo(pick)

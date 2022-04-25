@@ -15,7 +15,7 @@ Yakut supports all Cyphal transports (UDP, serial, CAN, ...)
 and is compatible with all major features of the protocol.
 It is designed to be usable with GNU/Linux, Windows, and macOS.
 
-<img src="/docs/monitor.png" alt="yakut monitor">
+<img src="docs/monitor.png" alt="yakut monitor">
 
 Ask questions and get assistance at [forum.opencyphal.org](https://forum.opencyphal.org/).
 
@@ -23,7 +23,6 @@ Ask questions and get assistance at [forum.opencyphal.org](https://forum.opencyp
 
 First, make sure to [have Python installed](https://docs.python.org/3/using/index.html).
 Windows users are recommended to grab the official distribution from Windows Store.
-Yakut requires **Python 3.7 or newer**.
 
 Install Yakut: **`pip install yakut`**
 
@@ -32,19 +31,23 @@ By default, Yakut does not support joysticks or MIDI controllers
 To enable the support for input devices, install the optional dependency: **`pip install yakut[joystick]`**.
 GNU/Linux users will need to also install: [SDL2](https://libsdl.org),
 possibly libjack (with headers), possibly libasound2 (with headers)
-(if you are using a Debian-based distro, the required packages are: `libasound2-dev libjack-dev`).
+(if you are using a Debian-based distro, the required packages are: `libsdl2-dev libasound2-dev libjack-dev`).
 
 Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
-Installation & configuration screencasts for Windows and GNU/Linux are
-[available on the forum](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197).
+Installation & configuration screencasts are available for
+[Windows](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197/2?u=pavel.kirienko),
+[GNU/Linux](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197/1?u=pavel.kirienko),
+and
+[macOS](https://www.youtube.com/watch?v=dQw4w9WgXcQ).
 
 ### Additional third-party tools
 
 - Cyphal/CAN on GNU/Linux: [`can-utils`](https://github.com/linux-can/can-utils)
 - Cyphal/UDP or Cyphal/CAN: [Wireshark](https://www.wireshark.org/)
+  (n.b.: Wireshark might label Cyphal captures as UAVCAN due to rebranding)
 
 ## Invoking commands
 
@@ -61,9 +64,6 @@ yakut --path=/the/path compile path/to/my_namespace --output=destination/directo
 ```
 
 In this example, the corresponding environment variables are `YAKUT_PATH` and `YAKUT_COMPILE_OUTPUT`.
-
-Any subcommand like `yakut compile` can be used in an abbreviated form like `yakut com`
-as long as the resulting abbreviation is unambiguous.
 
 There is a dedicated `--help` option for every subcommand.
 
@@ -83,6 +83,15 @@ so let's compile it too, along with the regulated namespace:
 
 ```bash
 yakut compile  ~/public_regulated_data_types/uavcan  ~/public_regulated_data_types/reg
+```
+
+Yakut can directly fetch archives containing DSDL namespace directories at the top level, too:
+
+```bash
+# Compile all DSDL namespaces found in the archives:
+yakut compile \
+    https://github.com/OpenCyphal/public_regulated_data_types/archive/refs/heads/master.zip \
+    https://github.com/Zubax/zubax_dsdl/archive/refs/heads/master.zip
 ```
 
 Compilation outputs will be stored in the current working directory, but it can be overridden if needed
@@ -124,10 +133,7 @@ knowing that the outputs will be always stored to and read from a fixed place un
 ## Communicating
 
 Commands that access the network need to know how to do so.
-There are two ways to configure that:
-pass *Cyphal registers* via environment variables (this is the default),
-or pass an initialization expression via `--transport`/`YAKUT_TRANSPORT` (in which case the registers are ignored).
-The latter is not recommended for general use so we'll focus on the first one.
+This is typically configured via standard Cyphal registers assigned from environment variables.
 
 Cyphal registers are named values that contain various configuration parameters of a Cyphal application/node.
 They are extensively described in the [Cyphal Specification](https://opencyphal.org/specification).
@@ -139,16 +145,18 @@ The full description of supported registers is available in the API documentatio
 [`pycyphal.application.make_transport()`](https://pycyphal.readthedocs.io/en/stable/api/pycyphal.application.html#pycyphal.application.make_transport).
 
 If the available registers define more than one transport configuration, a redundant transport will be initialized.
+It is not necessary to assign all of these registers to use a particular transport
+because all of them except `uavcan.*.iface` come with defaults.
 
-| Transport | Register name         | Register type  | Environment variable name | Semantics                                         | Example environment variable value  |
-|-----------|-----------------------|----------------|---------------------------|---------------------------------------------------|-------------------------------------|
-| All       | `uavcan.node.id`      | `natural16[1]` | `UAVCAN__NODE__ID`        | The local node-ID; anonymous if not set           | `42`                                |
-| UDP       | `uavcan.udp.iface`    | `string`       | `UAVCAN__UDP__IFACE`      | Space-separated local IPs (16 LSB set to node-ID) | `127.9.0.0 192.168.0.0`             |
-| Serial    | `uavcan.serial.iface` | `string`       | `UAVCAN__SERIAL__IFACE`   | Space-separated serial port names                 | `COM9 socket://127.0.0.1:50905`     |
-| CAN       | `uavcan.can.iface`    | `string`       | `UAVCAN__CAN__IFACE`      | Space-separated CAN iface names                   | `socketcan:vcan0 pcan:PCAN_USBBUS1` |
-| CAN       | `uavcan.can.mtu`      | `natural16[1]` | `UAVCAN__CAN__MTU`        | Maximum transmission unit; selects Classic/FD     | `64`                                |
-| CAN       | `uavcan.can.bitrate`  | `natural32[2]` | `UAVCAN__CAN__BITRATE`    | Arbitration/data segment bits per second          | `1000000 4000000`                   |
-| Loopback  | `uavcan.loopback`     | `bit[1]`       | `UAVCAN__LOOPBACK`        | Use loopback interface (only for basic testing)   | `1`                                 |
+| Transport | Register name         | Register type  | Environment variable name | Semantics                                                  | Example environment variable value  |
+|-----------|-----------------------|----------------|---------------------------|------------------------------------------------------------|-------------------------------------|
+| (any)     | `uavcan.node.id`      | `natural16[1]` | `UAVCAN__NODE__ID`        | The local node-ID; anonymous if not set                    | `42`                                |
+| UDP       | `uavcan.udp.iface`    | `string`       | `UAVCAN__UDP__IFACE`      | Space-separated local IPs (16 LSB overridden with node-ID) | `127.9.0.0 192.168.0.0`             |
+| Serial    | `uavcan.serial.iface` | `string`       | `UAVCAN__SERIAL__IFACE`   | Space-separated serial port names                          | `COM9 socket://127.0.0.1:50905`     |
+| CAN       | `uavcan.can.iface`    | `string`       | `UAVCAN__CAN__IFACE`      | Space-separated CAN iface names                            | `socketcan:vcan0 pcan:PCAN_USBBUS1` |
+| CAN       | `uavcan.can.mtu`      | `natural16[1]` | `UAVCAN__CAN__MTU`        | Maximum transmission unit; selects Classic/FD              | `64`                                |
+| CAN       | `uavcan.can.bitrate`  | `natural32[2]` | `UAVCAN__CAN__BITRATE`    | Arbitration/data segment bits per second                   | `1000000 4000000`                   |
+| Loopback  | `uavcan.loopback`     | `bit[1]`       | `UAVCAN__LOOPBACK`        | Use loopback interface (only for basic testing)            | `1`                                 |
 
 ### Protip on environment variables
 
@@ -161,10 +169,7 @@ Here is an example for a doubly-redundant CAN bus (assuming sh/bash/zsh here):
 ```bash
 # Common Cyphal register configuration for testing & debugging.
 # Source this file into your sh/bash/zsh session before using Yakut and other Cyphal tools.
-# Other helpful commands from can-utils:
-#   canbusload -tcbr slcan0@1000000 slcan1@1000000
-#   candump -decaxta any
-
+# You can also insert automatic iface initialization here, e.g., by checking if /sys/class/net/slcan0 exists.
 export UAVCAN__CAN__IFACE='socketcan:slcan0 socketcan:slcan1'
 export UAVCAN__CAN__MTU=8
 export UAVCAN__NODE__ID=$(yakut accommodate)  # Pick an unoccupied node-ID automatically for this shell session.
@@ -180,13 +185,14 @@ $ yakut monitor  # Whatever.
 
 ### Subscribing to subjects
 
-Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar.1.0` as shown below;
+Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar` as shown below;
 notice how we specify the subject-ID before the data type name.
-You will see output if there is a publisher on this subject (more on this in the next section).
+If the data type version number(s) are not specified (minor or both), the latest available is chosen automatically.
+You will see output if/when there is a publisher on this subject (more on this in the next section).
 
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
-$ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
+$ yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata
 ---
 33:
   _metadata_:
@@ -206,14 +212,54 @@ $ yakut sub 33:uavcan.si.unit.angle.Scalar.1.0
   radian: 2.309999942779541
 ```
 
+If more than one subject is specified,
+a synchronizer will be used to group messages from multiple subjects into synchronized groups,
+which are then printed all at once.
+If subjects are not updated in lockstep some or all messages may be dropped.
+
+<img src="docs/subject_synchronization.png" alt="subject synchronization">
+
+Yakut can determine the data type names automatically if the publisher node(s) support the required
+network introspection services.
+In the following example only the subject-IDs are provided and the type information is discovered automatically:
+
+```bash
+$ y sub 100 110 120 140 150
+---
+100:
+  heartbeat:
+    readiness: {value: 3}
+    health: {value: 0}
+  demand_factor_pct: 2
+110:
+  timestamp: {microsecond: 1650748118444258}
+  value:
+    kinematics:
+      angular_position: {radian: 5.42976188659668}
+      angular_velocity: {radian_per_second: 111.61508178710938}
+      angular_acceleration: {radian_per_second_per_second: -0.10802359879016876}
+    torque: {newton_meter: 0.012790549546480179}
+120:
+  timestamp: {microsecond: 1650748118444258}
+  value:
+    current: {ampere: 0.055703502148389816}
+    voltage: {volt: 24.92441749572754}
+140: {dc_voltage: 125, dc_current: 0, phase_current_amplitude: 4, velocity: 111, ratiometric_setpoint: 9}
+150:
+  current: [0.0020294189453125, 0.70458984375]
+  voltage: [0.1893310546875, 1.3359375]
+```
+
+Use `--help` to see additional options (`--redraw` is often useful).
+
 #### Exporting data to computer algebra systems or spreadsheet processors
 
-Here the `reg.udral.physics.dynamics.rotation.PlanarTs.0.1` message is formatted using the TSV formatter
+Here the `reg.udral.physics.dynamics.rotation.PlanarTs` message is formatted using the TSV formatter
 with headers prepended.
 The resulting data can be imported as-is into Excel, Wolfram Mathematica, etc.
 
 ```bash
-yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs.0.1 > rotation_data.tsv
+yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs > rotation_data.tsv
 ```
 
 ### Publishing messages
@@ -223,29 +269,29 @@ Publishing two messages synchronously twice (four messages total):
 ```bash
 export UAVCAN__UDP__IFACE=127.63.0.0
 export UAVCAN__NODE__ID=42
-yakut pub -N2 33:uavcan.si.unit.angle.Scalar.1.0 'radian: 2.31' \
-                 uavcan.diagnostic.Record.1.1    'text: "2.31 rad"'
+yakut pub -N2 33:uavcan.si.unit.angle.Scalar 2.31 uavcan.diagnostic.Record '{text: "2.31 radian"}'
 ```
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
+Like in the case of subscriber, automatic subject type discovery is also available here.
 
 The above example will publish constant values which is rarely useful.
-You can define arbitrary Python expressions that are evaluated by Yakut before publication.
-Such expressions are entered as strings marked with [YAML tag](https://yaml.org/spec/1.2/spec.html#id2761292) `!$`.
+You can define arbitrary Python expressions that are evaluated by Yakut before every publication.
+Such expressions are entered as strings marked with a [YAML tag](https://yaml.org/spec/1.2/spec.html#id2761292) `!$`.
 There may be an arbitrary number of such expressions in a YAML document,
 and their results may be arbitrary as long as the final structure can initialize the specified message.
 The following example will publish a sinewave with frequency 1 Hz, amplitude 10 meters:
 
 ```bash
-yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2) * 10"}'
+yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '{meter: !$ "sin(t * pi * 2) * 10"}'
 ```
 
 Notice that we make use of entities like the variable `t` or the standard function `sin` in the expression.
-You will see the full list of available entities if you run `yakut pub --help`.
+You will see the full list of available entities if you run `y pub --help`.
 
 One particularly important capability of this command is the ability to read data from connected
 joysticks or MIDI controllers.
-It allows the user to control Cyphal processes or equipment in real time, simulate sensor feeds, etc.
+It allows the user to control distributed processes or equipment in real time, simulate sensor feeds, etc.
 Function `A(x,y)` returns the normalized value of axis `y` from connected controller `x`
 (for full details see `yakut pub --help`);
 likewise, there is `B(x,y)` for push buttons and `T(x,y)` for toggle switches.
@@ -254,10 +300,12 @@ allowing the user to control these parameters interactively:
 
 ```bash
 yakut pub -T 0.1 \
-    5:uavcan.si.unit.angular_velocity.Vector3.1.0 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
-    6:uavcan.si.unit.power.Scalar.1.0 '!$ A(2,10)*1e3' \
-    7:uavcan.primitive.scalar.Bit.1.0 '!$ T(1,5)'
+    5:uavcan.si.unit.angular_velocity.Vector3 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
+    6:uavcan.si.unit.power.Scalar '!$ A(2,10)*1e3' \
+    7:uavcan.primitive.scalar.Bit '!$ T(1,5)'
 ```
+
+To see the published values, either launch a subscriber in a new terminal as `y sub 5 6 7`, or add `--verbose`.
 
 Observe that we didn't spell out the field names here (`radian_per_second`, `watt`, `value`)
 because it is actually not required;
@@ -299,8 +347,8 @@ Suppose that there is node 42 that serves `sirius_cyber_corp.PerformLinearLeastS
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
 $ export UAVCAN__NODE__ID=42
-$ yakut compile sirius_cyber_corp
-$ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
+$ yakut compile sirius_cyber_corp ~/public_regulated_data_types/uavcan
+$ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
 ---
 123:
   slope: 0.1
@@ -310,6 +358,19 @@ $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit.1.0 'points: 
 You might notice that the verbose initialization form used in this example is hard to type:
 `points: [{x: 10, y: 1}, {x: 20, y: 2}]`.
 Instead, you can use positional initialization for convenience: `[[10, 1], [20, 2]]`.
+
+Automatic data type discovery is also available here but the service has to be referred by name, not port-ID:
+
+```bash
+y q 42 least_squares '[[10, 1], [20, 2]]'  # "y q" is shorthand for "yakut call" (see --help for more)
+```
+
+You can still override the type if you want to use a different one
+(e.g., if the remote node names the type of this service differently):
+
+```bash
+y q 42 least_squares:my_namespace.MySpecialType '[[10, 1], [20, 2]]'
+```
 
 ## Monitoring the network
 
@@ -325,15 +386,15 @@ Read `yakut monitor --help` for details.
 $ export UAVCAN__CAN__IFACE="socketcan:can0 socketcan:can1 socketcan:can2"  # Triply-redundant Cyphal/CAN
 $ export UAVCAN__CAN__MTU=8                     # Force MTU = 8 bytes
 $ export UAVCAN__CAN__BITRATE="1000000 1000000" # Disable BRS, use the same bit rate for arbitration/data
-$ y mon                                         # Abbreviation of "yakut monitor"
+$ y mon                                         # "y mon" is shorthand for "yakut monitor"
 ```
 
-<img src="/docs/monitor.gif" alt="yakut monitor">
+<img src="docs/monitor.gif" alt="yakut monitor">
 
 The monitor can be an anonymous node or it can be given a node-ID of its own.
 In the latter case it will actively query other nodes using the standard introspection services.
 
-Some transports, Cyphal/UDP in particular, require special privileges to run this tool due to the security
+Some transports, Cyphal/UDP in particular, require elevated privileges to run this tool due to the security
 implications of low-level packet capture.
 
 ## Updating node software

@@ -111,7 +111,8 @@ class MIDIController(Controller):
     @staticmethod
     def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
         # noinspection PyUnresolvedReferences
-        for name in mido.get_input_names():
+        all_names = sorted(set(mido.get_input_names()))  # Remove duplicates which sometimes appear on GNU/Linux.
+        for name in all_names:
             yield name, functools.partial(MIDIController, name)
 
 

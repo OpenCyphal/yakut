@@ -28,11 +28,9 @@ class Executor:
 
     def __init__(
         self,
-        node: pycyphal.application.Node,
         loader: EvaluableLoader,
         publications: Iterable[Publication],
     ) -> None:
-        self._node = node
         self._ctl: Optional[ControllerReader] = None
         self._publications = list(publications)
 
@@ -42,8 +40,6 @@ class Executor:
         self._loader.evaluation_context[Executor.SYM_CTRL_TOGGLE] = lambda s, i: self._sample_controller(s).toggle[i]
 
     async def run(self, count: int, period: float) -> None:
-        self._node.start()
-
         started_at: Optional[float] = None
         for index in range(count):
             # Update the expression states. Notice that the controls are sampled once atomically.
@@ -59,7 +55,12 @@ class Executor:
             # Run the publication. We initialize the time late to ensure that lazy init doesn't cause phase distortion.
             if started_at is None:
                 started_at = asyncio.get_event_loop().time()
-            out = await asyncio.gather(*[p.publish() for p in self._publications])
+            # We must wait for all tasks to complete before raising the exception.
+            # Leaving orphans is undesirable as it leads to error handling issues.
+            out = await asyncio.gather(*[p.publish() for p in self._publications], return_exceptions=True)
+            for ex in out:
+                if isinstance(ex, BaseException):
+                    raise ex
             assert len(out) == len(self._publications) and all(isinstance(x, bool) for x in out)
             if not all(out):
                 timed_out = [self._publications[idx] for idx, res in enumerate(out) if not res]
@@ -71,7 +72,7 @@ class Executor:
             await asyncio.sleep(sleep_duration)
 
     def close(self) -> None:
-        self._node.close()
+        pycyphal.util.broadcast(p.close for p in self._publications)()
         if self._ctl:
             self._ctl.close()
 
@@ -92,13 +93,13 @@ class Publication:
         subject_id: int,
         dtype: Any,
         evaluator: Callable[..., Any],
-        presentation: pycyphal.presentation.Presentation,
+        node: "pycyphal.application.Node",
         priority: pycyphal.transport.Priority,
         send_timeout: float,
     ):
         self._dtype = dtype
         self._evaluator = evaluator
-        self._publisher = presentation.make_publisher(self._dtype, subject_id)
+        self._publisher = node.make_publisher(self._dtype, subject_id)  # This will expose the port info via registers
         self._publisher.priority = priority
         self._publisher.send_timeout = send_timeout
         self._next_message: Optional[Any] = None
@@ -129,6 +130,9 @@ class Publication:
             assert isinstance(out, bool)
             return out
         return True
+
+    def close(self) -> None:
+        self._publisher.close()
 
     def __repr__(self) -> str:
         out = pycyphal.util.repr_attributes(self, self._publisher)

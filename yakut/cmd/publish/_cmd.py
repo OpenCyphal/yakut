@@ -3,17 +3,19 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import asyncio
 import math
 from typing import Tuple, List, Sequence, Callable, Any, Dict
 import dataclasses
 import logging
 import textwrap
+from functools import lru_cache
 import click
 import pycyphal
 import yakut
-from yakut.helpers import EnumParam
+from yakut.enum_param import EnumParam
 from yakut.yaml import EvaluableLoader
-from yakut.util import construct_port_id_and_type
+from yakut.subject_specifier_processor import process_subject_specifier, SubjectResolver
 from ._executor import Executor, Publication
 
 _MIN_SEND_TIMEOUT = 0.1
@@ -78,33 +80,32 @@ _EXAMPLES = """
 Example: publish constant messages (no embedded expressions, just regular YAML):
 
 \b
-    yakut pub uavcan.diagnostic.Record.1.1 '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
-    yakut pub 33:uavcan/si/unit/angle/Scalar_1_0 'radian: 2.31' uavcan.diagnostic.Record.1.1 'text: "2.31 rad"'
+    yakut pub uavcan.diagnostic.Record '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
+    yakut pub 33:uavcan.si.unit.angle.Scalar 2.31 uavcan.diagnostic.Record 'text: "2.31 radian"'
 
 Example: publish sinewave with frequency 1 Hz, amplitude 10 meters:
 
 \b
-    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2) * 10"}'
+    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '!$ "sin(t * pi * 2) * 10"'
 
 Example: as above, but control the frequency of the sinewave and its amplitude using sliders 10 and 11
 of the first connected controller (use `yakut joystick` to find connected controllers and their axis mappings):
 
 \b
-    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar.1.0 '{meter: !$ "sin(t * pi * 2 * A(1,10)) * 10 * A(1,11)"}'
+    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '{meter: !$ "sin(t * pi * 2 * A(1,10)) * 10 * A(1,11)"}'
 
-Example: publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state;
-use positional initialization instead of YAML dicts:
+Example: publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state:
 
 \b
     yakut pub -T 0.1 \\
-        5:uavcan.si.unit.angular_velocity.Vector3.1.0 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \\
-        6:uavcan.si.unit.power.Scalar.1.0 '!$ A(2,10)*1e3' \\
-        7:uavcan.primitive.scalar.Bit.1.0 '!$ T(1,5)'
+        5:uavcan.si.unit.angular_velocity.Vector3 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \\
+        6:uavcan.si.unit.power.Scalar '!$ A(2,10)*1e3' \\
+        7:uavcan.primitive.scalar.Bit '!$ T(1,5)'
 
 Example: simulate timestamped measurement of voltage affected by white noise with standard deviation 0.25 V:
 
 \b
-    yakut pub -T 0.1 6:uavcan.si.sample.voltage.Scalar.1.0 \\
+    yakut pub -T 0.1 6:uavcan.si.sample.voltage.Scalar \\
         '{timestamp: !$ time()*1e6, volt: !$ "A(2,10)*100+normalvariate(0,0.25)"}'
 """.strip()
 
@@ -117,12 +118,13 @@ like GetInfo.
 The command accepts a list of space-separated pairs like:
 
 \b
-    [SUBJECT_ID:]TYPE_NAME.MAJOR.MINOR  YAML_FIELDS
+    SUBJECT_SPECIFIER  YAML_FIELDS
 
-The first element is a name like `uavcan.node.Heartbeat.1.0` prepended by the subject-ID.
-The subject-ID may be omitted if a fixed one is defined for the data type.
+The first element -- SUBJECT_SPECIFIER -- defines the subject-ID and/or the data type name;
+refer to the subscription command for details.
 
-The second element specifies the values of the message fields in YAML format (or JSON, which is a subset of YAML).
+The second element -- YAML_FIELDS -- specifies the values of the message fields in YAML format
+(or JSON, which is a subset of YAML).
 Missing fields will be left at their default values.
 For more info about the format see DSDL API docs at https://pycyphal.readthedocs.io.
 
@@ -135,17 +137,17 @@ The result of such expression is substituted into the original YAML structure;
 as such, the result can be of arbitrary type as long as the final YAML structure can be applied to the specified
 DSDL instance.
 
-The YAML-embedded expressions have access to the following variables (type is specified after the colon):
+The YAML-embedded expressions have access to the following variables:
 
 {Executor.SYM_INDEX}: int --- index of the current publication cycle, zero initially.
 
 {Executor.SYM_TIME}: float --- time elapsed since first message (t=n*period).
 
-{Executor.SYM_DTYPE}: Type[pycyphal.dsdl.CompositeType] --- message class.
+{Executor.SYM_DTYPE}: type --- message class.
 
 {Executor.SYM_CTRL_AXIS}: (controller,axis:int)->float ---
 read the normalized value of `axis` from `controller` (e.g., joystick or MIDI fader).
-To see the list of available controllers and determine their channel mapping, refer to `yakut joystick --help`.
+To see the list of available controllers and determine their channel mapping, refer to `yakut joystick`.
 
 {Executor.SYM_CTRL_BUTTON}: (controller,button:int)->bool ---
 read the state of `button` from `controller` (true while held down).
@@ -177,7 +179,7 @@ def _validate_message_spec(
     return [(s, f) for s, f in (value[i : i + 2] for i in range(0, len(value), 2))]  # pylint: disable=R1721
 
 
-@yakut.subcommand(help=_HELP)
+@yakut.subcommand(help=_HELP, aliases="pub")
 @click.argument(
     "message",
     type=str,
@@ -214,7 +216,7 @@ The send timeout equals the period as long as it is not less than {_MIN_SEND_TIM
     help=f"Priority of published message transfers. [default: {pycyphal.presentation.DEFAULT_PRIORITY.name}]",
 )
 @yakut.pass_purser
-@yakut.asynchronous
+@yakut.asynchronous(interrupted_ok=True)
 async def publish(
     purser: yakut.Purser,
     message: Sequence[Tuple[str, str]],
@@ -228,66 +230,96 @@ async def publish(
     if period < 1e-9 or not math.isfinite(period):
         raise click.BadParameter("Period shall be a positive real number of seconds")
     if count <= 0:
-        _logger.info("Nothing to do because count=%s", count)
+        _logger.warning("Nothing to do because count=%s", count)
         return
+    try:
+        from pycyphal.application import Node
+    except ImportError as ex:
+        from yakut.cmd.compile import make_usage_suggestion
 
-    send_timeout = max(_MIN_SEND_TIMEOUT, period)
-    loader = EvaluableLoader(ExpressionContextModule.load(_EXPRESSION_CONTEXT_MODULES))
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
-    def make_publication_factory(
-        subject_spec: str, field_spec: str
-    ) -> Callable[[pycyphal.presentation.Presentation], Publication]:
-        subject_id, dtype = construct_port_id_and_type(subject_spec)
-        # Catch errors as early as possible.
-        if pycyphal.dsdl.is_service_type(dtype):
-            raise click.BadParameter(f"Subject spec {subject_spec!r} refers to a service type")
-        # noinspection PyTypeChecker
-        if subject_id is None and pycyphal.dsdl.get_fixed_port_id(dtype) is None:
-            raise click.UsageError(
-                f"Subject-ID is not provided and {pycyphal.dsdl.get_model(dtype)} does not have a fixed one"
+    finalizers: list[Callable[[], None]] = []
+    try:
+        # Parse the field specs we were given to validate syntax.
+        # Do this early before other resources are initialized.
+        yaml_loader = EvaluableLoader(ExpressionContextModule.load(_EXPRESSION_CONTEXT_MODULES))
+        evaluators: list[Callable[..., Any]] = []
+        for _, field_spec in message:
+            try:
+                evaluators.append(yaml_loader.load_unevaluated(field_spec))
+            except ValueError as ex:
+                raise click.BadParameter(f"Invalid field spec {field_spec!r}: {ex}") from None
+
+        # Node construction should be delayed as much as possible to avoid unnecessary interference
+        # with the bus and hardware. This is why we use the factory here instead of constructing the node eagerly.
+        @lru_cache(None)
+        def get_node() -> Node:
+            node = purser.get_node("publish", allow_anonymous=True)
+            finalizers.append(node.close)
+            return node
+
+        @lru_cache(None)
+        def get_subject_resolver() -> SubjectResolver:
+            node = get_node()
+            if node.id is None:
+                raise click.ClickException(
+                    f"Cannot use automatic discovery because the local node is anonymous, "
+                    f"so it cannot access the introspection services on remote nodes. "
+                    f"You need to either fully specify the subjects explicitly or assign a local node-ID."
+                )
+            sr = SubjectResolver(node)
+            finalizers.append(sr.close)
+            return sr
+
+        # Resolve subject-IDs and dtypes. This may or may not require the local node.
+        subject_id_dtype_pairs: list[tuple[int, Any]] = [
+            await process_subject_specifier(subject_spec, get_subject_resolver) for subject_spec, _ in message
+        ]
+
+        # We delayed node construction as much as possible. It may already be constructed if subject resolver was used.
+        send_timeout = max(_MIN_SEND_TIMEOUT, period)
+        node = get_node()
+        publications = [
+            Publication(
+                subject_id=sbj_id,
+                dtype=dty,
+                evaluator=evl,
+                node=node,
+                priority=priority,
+                send_timeout=send_timeout,
             )
-        try:
-            evaluator = loader.load_unevaluated(field_spec)
-        except ValueError as ex:
-            raise click.BadParameter(f"Invalid field spec {field_spec!r}: {ex}") from None
-        _logger.debug("Publication spec appears valid: %r", subject_spec)
-        return lambda presentation: Publication(
-            subject_id=subject_id,
-            dtype=dtype,
-            evaluator=evaluator,
-            presentation=presentation,
-            priority=priority,
-            send_timeout=send_timeout,
-        )
+            for (sbj_id, dty), evl in zip(subject_id_dtype_pairs, evaluators)
+        ]
+        executor = Executor(loader=yaml_loader, publications=publications)
+        finalizers.append(executor.close)
 
-    # This is to perform as much processing as possible before constructing the node.
-    # Catching errors early allows us to avoid disturbing the network and peripherals unnecessarily.
-    publication_factories = [make_publication_factory(*m) for m in message]
-
-    node = purser.get_node("publish", allow_anonymous=True)
-    executor = Executor(
-        node=node,
-        loader=loader,
-        publications=(f(node.presentation) for f in publication_factories),
-    )
-    try:  # Even if the publication set is empty, we still have to publish the heartbeat.
+        # Everything is ready, the node can be started now. It will be stopped during finalization.
+        node.start()
         _logger.info(
             "Publishing %d subjects with period %.3fs, send timeout %.3fs, count %d, priority %s",
-            len(publication_factories),
+            len(message),
             period,
             send_timeout,
             count,
             priority.name,
         )
-        await executor.run(count=count, period=period)
+        try:
+            await executor.run(count=count, period=period)
+        finally:
+            _log_final_report(node.presentation)
     finally:
-        executor.close()
-        if _logger.isEnabledFor(logging.INFO):
-            _logger.info("%s", node.presentation.transport.sample_statistics())
-            for s in node.presentation.transport.output_sessions:
-                ds = s.specifier.data_specifier
-                if isinstance(ds, pycyphal.transport.MessageDataSpecifier):
-                    _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
+        pycyphal.util.broadcast(finalizers[::-1])()
+        await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop
+
+
+def _log_final_report(presentation: pycyphal.presentation.Presentation) -> None:
+    if _logger.isEnabledFor(logging.INFO):
+        _logger.info("%s", presentation.transport.sample_statistics())
+        for s in presentation.transport.output_sessions:
+            ds = s.specifier.data_specifier
+            if isinstance(ds, pycyphal.transport.MessageDataSpecifier):
+                _logger.info("Subject %d: %s", ds.subject_id, s.sample_statistics())
 
 
 _logger = yakut.get_logger(__name__)

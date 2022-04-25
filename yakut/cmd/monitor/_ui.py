@@ -6,7 +6,7 @@ from __future__ import annotations
 import sys
 import dataclasses
 import functools
-from typing import Optional, Iterable, Any
+from typing import Optional, Iterable, Any, IO
 from numbers import Number
 import enum
 import click
@@ -17,10 +17,20 @@ _TEXT_STREAM = click.get_text_stream("stdout", errors="ignore")
 
 
 def refresh_screen(contents: str) -> None:
-    click.echo("\n")  # Mark the boundary between screens when redirecting to file.
-    click.clear()
-    sys.stdout.flush()  # Synchronize clear with the following output since it is buffered separately.
-    click.echo(contents, file=_TEXT_STREAM)
+    if _isatty(sys.stdout):
+        click.clear()
+    else:
+        _TEXT_STREAM.write("\n" * 3)
+    _TEXT_STREAM.flush()  # Synchronize clear with the following output since it is buffered separately.
+    click.echo(contents, file=_TEXT_STREAM, nl=False)
+
+
+def _isatty(stream: IO[str]) -> bool:
+    # noinspection PyBroadException
+    try:
+        return stream.isatty()
+    except Exception:  # pylint: disable=broad-except
+        return False
 
 
 class Color(enum.Enum):
@@ -66,12 +76,12 @@ class TableRenderer:
             data, style = value, None
         self.set_cell(row, col, data, style=style)
 
-    def flip_buffer(self) -> str:
+    def render(self, max_width_height: tuple[int, int]) -> str:
         # Make all rows equal length.
         m_row, m_col = self._canvas.extent
         for row in range(m_row):
             self._canvas.put(row, m_col, "")
-        return self._canvas.flip_buffer()
+        return self._canvas.render(max_width_height)
 
 
 class Canvas:
@@ -100,20 +110,25 @@ class Canvas:
         self._rows[row].append(bl)
         return column + len(text)
 
-    def flip_buffer(self) -> str:
-        out = "\n".join(map(self._render_row, self._rows)) + click.style("", reset=True)
+    def render(self, max_width_height: tuple[int, int]) -> str:
+        width, height = max_width_height
+        out = "\n".join(self._render_row(r, width) for r in self._rows[:height]) + click.style("", reset=True)
         self._rows = []
         return out
 
-    def _render_row(self, ln: list[Canvas._Block]) -> str:
+    def _render_row(self, ln: list[Canvas._Block], max_width: int) -> str:
         col = 0
         out: list[str] = [self._begin_style(None)]
         for b in sorted(ln, key=lambda x: x.column):
+            if b.column >= max_width:
+                break
             out.append(" " * (b.column - col))
-            col = b.column
+            margin = max_width - b.column
+            assert margin > 0
+            addition = b.text[:margin]
             out.append(self._begin_style(b.style))
-            out.append(b.text)
-            col += len(b.text)
+            out.append(addition)
+            col = b.column + len(addition)
         return "".join(out)
 
     @staticmethod

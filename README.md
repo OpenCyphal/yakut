@@ -186,13 +186,14 @@ $ yakut monitor  # Whatever.
 ### Subscribing to subjects
 
 Subscribe to subject 33 of type `uavcan.si.unit.angle.Scalar` as shown below;
-notice how we specify the subject-ID before the data type name.
+notice how we specify the subject-ID before the data type name,
+and that the short data type name can be given in lowercase for convenience.
 If the data type version number(s) are not specified (minor or both), the latest available is chosen automatically.
 You will see output if/when there is a publisher on this subject (more on this in the next section).
 
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
-$ yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata
+$ yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata
 ---
 33:
   _metadata_:
@@ -200,6 +201,7 @@ $ yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata
     priority: nominal
     transfer_id: 0
     source_node_id: 42
+    dtype: uavcan.si.unit.angle.Scalar.1.0
   radian: 2.309999942779541
 
 ---
@@ -209,6 +211,7 @@ $ yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata
     priority: nominal
     transfer_id: 1
     source_node_id: 42
+    dtype: uavcan.si.unit.angle.Scalar.1.0
   radian: 2.309999942779541
 ```
 
@@ -269,7 +272,7 @@ Publishing two messages synchronously twice (four messages total):
 ```bash
 export UAVCAN__UDP__IFACE=127.63.0.0
 export UAVCAN__NODE__ID=42
-yakut pub -N2 33:uavcan.si.unit.angle.Scalar 2.31 uavcan.diagnostic.Record '{text: "2.31 radian"}'
+yakut pub -N2 33:uavcan.si.unit.angle.scalar 2.31 uavcan.diagnostic.record '{text: "2.31 radian"}'
 ```
 
 We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
@@ -300,9 +303,9 @@ allowing the user to control these parameters interactively:
 
 ```bash
 yakut pub -T 0.1 \
-    5:uavcan.si.unit.angular_velocity.Vector3 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
-    6:uavcan.si.unit.power.Scalar '!$ A(2,10)*1e3' \
-    7:uavcan.primitive.scalar.Bit '!$ T(1,5)'
+    5:uavcan.si.unit.angular_velocity.vector3 '!$ "[A(1,0)*10, A(1,1)*10, (A(1,2)-A(1,5))*5]"' \
+    6:uavcan.si.unit.power.scalar '!$ A(2,10)*1e3' \
+    7:uavcan.primitive.scalar.bit '!$ T(1,5)'
 ```
 
 To see the published values, either launch a subscriber in a new terminal as `y sub 5 6 7`, or add `--verbose`.
@@ -358,6 +361,7 @@ $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit 'points: [{x:
 You might notice that the verbose initialization form used in this example is hard to type:
 `points: [{x: 10, y: 1}, {x: 20, y: 2}]`.
 Instead, you can use positional initialization for convenience: `[[10, 1], [20, 2]]`.
+The data type name can also be given in all-lowercase for ease of typing.
 
 Automatic data type discovery is also available here but the service has to be referred by name, not port-ID:
 

@@ -26,7 +26,7 @@ def _unittest_dtype_loader(compiled_dsdl: Any) -> None:
     assert model.full_name == "uavcan.node.Heartbeat"
     assert model.version == (1, 0)
 
-    ty = load_dtype("sirius_cyber_corp.Foo.1.0")
+    ty = load_dtype("sirius_cyber_corp.foo.1.0")
     assert isinstance(ty, type)
     model = pycyphal.dsdl.get_model(ty)
     assert model.full_name == "sirius_cyber_corp.Foo"
@@ -35,7 +35,7 @@ def _unittest_dtype_loader(compiled_dsdl: Any) -> None:
     with pytest.raises(NotFoundError):
         _ = load_dtype("sirius_cyber_corp.Foo.1.1")
 
-    ty = load_dtype("sirius_cyber_corp.Foo.1.1", allow_minor_version_mismatch=True)  # Same but relaxed.
+    ty = load_dtype("sirius_cyber_corp.foo.1.1", allow_minor_version_mismatch=True)  # Same but relaxed.
     assert isinstance(ty, type)
     model = pycyphal.dsdl.get_model(ty)
     assert model.full_name == "sirius_cyber_corp.Foo"
@@ -47,7 +47,7 @@ def _unittest_dtype_loader(compiled_dsdl: Any) -> None:
     assert model.full_name == "sirius_cyber_corp.Foo"
     assert model.version == (1, 9)
 
-    ty = load_dtype("sirius_cyber_corp.Foo.2")
+    ty = load_dtype("sirius_cyber_corp.foo.2")
     assert isinstance(ty, type)
     model = pycyphal.dsdl.get_model(ty)
     assert model.full_name == "sirius_cyber_corp.Foo"

@@ -88,6 +88,7 @@ async def call(
         [SERVICE_ID:]TYPE_NAME[.MAJOR[.MINOR]]
         SERVICE_NAME[:TYPE_NAME[.MAJOR[.MINOR]]]
 
+    The short data type name is case-insensitive for convenience.
     In the data type name, "/" or "\\" can be used instead of "." for convenience and filesystem autocompletion.
     If the data type is specified without the service-ID, a fixed service-ID shall be defined for this data type.
     Missing version numbers default to the latest available.
@@ -105,7 +106,7 @@ async def call(
     Examples:
 
     \b
-        yakut call 42 uavcan.node.GetInfo +M -T3 -Pe
+        yakut call 42 uavcan.node.getinfo +M -T3 -Pe
         yakut call 42 least_squares 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
         yakut call 42 least_squares:sirius_cyber_corp.PerformLinearLeastSquaresFit '[[10, 1], [20, 2]]'
     """
@@ -258,7 +259,7 @@ async def _resolve(
 
     (ty_or_srv,) = specs
     del specs
-    possibly_dtype_name = ty_or_srv.count(".") >= 1 and any(x.isupper() for x in ty_or_srv)
+    possibly_dtype_name = ty_or_srv.count(".") >= 1
     if possibly_dtype_name:
         try:
             dtype = dtype_loader.load_dtype(ty_or_srv)

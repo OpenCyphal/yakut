@@ -210,6 +210,7 @@ async def subscribe(
     the subject-ID may be omitted if the data type defines a fixed one;
     or the type can be omitted to engage automatic type discovery
     (discovery may fail if the local node is anonymous as it will be unable to issue RPC-service requests).
+    The short data type name is case-insensitive for convenience.
     The accepted forms are:
 
     \b
@@ -229,9 +230,9 @@ async def subscribe(
     Examples:
 
     \b
-        yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata --count=1
+        yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata --count=1
         yakut sub 33 42 5789 --sync-monoclust-arrival=0.1
-        yakut sub uavcan.node.Heartbeat
+        yakut sub uavcan.node.heartbeat
     """
     config = click.get_current_context().ensure_object(Config)
     try:

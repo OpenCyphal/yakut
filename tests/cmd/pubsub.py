@@ -24,14 +24,14 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     proc_sub_heartbeat = Subprocess.cli(
         "--format=json",
         "sub",
-        "uavcan.node.Heartbeat",
+        "uavcan.node.heartbeat",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic = Subprocess.cli(
         "--format=json",
         "sub",
-        "4321:uavcan.diagnostic.Record",
+        "4321:uavcan.diagnostic.record",
         "--count=3",
         "--with-metadata",
         environment_variables=env,
@@ -39,14 +39,14 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     proc_sub_diagnostic_wrong_pid = Subprocess.cli(
         "--format=yaml",
         "sub",
-        "uavcan.diagnostic.Record",
+        "uavcan.diagnostic.record",
         "--count=3",
         environment_variables=env,
     )
     proc_sub_temperature = Subprocess.cli(
         "--format=json",
         "sub",
-        "555:uavcan.si.sample.temperature.Scalar",
+        "555:uavcan.si.sample.temperature.scalar",
         "--count=3",
         "--no-metadata",
         environment_variables=env,
@@ -64,7 +64,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         '{severity: 6, timestamp: 123456, text: "Hello world!"}',  # Use shorthand init for severity, timestamp
         "1234:uavcan.diagnostic.Record",
         '{text: "Goodbye world."}',
-        "555:uavcan.si.sample.temperature.Scalar",
+        "555:uavcan.si.sample.temperature.scalar",
         "{kelvin: 123.456}",
         "--count=3",
         "--period=3",
@@ -79,7 +79,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         f"--path={OUTPUT_DIR}",
         "call",
         "51",
-        "uavcan.node.GetInfo.1.0",
+        "uavcan.node.getinfo.1.0",
         "--no-metadata",
         "--timeout=5",
         timeout=10.0,
@@ -151,21 +151,21 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
     proc_sub_heartbeat = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
-        "uavcan.node.Heartbeat",
+        "uavcan.node.heartbeat",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_with_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
-        "uavcan.diagnostic.Record",
+        "uavcan.diagnostic.record",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_no_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
-        "uavcan.diagnostic.Record",
+        "uavcan.diagnostic.record",
         "--no-metadata",
         environment_variables=env,
     )
@@ -175,7 +175,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
     if transport_factory(None).can_transmit:
         proc = Subprocess.cli(
             "pub",
-            "uavcan.diagnostic.Record",
+            "uavcan.diagnostic.record",
             "{}",
             "--count=2",
             "--period=2",
@@ -226,8 +226,8 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
     proc_sub = Subprocess.cli(
         "--format=json",
         "sub",
-        "1000:uavcan.primitive.String",
-        "2000:uavcan.primitive.String",
+        "1000:uavcan.primitive.string",
+        "2000:uavcan.primitive.string",
         "--no-metadata",
         "--count=3",
         environment_variables={
@@ -260,9 +260,9 @@ def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_ds
     _ = compiled_dsdl
     proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
-        "1000:uavcan.primitive.String",
+        "1000:uavcan.primitive.string",
         "hello",
-        "2000:uavcan.primitive.String",
+        "2000:uavcan.primitive.string",
         "world",
         "--period=3",
         environment_variables={

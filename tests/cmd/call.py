@@ -63,8 +63,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         return response
 
     # Invoke the service without discovery and then run the server for a few seconds to let it process the request.
-    proc = Subprocess.cli(
-        "-v",
+    proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "call",
         "22",
@@ -93,8 +92,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
 
     # Invoke the service with ID discovery and static type.
     last_metadata = None
-    proc = Subprocess.cli(
-        "-vv",
+    proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "call",
         "22",
@@ -124,8 +122,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
 
     # Invoke the service with full discovery.
     last_metadata = None
-    proc = Subprocess.cli(
-        "-vv",
+    proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "call",
         "22",
@@ -207,8 +204,7 @@ async def _unittest_call_fixed(transport_factory: TransportFactory, compiled_dsd
     server_node.start()
 
     # Invoke a fixed port-ID service.
-    proc = Subprocess.cli(
-        "-vv",
+    proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "call",
         "22",

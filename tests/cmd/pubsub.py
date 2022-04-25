@@ -53,8 +53,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     )
     time.sleep(1.0)  # Time to let the background processes finish initialization
 
-    proc_pub = Subprocess.cli(
-        "-v",
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--heartbeat-vssc=54",
         "--heartbeat-priority=high",
         "--node-info",
@@ -149,24 +148,21 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "YAKUT_TRANSPORT": transport_factory(None).expression,
         "YAKUT_PATH": str(OUTPUT_DIR),
     }
-    proc_sub_heartbeat = Subprocess.cli(
-        "-v",
+    proc_sub_heartbeat = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
         "uavcan.node.Heartbeat",
         "--with-metadata",
         environment_variables=env,
     )
-    proc_sub_diagnostic_with_meta = Subprocess.cli(
-        "-v",
+    proc_sub_diagnostic_with_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
         "uavcan.diagnostic.Record",
         "--with-metadata",
         environment_variables=env,
     )
-    proc_sub_diagnostic_no_meta = Subprocess.cli(
-        "-v",
+    proc_sub_diagnostic_no_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "--format=json",
         "sub",
         "uavcan.diagnostic.Record",
@@ -214,8 +210,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
             assert m["8184"]["timestamp"]["microsecond"] == 0
             assert m["8184"]["text"] == ""
     else:
-        proc = Subprocess.cli(
-            "-v",
+        proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
             "pub",
             "uavcan.diagnostic.Record",
             "{}",
@@ -241,8 +236,7 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
         },
     )
     time.sleep(10.0)  # Let the subscriber boot up.
-    proc_pub = Subprocess.cli(
-        "-v",
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000",  # Use discovery.
         "hello",
@@ -264,8 +258,7 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
 
 def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
-    proc_pub = Subprocess.cli(
-        "-v",
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000:uavcan.primitive.String",
         "hello",

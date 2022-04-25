@@ -27,8 +27,7 @@ def _unittest_monoclust_ts_field_auto(transport_factory: TransportFactory, compi
         },
     )
     time.sleep(10.0)
-    proc_pub = Subprocess.cli(
-        "-v",
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000:uavcan.si.sample.mass.Scalar",
         "!$ n * 1e6",
@@ -73,8 +72,7 @@ def _unittest_monoclust_ts_field_manual(transport_factory: TransportFactory, com
         },
     )
     time.sleep(10.0)
-    proc_pub = Subprocess.cli(
-        "-v",
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000:uavcan.si.sample.mass.Scalar",
         "!$ n * 1.00 * 1e6",
@@ -144,8 +142,7 @@ def _unittest_monoclust_ts_arrival_auto(transport_factory: TransportFactory, com
         },
     )
     time.sleep(3.0)
-    proc_pub = Subprocess.cli(
-        "-v",
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000:uavcan.primitive.String",
         "!$ str(n)",
@@ -182,8 +179,7 @@ def _unittest_transfer_id(transport_factory: TransportFactory, compiled_dsdl: ty
         },
     )
     time.sleep(3.0)
-    proc_pub = Subprocess.cli(
-        "-v",
+    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000:uavcan.primitive.String",
         "!$ str(n)",

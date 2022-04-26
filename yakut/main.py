@@ -167,7 +167,7 @@ class AliasedGroup(click.Group):
                     subcmd = ",".join([subcmd] + list(sorted(self._commands[subcmd])))
                 rows.append((subcmd, cmd.get_short_help_str(limit)))
         if rows:
-            with formatter.section("Commands"):
+            with formatter.section("Commands (with aliases)"):
                 formatter.write_dl(rows)
 
     @staticmethod

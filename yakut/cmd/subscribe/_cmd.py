@@ -128,7 +128,7 @@ def _handle_option_synchronizer_transfer_id(ctx: click.Context, _param: click.Pa
         ctx.ensure_object(Config).set_synchronizer_factory(make_sync_transfer_id)
 
 
-@yakut.subcommand(aliases="sub")
+@yakut.subcommand(aliases=["sub", "s"])
 @click.argument("subject", type=str, nargs=-1)
 @click.option(
     "--with-metadata/--no-metadata",

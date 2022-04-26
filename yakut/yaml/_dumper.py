@@ -28,7 +28,9 @@ class Dumper:
     def dumps(self, data: Any) -> str:
         s = io.StringIO()
         self.dump(data, s)
-        return s.getvalue()
+        out = s.getvalue()
+        out = out.removesuffix("\n...\n")  # HACK FIXME configure ruamel.yaml to not emit the ellipsis (how?)
+        return out
 
 
 def _represent_decimal(self: ruamel.yaml.BaseRepresenter, data: decimal.Decimal) -> ruamel.yaml.ScalarNode:

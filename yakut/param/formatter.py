@@ -3,12 +3,27 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import dataclasses
 from typing import Callable, Any, cast
 from collections.abc import Mapping, Collection
 import click
 
+
+@dataclasses.dataclass(frozen=True)
+class FormatterHints:
+    short_rows: bool = False
+    """
+    E.g., YAML formatter will select a flow style that prefers shorter rows.
+    """
+
+    single_document: bool = False
+    """
+    If true, document separators will not be emitted (if applicable).
+    """
+
+
 Formatter = Callable[[Any], str]
-FormatterFactory = Callable[[], Formatter]
+FormatterFactory = Callable[[FormatterHints], Formatter]
 
 
 def formatter_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -55,14 +70,14 @@ reader understand the structure of the data without looking at the headers.
     return f
 
 
-def _make_yaml_formatter() -> Formatter:
+def _make_yaml_formatter(hints: FormatterHints) -> Formatter:
     from yakut.yaml import Dumper
 
-    dumper = Dumper(explicit_start=True)
+    dumper = Dumper(explicit_start=not hints.single_document, block_style=hints.short_rows)
     return dumper.dumps
 
 
-def _make_json_formatter() -> Formatter:
+def _make_json_formatter(_hints: FormatterHints) -> Formatter:
     # We prefer simplejson over the standard json because the native json lacks important capabilities:
     #  - simplejson preserves dict ordering, which is very important for UX.
     #  - simplejson supports Decimal.
@@ -128,15 +143,15 @@ def _flatten_start(
     return flatten(d, parent_key)
 
 
-def _make_tsv_formatter() -> Formatter:
+def _make_tsv_formatter(_hints: FormatterHints) -> Formatter:
     def tsv_format_function(data: dict[Any, Any]) -> str:
         return "\t".join([str(v) for k, v in _flatten_start(data).items()])
 
     return tsv_format_function
 
 
-def _make_tsvh_formatter_factory(do_put_format_specifiers: bool = False) -> Callable[[], Formatter]:
-    def _make_tsvh_formatter() -> Formatter:
+def _make_tsvh_formatter_factory(do_put_format_specifiers: bool = False) -> FormatterFactory:
+    def make_tsvh_formatter(_hints: FormatterHints) -> Formatter:
         is_first_time = True
 
         def tsv_format_function_with_header(data: dict[Any, Any]) -> str:
@@ -164,7 +179,7 @@ def _make_tsvh_formatter_factory(do_put_format_specifiers: bool = False) -> Call
 
         return tsv_format_function_with_header
 
-    return _make_tsvh_formatter
+    return make_tsvh_formatter
 
 
 _FORMATTERS = {
@@ -177,6 +192,8 @@ _FORMATTERS = {
 
 
 def _unittest_formatter() -> None:
+    default_hints = FormatterHints()
+
     obj = {
         2345: {
             "abc": {
@@ -186,7 +203,7 @@ def _unittest_formatter() -> None:
         }
     }
     assert (
-        _FORMATTERS["YAML"]()(obj)
+        _FORMATTERS["YAML"](default_hints)(obj)
         == """---
 2345:
   abc:
@@ -194,9 +211,9 @@ def _unittest_formatter() -> None:
   ghi: 789
 """
     )
-    assert _FORMATTERS["JSON"]()(obj) == '{"2345":{"abc":{"def":[123,456]},"ghi":789}}'
-    assert _FORMATTERS["TSV"]()(obj) == "123\t456\t789"
-    tsvh_formatter = _FORMATTERS["TSVH"]()
+    assert _FORMATTERS["JSON"](default_hints)(obj) == '{"2345":{"abc":{"def":[123,456]},"ghi":789}}'
+    assert _FORMATTERS["TSV"](default_hints)(obj) == "123\t456\t789"
+    tsvh_formatter = _FORMATTERS["TSVH"](default_hints)
     # first time should include a header
     assert tsvh_formatter(obj) == "2345.abc.def.[0]\t2345.abc.def.[1]\t2345.ghi\n123\t456\t789"
     # subsequent calls shouldn't include a header
@@ -223,7 +240,7 @@ def _unittest_formatter() -> None:
             },
         }
     }
-    tsvfc_formatter = _FORMATTERS["TSVFC"]()
+    tsvfc_formatter = _FORMATTERS["TSVFC"](default_hints)
     assert (
         tsvfc_formatter(obj) == "142{	142._metadata_{	142._metadata_.timestamp{"
         "	142._metadata_.timestamp.system	142._metadata_.timestamp.monotonic"
@@ -240,10 +257,13 @@ def _unittest_formatter() -> None:
         "	{	309697890	}	{	{	{	nan	}	{	0.0	}"
         "	{	0.0	}	}	{	nan	}	}	}"
     )
-    assert _FORMATTERS["TSV"]()(obj) == "1640611164.396007\t4765.594161\tnominal\t28\t21\t309697890\tnan\t0.0\t0.0\tnan"
+    assert (
+        _FORMATTERS["TSV"](default_hints)(obj)
+        == "1640611164.396007\t4765.594161\tnominal\t28\t21\t309697890\tnan\t0.0\t0.0\tnan"
+    )
 
     assert (
-        _FORMATTERS["TSVH"]()(obj)
+        _FORMATTERS["TSVH"](default_hints)(obj)
         == "142._metadata_.timestamp.system\t142._metadata_.timestamp.monotonic\t142._metadata_.priority\t"
         "142._metadata_.transfer_id\t142._metadata_.source_node_id\t142.timestamp.microsecond\t"
         "142.value.kinematics.angular_position.radian"

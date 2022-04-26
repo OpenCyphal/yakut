@@ -11,7 +11,7 @@ import click
 import pycyphal
 import yakut
 from yakut.enum_param import EnumParam
-from yakut.param.formatter import Formatter
+from yakut.param.formatter import Formatter, FormatterHints
 from yakut.util import convert_transfer_metadata_to_builtin
 from yakut import dtype_loader
 
@@ -128,7 +128,7 @@ async def call(
     )
     finalizers: list[Callable[[], None]] = []
     try:
-        formatter = purser.make_formatter()
+        formatter = purser.make_formatter(FormatterHints(single_document=True))
 
         # The cached factory is needed to postpone node initialization as much as possible because it disturbs
         # the network and the networking hardware (if any) and is usually costly.

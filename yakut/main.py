@@ -14,7 +14,7 @@ from shutil import get_terminal_size
 import click
 import yakut
 from yakut.param.transport import transport_factory_option, TransportFactory, Transport
-from yakut.param.formatter import formatter_factory_option, FormatterFactory, Formatter
+from yakut.param.formatter import formatter_factory_option, FormatterFactory, Formatter, FormatterHints
 from yakut.param.node import node_factory_option, NodeFactory
 
 if TYPE_CHECKING:
@@ -59,8 +59,8 @@ class Purser:
     def paths(self) -> list[Path]:
         return list(self._paths)
 
-    def make_formatter(self) -> Formatter:
-        return self._f_formatter()
+    def make_formatter(self, hints: FormatterHints = FormatterHints()) -> Formatter:
+        return self._f_formatter(hints)
 
     def get_registry(self) -> pycyphal.application.register.Registry:
         """

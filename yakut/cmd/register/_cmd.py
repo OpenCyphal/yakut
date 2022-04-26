@@ -9,12 +9,12 @@ import pycyphal
 import yakut
 from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
 from yakut.progress import get_progress_callback
+from yakut.param.formatter import FormatterHints
 from ._list_names import list_names
 from ._getset import getset
 
 if TYPE_CHECKING:
     import pycyphal.application
-    from uavcan.register import Access_1
 
 _logger = yakut.get_logger(__name__)
 
@@ -113,7 +113,7 @@ async def register(
     )
     reg_val_str = " ".join(register_value_element) if len(register_value_element) > 0 else None
     del register_value_element
-    formatter = purser.make_formatter()
+    formatter = purser.make_formatter(FormatterHints(short_rows=True, single_document=True))
 
     with purser.get_node("register", allow_anonymous=False) as node:
         if not register_name:

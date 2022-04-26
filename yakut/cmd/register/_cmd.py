@@ -145,9 +145,18 @@ async def register(
     for msg in result.warnings:
         click.secho(msg, err=True, fg="yellow")
 
-    final = result.data_per_node
+    final: Any
     if flat:
-        raise NotImplementedError
+        if all(isinstance(x, (list, set)) for x in result.data_per_node.values()):
+            final = list(set(x for nx in result.data_per_node.values() for x in nx))
+        else:
+            final = []
+            for val in result.data_per_node.values():
+                if val not in final and val is not None:  # Cannot use set because values unhashable
+                    final.append(val)
+            final = None if len(final) == 0 else final[0] if len(final) == 1 else final
+    else:
+        final = result.data_per_node
     print(formatter(final))
 
     return 1 if result.errors else 0

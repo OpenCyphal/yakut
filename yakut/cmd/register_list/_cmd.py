@@ -24,9 +24,9 @@ List registers available on the specified remote node(s).
 Examples:
 
 \b
-    yukon register-list 42
-    yukon lsr 90,100..125,!110-115
-    yukon lsr '[1,2,42,105]'
+    yakut register-list 42
+    yakut lsr 90,100..125,!110-115
+    yakut lsr '[1,2,42,105]'
 
 {INT_SET_USER_DOC}
 """

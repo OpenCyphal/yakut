@@ -8,7 +8,7 @@ import click
 import pycyphal
 import yakut
 from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
-from yakut.progress import get_progress_callback
+from yakut.progress import ProgressReporter
 from yakut.param.formatter import FormatterHints
 from ._logic import list_names
 
@@ -79,13 +79,14 @@ async def register_list(
     )
     formatter = purser.make_formatter(FormatterHints(short_rows=True, single_document=True))
     with purser.get_node("register-list", allow_anonymous=False) as node:
-        result = await list_names(
-            node,
-            get_progress_callback(),
-            node_ids,
-            optional_service=optional_service,
-            timeout=timeout,
-        )
+        with ProgressReporter() as prog:
+            result = await list_names(
+                node,
+                prog,
+                node_ids,
+                optional_service=optional_service,
+                timeout=timeout,
+            )
     # The node is no longer needed.
     for msg in result.errors:
         click.secho(msg, err=True, fg="red", bold=True)

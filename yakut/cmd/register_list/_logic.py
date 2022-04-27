@@ -91,7 +91,6 @@ async def _impl_list_names(
             cln.close()
         _logger.debug("Register names fetched from node %r: %r", nid, name_list)
         out[nid] = name_list
-    progress("Done" + " " * 10)  # Add some spaces to erase previous output.
     return out
 
 

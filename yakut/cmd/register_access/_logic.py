@@ -85,14 +85,13 @@ async def _access(
         Access_1.Response | _NoService | _Timeout | pycyphal.application.register.ValueConversionError,
     ] = {}
     for nid in node_ids:
-        progress(f"{reg_name!r}@{nid:05}")
+        progress(f"{reg_name!r} @{nid: 5}")
         cln = local_node.make_client(Access_1, nid)
         try:
             cln.response_timeout = timeout
             out[nid] = await _access_one(cln, reg_name, reg_val_str)
         finally:
             cln.close()
-    progress("Done")
     return out
 
 

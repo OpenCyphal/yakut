@@ -8,7 +8,7 @@ import click
 import pycyphal
 import yakut
 from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
-from yakut.progress import get_progress_callback
+from yakut.progress import ProgressReporter
 from yakut.param.formatter import FormatterHints
 from ._logic import access
 
@@ -78,7 +78,10 @@ Best-effort output will always be produced regardless of this option; that is, i
     "--flat",
     "-f",
     is_flag=True,
-    help="Do not group registers by node-ID but join them into one flat structure.",
+    help="""
+Do not group register values by node-ID but join them into one flat structure with duplicates and empty values removed.
+If only one value is left, print it as-is without the enclosing list.
+""",
 )
 @click.option(
     "--asis",
@@ -126,17 +129,18 @@ async def register_access(
     formatter = purser.make_formatter(FormatterHints(short_rows=True, single_document=True))
 
     with purser.get_node("register-access", allow_anonymous=False) as node:
-        result = await access(
-            node,
-            get_progress_callback(),
-            node_ids,
-            reg_name=register_name,
-            reg_val_str=reg_val_str,
-            optional_service=optional_service,
-            optional_register=optional_register,
-            timeout=timeout,
-            asis=asis,
-        )
+        with ProgressReporter() as prog:
+            result = await access(
+                node,
+                prog,
+                node_ids,
+                reg_name=register_name,
+                reg_val_str=reg_val_str,
+                optional_service=optional_service,
+                optional_register=optional_register,
+                timeout=timeout,
+                asis=asis,
+            )
     # The node is no longer needed.
     for msg in result.errors:
         click.secho(msg, err=True, fg="red", bold=True)

@@ -108,7 +108,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "--format=json",
             "register-list",
-            "10..12",
+            "10..13",
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
                 "YAKUT_PATH": str(OUTPUT_DIR),
@@ -127,7 +127,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "--format=json",
             "register-list",
-            "10..12",
+            "10..13",
             "--optional-service",
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,

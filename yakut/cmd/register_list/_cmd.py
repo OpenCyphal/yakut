@@ -25,14 +25,14 @@ Examples:
 
 \b
     yakut register-list 42
-    yakut lsr 90,100..125,!110-115
-    yakut lsr '[1,2,42,105]'
+    yakut rl 90,100..125,!110-115
+    yakut rl '[1,2,42,105]'
 
 {INT_SET_USER_DOC}
 """
 
 
-@yakut.subcommand(aliases=["lsr", "lsreg"], help=_HELP)
+@yakut.subcommand(aliases=["rl", "lsreg"], help=_HELP)
 @click.argument("node_ids", type=parse_int_set)
 @click.option(
     "--timeout",

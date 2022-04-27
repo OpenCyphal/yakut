@@ -21,7 +21,9 @@ def refresh_screen(contents: str) -> None:
         click.clear()
     else:
         _TEXT_STREAM.write("\n" * 3)
-    _TEXT_STREAM.flush()  # Synchronize clear with the following output since it is buffered separately.
+    # Synchronize clear with the following output since it is buffered separately.
+    # Note that we MUST flush stdout, not _TEXT_STREAM, because it is buffered separately.
+    sys.stdout.flush()
     click.echo(contents, file=_TEXT_STREAM, nl=False)
 
 

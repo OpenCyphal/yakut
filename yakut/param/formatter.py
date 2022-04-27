@@ -3,7 +3,9 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import sys
 import dataclasses
+import logging
 from typing import Callable, Any, cast
 from collections.abc import Mapping, Collection
 import click
@@ -37,15 +39,19 @@ def formatter_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
     choices = list(_FORMATTERS.keys())
     default = choices[0]
     doc = f"""
-The format of data printed into stdout.
-This option is only relevant for commands that generate structured outputs, like pub or call; other commands ignore it.
+The format of data printed to stdout.
+This option is only relevant for commands that produce data (pub, call, etc.); other commands ignore it.
 
 The final representation of the output data is constructed from an intermediate "builtin-based" representation,
 which is a simplified form that is stripped of the detailed DSDL type information, like JSON.
 For more info please read the PyCyphal documentation on builtin-based representations.
 
-YAML separates objects with `---`.
+Option "auto" selects YAML if the output is shown on the terminal for the benefit of the user;
+if the output is redirected (e.g., piped to another command or to a file),
+JSON is selected to enable compatibility with jq and other 3rd-party stream processing tools.
+It helps to remember that JSON is a subset of YAML.
 
+YAML separates objects with `---`.
 JSON and TSV (tab separated values) keep exactly one object per line.
 
 TSV is intended for use with third-party software
@@ -144,7 +150,7 @@ def _flatten_start(
 
 
 def _make_tsv_formatter(hints: FormatterHints) -> Formatter:
-    # TODO: if short_rows and single_document, transpose the top-level dict to have the keys on the leftmost row.
+    # TODO: if single_document, transpose the top-level dict to have the keys on the leftmost row.
     # Transpose lists in a similar manner.
     _ = hints  # TODO not used yet
 
@@ -181,13 +187,23 @@ def _make_tsvh_formatter_factory(with_format_specifiers: bool) -> FormatterFacto
     return make_tsvh_formatter
 
 
+def _make_auto(hints: FormatterHints) -> Formatter:
+    fac = _make_yaml_formatter if sys.stdout.isatty() else _make_json_formatter
+    _logger.debug("Automatically selected formatter: %r", fac)
+    return fac(hints)
+
+
 _FORMATTERS = {
+    "AUTO": _make_auto,
     "YAML": _make_yaml_formatter,
     "JSON": _make_json_formatter,
     "TSV": _make_tsv_formatter,
     "TSVH": _make_tsvh_formatter_factory(with_format_specifiers=False),
     "TSVFC": _make_tsvh_formatter_factory(with_format_specifiers=True),
 }
+
+
+_logger = logging.getLogger(__name__)
 
 
 def _unittest_formatter() -> None:

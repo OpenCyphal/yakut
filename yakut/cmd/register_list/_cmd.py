@@ -21,14 +21,14 @@ _logger = yakut.get_logger(__name__)
 _HELP = f"""
 List registers available on the specified remote node(s).
 
-{INT_SET_USER_DOC}
-
 Examples:
 
 \b
     yukon rls 42
     yukon rls 90,100..125,!110-115
     yukon rls '[1,2,42,105]'
+
+{INT_SET_USER_DOC}
 """
 
 

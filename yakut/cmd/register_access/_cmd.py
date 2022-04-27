@@ -21,7 +21,7 @@ _logger = yakut.get_logger(__name__)
 _HELP = f"""
 Read or modify a register on one or multiple remote nodes.
 
-If no value is given, the register will be read from the specified nodes.
+If no value is given, the register will be only read from the specified nodes.
 If a value is given, it shall follow the environment variable notation described in the
 uavcan.register.Access service specification.
 The value will be parsed depending on the type of the register reported by the remote node
@@ -34,6 +34,14 @@ the second to actually write the value
 The final value returned by the node is always printed at the end,
 which may be different from the assigned value depending on the internal logic of the node
 (e.g., the value could be adjusted to satisfy constraints, the register could be read-only, etc.).
+
+Examples:
+
+\b
+    yakut reg 120-125 m.inductance_dq
+    yakut reg 120-125 m.inductance_dq '12.0e-6 14.7e-6'
+    yakut reg 120-125 m.inductance_dq  12.0e-6 14.7e-6  # Quotes are optional
+    y r 125 uavcan.node.description "Motor rear-left #3"
 
 {INT_SET_USER_DOC}
 """
@@ -69,7 +77,7 @@ Best-effort output will always be produced regardless of this option; that is, i
     "-r",
     is_flag=True,
     help="""
-If register assignment is requested (i.e., if a value is given),
+If modification is requested (i.e., if a value is given),
 nodes that report that they don't have such register are silently ignored instead of reporting an error.
 Best-effort output will always be produced regardless of this option; that is, it only affects the exit code.
 """,
@@ -80,7 +88,7 @@ Best-effort output will always be produced regardless of this option; that is, i
     is_flag=True,
     help="""
 Do not group register values by node-ID but join them into one flat structure with duplicates and empty values removed.
-If only one value is left, print it as-is without the enclosing list.
+If only one value is left at the end, report it as-is without the enclosing list.
 """,
 )
 @click.option(

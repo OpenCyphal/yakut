@@ -29,7 +29,11 @@ class Dumper:
         s = io.StringIO()
         self.dump(data, s)
         out = s.getvalue()
-        out = out.removesuffix("\n...\n")  # HACK FIXME configure ruamel.yaml to not emit the ellipsis (how?)
+
+        # FIXME HACK configure ruamel.yaml to not emit the ellipsis (how?)
+        suf = "\n...\n"
+        out = out[: -len(suf)] if out.endswith(suf) else out  # removesuffix() not supported in Python 3.8
+
         return out
 
 

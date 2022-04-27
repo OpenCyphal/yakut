@@ -84,6 +84,7 @@ Best-effort output will always be produced regardless of this option; that is, i
 )
 @click.option(
     "--flat",
+    "--flatten",
     "-f",
     is_flag=True,
     help="""
@@ -155,15 +156,15 @@ async def register_access(
     for msg in result.warnings:
         click.secho(msg, err=True, fg="yellow")
 
-    final: Any
-    if flat:
-        final = []
-        for val in result.value_per_node.values():
-            if val not in final and val is not None:  # Cannot use set because values unhashable
-                final.append(val)
-        final = None if len(final) == 0 else final[0] if len(final) == 1 else final
-    else:
-        final = result.value_per_node
+    final = _flatten(result.value_per_node) if flat else result.value_per_node
     print(formatter(final))
 
     return 1 if result.errors else 0
+
+
+def _flatten(value_per_node: dict[int, Any]) -> Any:
+    collapsed: list[Any] = []
+    for val in value_per_node.values():
+        if val not in collapsed and val is not None:  # Cannot use set because values unhashable
+            collapsed.append(val)
+    return None if len(collapsed) == 0 else collapsed[0] if len(collapsed) == 1 else collapsed

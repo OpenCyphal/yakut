@@ -86,7 +86,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(5)
+    time.sleep(3)
     expect_register = "uavcan.node.description"
     try:
         status, stdout, stderr = execute_cli(

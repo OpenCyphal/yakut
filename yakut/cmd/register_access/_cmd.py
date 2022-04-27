@@ -130,7 +130,7 @@ async def register_access(
     del register_value_element
     formatter = purser.make_formatter(FormatterHints(short_rows=True, single_document=True))
 
-    with purser.get_node("register-access", allow_anonymous=False) as node:
+    with purser.get_node("register_access", allow_anonymous=False) as node:
         with ProgressReporter() as prog:
             result = await access(
                 node,

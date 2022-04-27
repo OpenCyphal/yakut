@@ -2,7 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-from typing import Any
+from typing import Any, TextIO
 import decimal
 import ruamel.yaml
 import ruamel.yaml.constructor
@@ -16,7 +16,7 @@ class Loader:
     def __init__(self) -> None:
         self._impl = ruamel.yaml.YAML()
 
-    def load(self, text: str) -> Any:
+    def load(self, text: str | TextIO) -> Any:
         return self._impl.load(text)
 
 

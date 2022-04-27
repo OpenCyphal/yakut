@@ -6,7 +6,6 @@ from __future__ import annotations
 import dataclasses
 from typing import Sequence, TYPE_CHECKING
 import bisect
-import pycyphal
 import yakut
 from yakut.progress import ProgressCallback
 

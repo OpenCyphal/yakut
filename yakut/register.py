@@ -97,7 +97,7 @@ def value_as_simplified_builtin(msg: "Value_1") -> Any:
         return msg.unstructured.value.tobytes()
     if msg.string:
         return msg.string.value.tobytes().decode(errors="replace")
-    ((ty, val),) = pycyphal.dsdl.to_builtin(msg).items()
+    ((_ty, val),) = pycyphal.dsdl.to_builtin(msg).items()
     val = val["value"]
     val = list(val.encode() if isinstance(val, str) else val)
     if len(val) == 1:  # One-element arrays shown as scalars.

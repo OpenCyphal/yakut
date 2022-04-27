@@ -25,7 +25,7 @@ Integer set notation examples:
 """.strip()
 
 
-def parse_int_set(input: str) -> set[int]:
+def parse_int_set(text: str) -> set[int]:
     """
     Unpacks the integer set notation.
     Accepts JSON-list (subset of YAML) of integers at input, too.
@@ -66,7 +66,7 @@ def parse_int_set(input: str) -> set[int]:
 
     incl: set[int] = set()
     excl: set[int] = set()
-    for item in _RE_SPLIT.split(_RE_JSON_LIST.sub(r"\1", input)):
+    for item in _RE_SPLIT.split(_RE_JSON_LIST.sub(r"\1", text)):
         item = item.strip()
         if not item:
             continue
@@ -85,10 +85,10 @@ def parse_int_set(input: str) -> set[int]:
             if lo is not None and hi is not None:
                 target_set |= set(range(lo, hi + 1))
                 continue
-        raise IntSetError(f"Item {item!r} of the integer set {input!r} could not be parsed")
+        raise IntSetError(f"Item {item!r} of the integer set {text!r} could not be parsed")
 
     result = incl - excl
-    _logger.debug("Int set %r parsed as %r", input, result)
+    _logger.debug("Int set %r parsed as %r", text, result)
     return result
 
 

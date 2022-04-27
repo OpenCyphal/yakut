@@ -31,7 +31,7 @@ async def _unittest_logic(compiled_dsdl: Any) -> None:
 
         async def once(**kwargs: Any) -> Result:
             print()  # Separate from prior output
-            out = await access(
+            out = await access(  # pylint: disable=missing-kwoa
                 node,
                 lambda text: print(f"Progress: {text!r}"),
                 timeout=1.0,
@@ -183,7 +183,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
     expect_register = "uavcan.node.description"
     try:
         # READ EXISTING REGISTER
-        status, stdout, stderr = execute_cli(
+        status, stdout, _ = execute_cli(
             "--format=json",
             "register-access",
             "10",
@@ -200,7 +200,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         assert data["10"] == ""
 
         # MODIFY REGISTER
-        status, stdout, stderr = execute_cli(
+        status, stdout, _ = execute_cli(
             "--format=json",
             "register-access",
             "10",
@@ -218,7 +218,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         assert data["10"] == "Reference value"
 
         # FLATTEN
-        status, stdout, stderr = execute_cli(
+        status, stdout, _ = execute_cli(
             "--format=json",
             "register-access",
             "--flat",

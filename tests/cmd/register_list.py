@@ -89,7 +89,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
     time.sleep(3)
     expect_register = "uavcan.node.description"
     try:
-        status, stdout, stderr = execute_cli(
+        status, stdout, _ = execute_cli(
             "--format=json",
             "register-list",
             "10",
@@ -105,7 +105,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         assert expect_register in data["10"]
 
         # Poll non-existent nodes.
-        status, stdout, stderr = execute_cli(
+        status, stdout, _ = execute_cli(
             "--format=json",
             "register-list",
             "10..12",
@@ -124,7 +124,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         assert data["12"] is None
 
         # Same but no error.
-        status, stdout, stderr = execute_cli(
+        status, stdout, _ = execute_cli(
             "--format=json",
             "register-list",
             "10..12",

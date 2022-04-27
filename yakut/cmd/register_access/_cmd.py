@@ -3,7 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-from typing import Any, Sequence, TYPE_CHECKING, Callable, Union
+from typing import Any, Sequence, TYPE_CHECKING
 import click
 import pycyphal
 import yakut
@@ -96,7 +96,7 @@ If only one value is left at the end, report it as-is without the enclosing list
     "--asis",
     "-a",
     is_flag=True,
-    help="Display the response as-is, with metadata, do not simplify the output.",
+    help="Display the response as-is, with metadata and type information, do not simplify the output.",
 )
 @yakut.pass_purser
 @yakut.asynchronous()
@@ -111,13 +111,6 @@ async def register_access(
     flat: bool,
     asis: bool,
 ) -> int:
-    try:
-        from pycyphal.application import Node
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
-
     node_ids = list(sorted(node_ids))
     _logger.debug(
         "node_ids=%r, register_name=%r, register_value_element=%r timeout=%r",

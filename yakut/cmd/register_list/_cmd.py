@@ -3,7 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-from typing import Any, Sequence, TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING
 import click
 import pycyphal
 import yakut
@@ -63,20 +63,8 @@ async def register_list(
     timeout: float,
     optional_service: bool,
 ) -> int:
-    try:
-        from pycyphal.application import Node
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
-
     node_ids = list(sorted(node_ids))
-    _logger.debug(
-        "node_ids=%r, register_name=%r, register_value_element=%r timeout=%r optional_service=%r",
-        node_ids,
-        timeout,
-        optional_service,
-    )
+    _logger.debug("node_ids=%r, timeout=%r optional_service=%r", node_ids, timeout, optional_service)
     formatter = purser.make_formatter(FormatterHints(short_rows=True, single_document=True))
     with purser.get_node("register-list", allow_anonymous=False) as node:
         with ProgressReporter() as prog:

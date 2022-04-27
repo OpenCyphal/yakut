@@ -10,21 +10,30 @@ import yakut
 from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
 from yakut.progress import get_progress_callback
 from yakut.param.formatter import FormatterHints
-from ._list_names import list_names
-from ._getset import getset
+from ._logic import access
 
 if TYPE_CHECKING:
     import pycyphal.application
 
 _logger = yakut.get_logger(__name__)
 
-ProgressCallback = Callable[[str], None]
-
 
 _HELP = f"""
-Get/set a register on one or multiple remote nodes; list available registers.
+Read or modify a register on one or multiple remote nodes.
 
-TODO the docs are missing.
+If no value is given, the register will be read from the specified nodes.
+If a value is given, it shall follow the environment variable notation described in the
+uavcan.register.Access service specification.
+The value will be parsed depending on the type of the register reported by the remote node
+(which may be different per node).
+
+If no value is given, only one request will be sent per node.
+If a value is given, two requests will be sent: the first one to discover the type,
+the second to actually write the value
+(unless the provided value could not be applied to the register type).
+The final value returned by the node is always printed at the end,
+which may be different from the assigned value depending on the internal logic of the node
+(e.g., the value could be adjusted to satisfy constraints, the register could be read-only, etc.).
 
 {INT_SET_USER_DOC}
 """
@@ -32,7 +41,7 @@ TODO the docs are missing.
 
 @yakut.subcommand(aliases=["r", "reg"], help=_HELP)
 @click.argument("node_ids", type=parse_int_set)
-@click.argument("register_name", default="")
+@click.argument("register_name")
 @click.argument("register_value_element", nargs=-1)
 @click.option(
     "--timeout",
@@ -44,23 +53,24 @@ TODO the docs are missing.
     help="Service response timeout.",
 )
 @click.option(
-    "--maybe-no-service",
+    "--optional-service",
     "-s",
     is_flag=True,
     help="""
-Nodes that fail to respond to the first RPC-service request of type uavcan.register.*
-are silently ignored instead of reporting an error assuming that the register service is not supported.
+Ignore nodes that fail to respond to the first RPC-service request instead of reporting an error
+assuming that the register service is not supported.
 If a node responded at least once it is assumed to support the service and any future timeout
 will be always treated as error.
 Best-effort output will always be produced regardless of this option; that is, it only affects the exit code.
 """,
 )
 @click.option(
-    "--maybe-missing",
-    "-m",
+    "--optional-register",
+    "-r",
     is_flag=True,
     help="""
-Nodes that report that they don't have such register are silently ignored instead of reporting an error.
+If register assignment is requested (i.e., if a value is given),
+nodes that report that they don't have such register are silently ignored instead of reporting an error.
 Best-effort output will always be produced regardless of this option; that is, it only affects the exit code.
 """,
 )
@@ -74,18 +84,18 @@ Best-effort output will always be produced regardless of this option; that is, i
     "--asis",
     "-a",
     is_flag=True,
-    help="Display the response as-is, do not simplify the output",
+    help="Display the response as-is, with metadata, do not simplify the output.",
 )
 @yakut.pass_purser
 @yakut.asynchronous()
-async def register(
+async def register_access(
     purser: yakut.Purser,
     node_ids: Sequence[int],
     register_name: str,
     register_value_element: Sequence[str],
     timeout: float,
-    maybe_no_service: bool,
-    maybe_missing: bool,
+    optional_service: bool,
+    optional_register: bool,
     flat: bool,
     asis: bool,
 ) -> int:
@@ -105,9 +115,9 @@ async def register(
         timeout,
     )
     _logger.debug(
-        "maybe_no_service=%r maybe_missing=%r flat=%r asis=%r",
-        maybe_no_service,
-        maybe_missing,
+        "optional_service=%r optional_register=%r flat=%r asis=%r",
+        optional_service,
+        optional_register,
         flat,
         asis,
     )
@@ -115,31 +125,19 @@ async def register(
     del register_value_element
     formatter = purser.make_formatter(FormatterHints(short_rows=True, single_document=True))
 
-    with purser.get_node("register", allow_anonymous=False) as node:
-        if not register_name:
-            if maybe_missing:
-                _logger.warning("maybe-missing has no effect in listing mode")
-            result = await list_names(
-                node,
-                get_progress_callback(),
-                node_ids,
-                maybe_no_service=maybe_no_service,
-                timeout=timeout,
-            )
-        else:
-            result = await getset(
-                node,
-                get_progress_callback(),
-                node_ids,
-                reg_name=register_name,
-                reg_val_str=reg_val_str,
-                maybe_no_service=maybe_no_service,
-                maybe_missing=maybe_missing,
-                timeout=timeout,
-                asis=asis,
-            )
+    with purser.get_node("register-access", allow_anonymous=False) as node:
+        result = await access(
+            node,
+            get_progress_callback(),
+            node_ids,
+            reg_name=register_name,
+            reg_val_str=reg_val_str,
+            optional_service=optional_service,
+            optional_register=optional_register,
+            timeout=timeout,
+            asis=asis,
+        )
     # The node is no longer needed.
-
     for msg in result.errors:
         click.secho(msg, err=True, fg="red", bold=True)
     for msg in result.warnings:
@@ -147,16 +145,13 @@ async def register(
 
     final: Any
     if flat:
-        if all(isinstance(x, (list, set)) for x in result.data_per_node.values()):
-            final = list(set(x for nx in result.data_per_node.values() for x in nx))
-        else:
-            final = []
-            for val in result.data_per_node.values():
-                if val not in final and val is not None:  # Cannot use set because values unhashable
-                    final.append(val)
-            final = None if len(final) == 0 else final[0] if len(final) == 1 else final
+        final = []
+        for val in result.value_per_node.values():
+            if val not in final and val is not None:  # Cannot use set because values unhashable
+                final.append(val)
+        final = None if len(final) == 0 else final[0] if len(final) == 1 else final
     else:
-        final = result.data_per_node
+        final = result.value_per_node
     print(formatter(final))
 
     return 1 if result.errors else 0

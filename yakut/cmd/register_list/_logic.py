@@ -3,14 +3,22 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import dataclasses
 from typing import Sequence, TYPE_CHECKING
 import bisect
 import pycyphal
 import yakut
-from ._common import Result, ProgressCallback
+from yakut.progress import ProgressCallback
 
 if TYPE_CHECKING:
     import pycyphal.application
+
+
+@dataclasses.dataclass
+class Result:
+    names_per_node: dict[int, list[str] | None] = dataclasses.field(default_factory=dict)
+    errors: list[str] = dataclasses.field(default_factory=list)
+    warnings: list[str] = dataclasses.field(default_factory=list)
 
 
 async def list_names(
@@ -18,20 +26,20 @@ async def list_names(
     progress: ProgressCallback,
     node_ids: Sequence[int],
     *,
-    maybe_no_service: bool,
+    optional_service: bool,
     timeout: float,
 ) -> Result:
     res = Result()
     for nid, names in (await _impl_list_names(local_node, progress, node_ids, timeout=timeout)).items():
         _logger.debug("Names @%r: %r", nid, names)
         if isinstance(names, _NoService):
-            res.data_per_node[nid] = None
-            if maybe_no_service:
-                res.warnings.append(f"Service not accessible at node {nid}, ignoring as requested")
+            res.names_per_node[nid] = None
+            if optional_service:
+                res.warnings.append(f"Register list service is not accessible at node {nid}, ignoring as requested")
             else:
-                res.errors.append(f"Service not accessible at node {nid}")
+                res.errors.append(f"Register list service is not accessible at node {nid}")
         else:
-            lst = res.data_per_node.setdefault(nid, [])
+            lst = res.names_per_node.setdefault(nid, [])
             assert isinstance(lst, list)
             for idx, n in enumerate(names):
                 if isinstance(n, _Timeout):
@@ -65,7 +73,7 @@ async def _impl_list_names(
             cln.response_timeout = timeout
             name_list: list[str | _Timeout] | _NoService = []
             for idx in range(2**16):
-                progress(f"#{idx:05}@{nid:05}")
+                progress(f"#{idx: 5} @{nid: 5}")
                 resp = await cln(List_1.Request(index=idx))
                 assert isinstance(name_list, list)
                 if resp is None:
@@ -83,7 +91,7 @@ async def _impl_list_names(
             cln.close()
         _logger.debug("Register names fetched from node %r: %r", nid, name_list)
         out[nid] = name_list
-    progress("Done")
+    progress("Done" + " " * 10)  # Add some spaces to erase previous output.
     return out
 
 

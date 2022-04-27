@@ -3,35 +3,44 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import dataclasses
 from typing import Sequence, TYPE_CHECKING, Union, Any
 import pycyphal
 import yakut
-from ._common import Result, ProgressCallback
+from yakut.progress import ProgressCallback
 from yakut.register import value_as_simplified_builtin
+
 
 if TYPE_CHECKING:
     import pycyphal.application
     from uavcan.register import Access_1
 
 
-async def getset(
+@dataclasses.dataclass
+class Result:
+    value_per_node: dict[int, Any] = dataclasses.field(default_factory=dict)
+    errors: list[str] = dataclasses.field(default_factory=list)
+    warnings: list[str] = dataclasses.field(default_factory=list)
+
+
+async def access(
     local_node: "pycyphal.application.Node",
     progress: ProgressCallback,
     node_ids: Sequence[int],
     *,
     reg_name: str,
     reg_val_str: str | None,
-    maybe_no_service: bool,
-    maybe_missing: bool,
+    optional_service: bool,
+    optional_register: bool,
     timeout: float,
     asis: bool,
 ) -> Result:
     res = Result()
-    for nid, sample in (await _getset(local_node, progress, node_ids, reg_name, reg_val_str, timeout=timeout)).items():
+    for nid, sample in (await _access(local_node, progress, node_ids, reg_name, reg_val_str, timeout=timeout)).items():
         _logger.debug("Register @%r: %r", nid, sample)
-        res.data_per_node[nid] = None  # Error state is default state
+        res.value_per_node[nid] = None  # Error state is default state
         if isinstance(sample, _NoService):
-            if maybe_no_service:
+            if optional_service:
                 res.warnings.append(f"Service not accessible at node {nid}, ignoring as requested")
             else:
                 res.errors.append(f"Service not accessible at node {nid}")
@@ -44,11 +53,11 @@ async def getset(
 
         else:
             if sample.value.empty and reg_val_str is not None:
-                if maybe_missing:
+                if optional_register:
                     res.warnings.append(f"Nonexistent register {reg_name!r} at node {nid} ignored as requested")
                 else:
                     res.errors.append(f"Cannot assign nonexistent register {reg_name!r} at node {nid}")
-            res.data_per_node[nid] = _represent(sample, asis=asis)
+            res.value_per_node[nid] = _represent(sample, asis=asis)
     return res
 
 
@@ -60,7 +69,7 @@ class _Timeout:
     pass
 
 
-async def _getset(
+async def _access(
     local_node: pycyphal.application.Node,
     progress: ProgressCallback,
     node_ids: Sequence[int],
@@ -80,14 +89,14 @@ async def _getset(
         cln = local_node.make_client(Access_1, nid)
         try:
             cln.response_timeout = timeout
-            out[nid] = await _getset_one(cln, reg_name, reg_val_str)
+            out[nid] = await _access_one(cln, reg_name, reg_val_str)
         finally:
             cln.close()
     progress("Done")
     return out
 
 
-async def _getset_one(
+async def _access_one(
     client: pycyphal.presentation.Client["Access_1"],
     reg_name: str,
     reg_val_str: str | None,

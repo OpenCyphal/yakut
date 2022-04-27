@@ -18,9 +18,9 @@ Integer set notation examples:
 
 \b
     Discrete elements (comma or semicolon): 1,56;-3
-    Closed ranges (minus or tilde):         10-23,-5--7,-10~-2
-    Exclusion with ! prefix:                5-9,!6,!5~7
-    Arbitrary combination:                  -9--5;+4,!-8~-5
+    Closed ranges (minus or ellipsis):      10-23,-5--7,-10..-2
+    Exclusion with ! prefix:                5-9,!6,!5...7
+    Arbitrary combination:                  -9--5;+4,!-8..-5
     JSON/YAML compatibility:                [1,53,78]
 """.strip()
 
@@ -40,13 +40,13 @@ def parse_int_set(input: str) -> set[int]:
     [123]
     >>> sorted(parse_int_set("-0"))
     [0]
-    >>> sorted(parse_int_set("0~0x0A"))             # Closed range with ~ or -
+    >>> sorted(parse_int_set("0..0x0A"))    # Closed range with .. or ... or -
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    >>> sorted(parse_int_set("-9--5,"))
+    >>> sorted(parse_int_set("-9...-5,"))
     [-9, -8, -7, -6, -5]
-    >>> sorted(parse_int_set("-9--5; +4, !-8~-5"))  # Exclusion with ! prefix
+    >>> sorted(parse_int_set("-9--5; +4, !-8..-5"))     # Exclusion with ! prefix
     [-9, 4]
-    >>> sorted(parse_int_set("-10~+10,!-9-+9"))     # Valid separators are , and ;
+    >>> sorted(parse_int_set("-10..+10,!-9-+9"))    # Valid separators are , and ;
     [-10, 10]
     >>> sorted(parse_int_set("6-5"))
     []
@@ -94,4 +94,4 @@ def parse_int_set(input: str) -> set[int]:
 
 _RE_JSON_LIST = re.compile(r"^\s*\[([^]]*)]\s*$")
 _RE_SPLIT = re.compile(r"[,;]")
-_RE_RANGE = re.compile(r"([+-]?\w+)[-~]([+-]?\w+)")
+_RE_RANGE = re.compile(r"([+-]?\w+)(?:-|\.\.\.?)([+-]?\w+)")

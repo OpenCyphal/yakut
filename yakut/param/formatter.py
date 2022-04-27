@@ -110,11 +110,11 @@ def _flatten_start(
     d: dict[Any, Any] | Collection[Any],
     parent_key: str = "",
     sep: str = ".",
-    do_put_format_specifiers: bool = False,
+    with_format_specifiers: bool = False,
 ) -> dict[str, Any]:
     def flatten(d: dict[Any, Any] | Collection[Any], parent_key: str = "") -> dict[str, Any]:
         def add_item(items: list[tuple[str, Any]], new_key: str, v: Mapping[Any, Any] | Collection[Any]) -> None:
-            if do_put_format_specifiers:
+            if with_format_specifiers:
                 _insert_format_specifier(items, new_key, v)
             if isinstance(v, Mapping) or (isinstance(v, Collection) and not isinstance(v, str)):
                 for_extension = flatten(v, new_key)
@@ -123,7 +123,7 @@ def _flatten_start(
                     items.extend(for_extension.items())
             else:
                 items.append((new_key, v))
-            if do_put_format_specifiers:
+            if with_format_specifiers:
                 _insert_format_specifier(items, new_key, v, is_start=False)
 
         if isinstance(d, Mapping):
@@ -143,15 +143,20 @@ def _flatten_start(
     return flatten(d, parent_key)
 
 
-def _make_tsv_formatter(_hints: FormatterHints) -> Formatter:
+def _make_tsv_formatter(hints: FormatterHints) -> Formatter:
+    # TODO: if short_rows and single_document, transpose the top-level dict to have the keys on the leftmost row.
+    # Transpose lists in a similar manner.
+    _ = hints  # TODO not used yet
+
     def tsv_format_function(data: dict[Any, Any]) -> str:
-        return "\t".join([str(v) for k, v in _flatten_start(data).items()])
+        return "\t".join(str(v) for k, v in _flatten_start(data).items())
 
     return tsv_format_function
 
 
-def _make_tsvh_formatter_factory(do_put_format_specifiers: bool = False) -> FormatterFactory:
-    def make_tsvh_formatter(_hints: FormatterHints) -> Formatter:
+def _make_tsvh_formatter_factory(with_format_specifiers: bool) -> FormatterFactory:
+    def make_tsvh_formatter(hints: FormatterHints) -> Formatter:
+        _ = hints  # TODO see above
         is_first_time = True
 
         def tsv_format_function_with_header(data: dict[Any, Any]) -> str:
@@ -160,21 +165,15 @@ def _make_tsvh_formatter_factory(do_put_format_specifiers: bool = False) -> Form
                 is_first_time = False
                 return (
                     "\t".join(
-                        [
-                            str(k)
-                            for k, v in _flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()
-                        ]
+                        str(k) for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
                     )
                     + "\n"
                     + "\t".join(
-                        [
-                            str(v)
-                            for k, v in _flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()
-                        ]
+                        str(v) for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
                     )
                 )
             return "\t".join(
-                [str(v) for k, v in _flatten_start(data, do_put_format_specifiers=do_put_format_specifiers).items()]
+                str(v) for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
             )
 
         return tsv_format_function_with_header
@@ -186,8 +185,8 @@ _FORMATTERS = {
     "YAML": _make_yaml_formatter,
     "JSON": _make_json_formatter,
     "TSV": _make_tsv_formatter,
-    "TSVH": _make_tsvh_formatter_factory(do_put_format_specifiers=False),
-    "TSVFC": _make_tsvh_formatter_factory(do_put_format_specifiers=True),
+    "TSVH": _make_tsvh_formatter_factory(with_format_specifiers=False),
+    "TSVFC": _make_tsvh_formatter_factory(with_format_specifiers=True),
 }
 
 

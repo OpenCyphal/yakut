@@ -77,6 +77,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     _, stdout, _ = execute_cli(
         f"--transport={transport_factory(52).expression}",
         f"--path={OUTPUT_DIR}",
+        "--format=yaml",
         "call",
         "51",
         "uavcan.node.getinfo.1.0",

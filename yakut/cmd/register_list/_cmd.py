@@ -24,15 +24,15 @@ List registers available on the specified remote node(s).
 Examples:
 
 \b
-    yukon rls 42
-    yukon rls 90,100..125,!110-115
-    yukon rls '[1,2,42,105]'
+    yukon register-list 42
+    yukon lsr 90,100..125,!110-115
+    yukon lsr '[1,2,42,105]'
 
 {INT_SET_USER_DOC}
 """
 
 
-@yakut.subcommand(aliases=["rls", "regls"], help=_HELP)
+@yakut.subcommand(aliases=["lsr", "lsreg"], help=_HELP)
 @click.argument("node_ids", type=parse_int_set)
 @click.option(
     "--timeout",

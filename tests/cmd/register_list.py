@@ -91,7 +91,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
     try:
         status, stdout, stderr = execute_cli(
             "--format=json",
-            "rls",
+            "register-list",
             "10",
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
@@ -107,7 +107,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         # Poll non-existent nodes.
         status, stdout, stderr = execute_cli(
             "--format=json",
-            "rls",
+            "register-list",
             "10..12",
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
@@ -126,7 +126,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         # Same but no error.
         status, stdout, stderr = execute_cli(
             "--format=json",
-            "rls",
+            "register-list",
             "10..12",
             "--optional-service",
             environment_variables={

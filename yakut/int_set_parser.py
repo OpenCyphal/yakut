@@ -17,16 +17,18 @@ INT_SET_USER_DOC = """
 Integer set notation examples:
 
 \b
-    discrete elements (comma or semicolon): 1,56;-3
-    closed ranges (minus or tilde):         10-23,-5--7,-10~-2
-    exclusion with ! prefix:                5-9,!6,!5~7
-    arbitrary combination:                  -9--5;+4,!-8~-5
+    Discrete elements (comma or semicolon): 1,56;-3
+    Closed ranges (minus or tilde):         10-23,-5--7,-10~-2
+    Exclusion with ! prefix:                5-9,!6,!5~7
+    Arbitrary combination:                  -9--5;+4,!-8~-5
+    JSON/YAML compatibility:                [1,53,78]
 """.strip()
 
 
 def parse_int_set(input: str) -> set[int]:
     """
     Unpacks the integer set notation.
+    Accepts JSON-list (subset of YAML) of integers at input, too.
     Raises :class:`IntSetError` on syntax error.
     Usage:
 
@@ -48,6 +50,8 @@ def parse_int_set(input: str) -> set[int]:
     [-10, 10]
     >>> sorted(parse_int_set("6-5"))
     []
+    >>> sorted(parse_int_set("[1,53,78]"))
+    [1, 53, 78]
     >>> parse_int_set("123,456,9-") # doctest:+IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
@@ -62,7 +66,7 @@ def parse_int_set(input: str) -> set[int]:
 
     incl: set[int] = set()
     excl: set[int] = set()
-    for item in _RE_SPLIT.split(input):
+    for item in _RE_SPLIT.split(_RE_JSON_LIST.sub(r"\1", input)):
         item = item.strip()
         if not item:
             continue
@@ -88,5 +92,6 @@ def parse_int_set(input: str) -> set[int]:
     return result
 
 
+_RE_JSON_LIST = re.compile(r"^\s*\[([^]]*)]\s*$")
 _RE_SPLIT = re.compile(r"[,;]")
 _RE_RANGE = re.compile(r"([+-]?\w+)[-~]([+-]?\w+)")

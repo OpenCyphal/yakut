@@ -10,6 +10,7 @@ import pycyphal
 if TYPE_CHECKING:
     import pycyphal.application
     from pycyphal.application.register import Value
+    from uavcan.register import Access_1
 
 
 async def fetch_registers(
@@ -81,7 +82,7 @@ def unexplode_value(xpl: Any, prototype: Optional["Value"] = None) -> Optional["
 
     >>> ux(None)                                         # None is a simplified form of Empty.
     uavcan.register.Value...(empty=...)
-    >>> ux({"value": {"integer8": {"value": [1,2,3]}}})  # Part of Access.Response
+    >>> ux({"integer8": {"value": [1,2,3]}, "_metadata_": {"whatever": 0}})  # Metadata ignored.
     uavcan.register.Value...(integer8=...[1,2,3]))
     >>> ux({"integer8": {"value": [1,2,3]}})             # Pure Value (same as above)
     uavcan.register.Value...(integer8=...[1,2,3]))
@@ -93,6 +94,11 @@ def unexplode_value(xpl: Any, prototype: Optional["Value"] = None) -> Optional["
     uavcan.register.Value...(natural16=...[123]))
     >>> ux("abc", Value(natural16=Natural16([0]))) is None # Not applicable
     True
+
+    Roundtrip:
+
+    >>> unexplode_value(explode_value(Value(natural16=Natural16([0,1,2])), metadata={"a": 654}))
+    uavcan.register.Value...(natural16=...[0,1,2]))
     """
     from pycyphal.dsdl import update_from_builtin
     from pycyphal.application.register import ValueProxy, Value, ValueConversionError
@@ -101,7 +107,10 @@ def unexplode_value(xpl: Any, prototype: Optional["Value"] = None) -> Optional["
         return Value()
     if isinstance(xpl, dict) and xpl:  # Empty dict is not a valid representation.
         try:
-            res = update_from_builtin(Value(), xpl)
+            res = update_from_builtin(
+                Value(),
+                {k: v for k, v in xpl.items() if k.strip("_") == k},  # Strip metadata fields.
+            )
             assert isinstance(res, Value)
             return res
         except (ValueError, TypeError):
@@ -117,16 +126,20 @@ def unexplode_value(xpl: Any, prototype: Optional["Value"] = None) -> Optional["
     return None
 
 
-def explode_value(val: "Value", *, simplified: bool = False) -> Any:
+def explode_value(val: "Value", *, simplify: bool = False, metadata: dict[str, Any] | None = None) -> Any:
     """
     Represent the register value using primitives (list, dict, string, etc.).
     If simplified mode is selected,
     the metadata and type information will be discarded and only a human-friendly representation of the
     value will be constructed.
     The reconstruction back to the original form is a bit involved but we provide :func:`unexplode` for that.
+    The metadata is added under a key ``_metadata_``, if there is any, but it is ignored in simplified mode.
     """
-    if not simplified:
-        return pycyphal.dsdl.to_builtin(val)
+    if not simplify:
+        out = pycyphal.dsdl.to_builtin(val)
+        if metadata is not None:
+            out["_meta_"] = dict(metadata)
+        return out
     return _simplify_value(val)
 
 
@@ -169,6 +182,16 @@ def _simplify_value(msg: "Value") -> Any:
     if len(val) == 1:  # One-element arrays shown as scalars.
         (val,) = val
     return val
+
+
+def get_access_response_metadata(val: "Access_1.Response") -> dict[str, Any]:
+    """
+    This is for use with :func:`explode_value`.
+    """
+    return {
+        "mutable": val.mutable,
+        "persistent": val.persistent,
+    }
 
 
 _logger = logging.getLogger(__name__)

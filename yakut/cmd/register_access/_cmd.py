@@ -4,17 +4,19 @@
 
 from __future__ import annotations
 import sys
-from typing import Any, Sequence, TYPE_CHECKING
+from typing import Any, Sequence, TYPE_CHECKING, Optional, Callable
 import click
 import pycyphal
 import yakut
 from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
 from yakut.progress import ProgressReporter
 from yakut.param.formatter import FormatterHints
+from yakut.register import explode_value, get_access_response_metadata
 from ._logic import access
 
 if TYPE_CHECKING:
     import pycyphal.application
+    from uavcan.register import Access_1
 
 _logger = yakut.get_logger(__name__)
 
@@ -22,13 +24,14 @@ _logger = yakut.get_logger(__name__)
 _HELP = f"""
 Read or modify a register on one or multiple remote nodes.
 
-If no value is given, the register will be only read from the specified nodes.
-If a value is given, it shall follow the environment variable notation described in the
+If no value is given, the register will be only read from the specified nodes,
+and only one request will be sent per node.
+
+If a value is given, it shall follow the standard environment variable notation described in the
 uavcan.register.Access service specification.
-The value will be parsed depending on the type of the register reported by the remote node
+The assignment value will be parsed depending on the type of the register reported by the remote node
 (which may be different per node).
 
-If no value is given, only one request will be sent per node.
 If a value is given, two requests will be sent: the first one to discover the type,
 the second to actually write the value
 (unless the provided value could not be applied to the register type).
@@ -42,6 +45,7 @@ Examples:
     yakut reg 120-125 m.inductance_dq
     yakut reg 120-125 m.inductance_dq '12.0e-6 14.7e-6'
     yakut reg 120-125 m.inductance_dq  12.0e-6 14.7e-6  # Quotes are optional
+    y r 120-125 m.inductance_dq | jq 'flatten|unique'   # Remove duplicate values from output
     y r 125 uavcan.node.description "Motor rear-left #3"
 
 {INT_SET_USER_DOC}
@@ -84,20 +88,10 @@ Best-effort output will always be produced regardless of this option; that is, i
 """,
 )
 @click.option(
-    "--flat",
-    "--flatten",
-    "-f",
-    is_flag=True,
-    help="""
-Do not group register values by node-ID but join them into one flat structure with duplicates and empty values removed.
-If only one value is left at the end, report it as-is without the enclosing list.
-""",
-)
-@click.option(
-    "--asis",
-    "-a",
-    is_flag=True,
-    help="Display the response as-is, with metadata and type information, do not simplify the output.",
+    "--detailed",
+    "-d",
+    count=True,
+    help="Display the value as-is, with DSDL type information, do not simplify. Specify twice to also show metadata.",
 )
 @yakut.pass_purser
 @yakut.asynchronous()
@@ -109,8 +103,7 @@ async def register_access(
     timeout: float,
     optional_service: bool,
     optional_register: bool,
-    flat: bool,
-    asis: bool,
+    detailed: int,
 ) -> int:
     node_ids = list(sorted(node_ids))
     _logger.debug(
@@ -121,15 +114,15 @@ async def register_access(
         timeout,
     )
     _logger.debug(
-        "optional_service=%r optional_register=%r flat=%r asis=%r",
+        "optional_service=%r optional_register=%r detailed=%r",
         optional_service,
         optional_register,
-        flat,
-        asis,
+        detailed,
     )
     reg_val_str = " ".join(register_value_element) if len(register_value_element) > 0 else None
     del register_value_element
     formatter = purser.make_formatter(FormatterHints(single_document=True))
+    representer = _make_representer(simplify=detailed < 1, metadata=detailed > 1)
 
     with purser.get_node("register_access", allow_anonymous=False) as node:
         with ProgressReporter() as prog:
@@ -142,7 +135,6 @@ async def register_access(
                 optional_service=optional_service,
                 optional_register=optional_register,
                 timeout=timeout,
-                asis=asis,
             )
     # The node is no longer needed.
     for msg in result.errors:
@@ -150,16 +142,23 @@ async def register_access(
     for msg in result.warnings:
         click.secho(msg, err=True, fg="yellow")
 
-    final = _flatten(result.value_per_node) if flat else result.value_per_node
+    final = {k: representer(v) for k, v in result.value_per_node.items()}
     sys.stdout.write(formatter(final))
     sys.stdout.flush()
 
     return 1 if result.errors else 0
 
 
-def _flatten(value_per_node: dict[int, Any]) -> Any:
-    collapsed: list[Any] = []
-    for val in value_per_node.values():
-        if val not in collapsed and val is not None:  # Cannot use set because values unhashable
-            collapsed.append(val)
-    return None if len(collapsed) == 0 else collapsed[0] if len(collapsed) == 1 else collapsed
+def _make_representer(simplify: bool, metadata: bool) -> Callable[[Optional["Access_1.Response"]], Any]:
+    def represent(response: Optional["Access_1.Response"]) -> Any:
+        return (
+            explode_value(
+                response.value,
+                simplify=simplify,
+                metadata=get_access_response_metadata(response) if metadata else None,
+            )
+            if response is not None
+            else None
+        )
+
+    return represent

@@ -4,11 +4,10 @@
 
 from __future__ import annotations
 import dataclasses
-from typing import Sequence, TYPE_CHECKING, Union, Any
+from typing import Sequence, TYPE_CHECKING, Union, Optional
 import pycyphal
 import yakut
 from yakut.progress import ProgressCallback
-from yakut.register import explode_value
 
 
 if TYPE_CHECKING:
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
 
 @dataclasses.dataclass
 class Result:
-    value_per_node: dict[int, Any] = dataclasses.field(default_factory=dict)
+    value_per_node: dict[int, Optional["Access_1.Response"]] = dataclasses.field(default_factory=dict)
     errors: list[str] = dataclasses.field(default_factory=list)
     warnings: list[str] = dataclasses.field(default_factory=list)
 
@@ -33,7 +32,6 @@ async def access(
     optional_service: bool,
     optional_register: bool,
     timeout: float,
-    asis: bool,
 ) -> Result:
     res = Result()
     for nid, item in (await _access(local_node, progress, node_ids, reg_name, reg_val_str, timeout=timeout)).items():
@@ -50,11 +48,11 @@ async def access(
 
         elif isinstance(item, tuple):
             resp, exc = item
-            res.value_per_node[nid] = _represent(resp, asis=asis)
+            res.value_per_node[nid] = resp
             res.errors.append(f"Assignment failed at node {nid}: {type(exc).__name__}: {exc}")
 
         else:
-            res.value_per_node[nid] = _represent(item, asis=asis)
+            res.value_per_node[nid] = item
             if item.value.empty and reg_val_str is not None:
                 if optional_register:
                     res.warnings.append(f"Nonexistent register {reg_name!r} at node {nid} ignored as requested")
@@ -139,10 +137,6 @@ async def _access_one(
         return _Timeout()
     assert isinstance(resp, Access_1.Response)
     return resp
-
-
-def _represent(response: "Access_1.Response", *, asis: bool) -> Any:
-    return explode_value(response.value, simplified=not asis)
 
 
 _logger = yakut.get_logger(__name__)

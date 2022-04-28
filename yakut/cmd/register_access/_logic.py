@@ -8,7 +8,7 @@ from typing import Sequence, TYPE_CHECKING, Union, Any
 import pycyphal
 import yakut
 from yakut.progress import ProgressCallback
-from yakut.register import value_as_simplified_builtin
+from yakut.register import explode
 
 
 if TYPE_CHECKING:
@@ -142,9 +142,7 @@ async def _access_one(
 
 
 def _represent(response: "Access_1.Response", *, asis: bool) -> Any:
-    if asis:
-        return pycyphal.dsdl.to_builtin(response)
-    return value_as_simplified_builtin(response.value)
+    return explode(response, simplified=not asis)
 
 
 _logger = yakut.get_logger(__name__)

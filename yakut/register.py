@@ -3,13 +3,13 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-from typing import Any, TYPE_CHECKING, Callable
+from typing import Any, TYPE_CHECKING, Callable, Union, Optional
 import logging
 import pycyphal
 
 if TYPE_CHECKING:
     import pycyphal.application
-    from uavcan.register import Value_1
+    from uavcan.register import Value_1, Access_1
 
 
 async def fetch_registers(
@@ -66,28 +66,107 @@ async def fetch_registers(
     return regs
 
 
-def value_as_simplified_builtin(msg: "Value_1") -> Any:
+def unexplode(xpl: Any, prototype: Optional["Value_1"] = None) -> Optional["Value_1"]:
     """
-    Designed for use with commands that output compact register values in YAML/JSON/TSV/whatever.
+    Reverse the effect of :func:`explode`.
+    Returns None if the exploded form is invalid or not applicable to the prototype.
+    Some simplified exploded forms can be unexploded only if the prototype
+    is given because simplification erases type information.
+    Some unambiguous simplified forms may be unexploded autonomously.
+
+    >>> from tests.dsdl import ensure_compiled_dsdl
+    >>> _ = ensure_compiled_dsdl()
+    >>> from pycyphal.application.register import Value, Natural16
+
+    >>> unexplode(None)                                         # None is a simplified form of Empty.
+    uavcan.register.Value...(empty=...)
+    >>> unexplode({"value": {"integer8": {"value": [1,2,3]}}})  # Part of Access.Response
+    uavcan.register.Value...(integer8=...[1,2,3]))
+    >>> unexplode({"integer8": {"value": [1,2,3]}})             # Pure Value (same as above)
+    uavcan.register.Value...(integer8=...[1,2,3]))
+    >>> unexplode([1,2,3]) is None                              # Prototype required.
+    True
+    >>> unexplode([1,2,3], Value(natural16=Natural16([0,0,0])))
+    uavcan.register.Value...(natural16=...[1,2,3]))
+    >>> unexplode(123, Value(natural16=Natural16([0])))
+    uavcan.register.Value...(natural16=...[123]))
+    >>> unexplode("abc", Value(natural16=Natural16([0]))) is None # Not applicable
+    True
+    """
+    from pycyphal.dsdl import update_from_builtin
+    from pycyphal.application.register import ValueProxy
+    from uavcan.register import Value_1
+
+    # Non-simplified forms.
+    if isinstance(xpl, dict) and "value" in xpl:  # Strip the outer container like Access.Response.
+        xpl = xpl["value"]
+    if isinstance(xpl, dict) and xpl:  # Empty dict is not a valid representation.
+        try:
+            res = update_from_builtin(Value_1(), xpl)
+            assert isinstance(res, Value_1)
+            return res
+        except (ValueError, TypeError):
+            pass
+
+    # Unambiguous simplified forms.
+    if xpl is None:
+        return Value_1()
+
+    # Further processing requires the type information.
+    if prototype is not None:
+        ret = ValueProxy(prototype)
+        try:
+            ret.assign(xpl)
+            assert isinstance(ret.value, Value_1)
+            return ret.value
+        except (ValueError, TypeError):
+            pass
+    return None
+
+
+def explode(val: Union["Value_1", "Access_1.Response"], *, simplified: bool = False) -> Any:
+    """
+    Represent the register value or the register access response (which includes the value along with metadata)
+    using primitives (list, dict, string, etc.).
+    If simplified mode is selected,
+    the metadata and type information will be discarded and only a human-friendly representation of the
+    value will be constructed.
+    """
+    from uavcan.register import Access_1, Value_1
+
+    if not simplified:
+        return pycyphal.dsdl.to_builtin(val)
+    if isinstance(val, Access_1.Response):
+        return _simplify(val.value)
+    if isinstance(val, Value_1):
+        return _simplify(val)
+    raise TypeError(f"Cannot explode {type(val).__name__}")
+
+
+def _simplify(msg: "Value_1") -> Any:
+    """
+    Construct simplified human-friendly representation of the register value using primitives (list, string, etc.).
+    Designed for use with commands that output compact register values in YAML/JSON/TSV/whatever,
     discarding the detailed type information.
 
     >>> from tests.dsdl import ensure_compiled_dsdl
     >>> _ = ensure_compiled_dsdl()
     >>> from pycyphal.application.register import Value, Empty
     >>> from pycyphal.application.register import Integer8, Natural8, Integer32, String, Unstructured
-    >>> None is value_as_simplified_builtin(Value())  # empty is none
+
+    >>> None is _simplify(Value())  # empty is none
     True
-    >>> value_as_simplified_builtin(Value(integer8=Integer8([123])))
+    >>> _simplify(Value(integer8=Integer8([123])))
     123
-    >>> value_as_simplified_builtin(Value(natural8=Natural8([123, 23])))
+    >>> _simplify(Value(natural8=Natural8([123, 23])))
     [123, 23]
-    >>> value_as_simplified_builtin(Value(integer32=Integer32([123, -23, 105])))
+    >>> _simplify(Value(integer32=Integer32([123, -23, 105])))
     [123, -23, 105]
-    >>> value_as_simplified_builtin(Value(integer32=Integer32([99999])))
+    >>> _simplify(Value(integer32=Integer32([99999])))
     99999
-    >>> value_as_simplified_builtin(Value(string=String("Hello world")))
+    >>> _simplify(Value(string=String("Hello world")))
     'Hello world'
-    >>> value_as_simplified_builtin(Value(unstructured=Unstructured(b"Hello world")))
+    >>> _simplify(Value(unstructured=Unstructured(b"Hello world")))
     b'Hello world'
     """
     # This is kinda crude, perhaps needs improvement.

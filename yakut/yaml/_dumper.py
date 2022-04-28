@@ -14,12 +14,12 @@ class Dumper:
     Natively represents decimal.Decimal as floats in the output.
     """
 
-    def __init__(self, explicit_start: bool = False, block_style: bool = False):
+    def __init__(self, explicit_start: bool = False, prefer_block_style: bool = False):
         # We need to use the roundtrip representer to retain ordering of mappings, which is important for usability.
         self._impl = ruamel.yaml.YAML(typ="rt")
         # noinspection PyTypeHints
         self._impl.explicit_start = explicit_start
-        self._impl.default_flow_style = False if block_style else None
+        self._impl.default_flow_style = False if prefer_block_style else None
         self._impl.width = 2**31  # Unlimited width
 
     def dump(self, data: Any, stream: TextIO) -> None:
@@ -70,7 +70,7 @@ def:
 - {qaz: 789.0}
 """
     )
-    ref = Dumper(explicit_start=False, block_style=True).dumps(
+    ref = Dumper(explicit_start=False, prefer_block_style=True).dumps(
         {
             "abc": decimal.Decimal("-inf"),
             "def": [decimal.Decimal("nan"), {"qaz": decimal.Decimal("789"), "qqq": 123}],

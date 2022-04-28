@@ -13,11 +13,6 @@ import click
 
 @dataclasses.dataclass(frozen=True)
 class FormatterHints:
-    short_rows: bool = False
-    """
-    E.g., YAML formatter will select a flow style that prefers shorter rows.
-    """
-
     single_document: bool = False
     """
     If true, document separators will not be emitted (if applicable).
@@ -79,7 +74,7 @@ reader understand the structure of the data without looking at the headers.
 def _make_yaml_formatter(hints: FormatterHints) -> Formatter:
     from yakut.yaml import Dumper
 
-    dumper = Dumper(explicit_start=not hints.single_document, block_style=hints.short_rows)
+    dumper = Dumper(explicit_start=not hints.single_document)
     return dumper.dumps
 
 

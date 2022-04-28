@@ -128,7 +128,7 @@ async def register_access(
     )
     reg_val_str = " ".join(register_value_element) if len(register_value_element) > 0 else None
     del register_value_element
-    formatter = purser.make_formatter(FormatterHints(short_rows=True, single_document=True))
+    formatter = purser.make_formatter(FormatterHints(single_document=True))
 
     with purser.get_node("register_access", allow_anonymous=False) as node:
         with ProgressReporter() as prog:

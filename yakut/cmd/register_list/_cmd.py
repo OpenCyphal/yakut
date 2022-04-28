@@ -65,7 +65,7 @@ async def register_list(
 ) -> int:
     node_ids = list(sorted(node_ids))
     _logger.debug("node_ids=%r, timeout=%r optional_service=%r", node_ids, timeout, optional_service)
-    formatter = purser.make_formatter(FormatterHints(short_rows=True, single_document=True))
+    formatter = purser.make_formatter(FormatterHints(single_document=True))
     with purser.get_node("register_list", allow_anonymous=False) as node:
         with ProgressReporter() as prog:
             result = await list_names(

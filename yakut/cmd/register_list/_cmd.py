@@ -26,8 +26,14 @@ Examples:
 
 \b
     yakut register-list 42
-    yakut rl 90,100..125,!110-115
-    yakut rl '[1,2,42,105]'
+    y rl 90,100..125,!110-115
+    y rl '[1,2,42,105]' > all_registers.json
+
+Filter by name, in this case those matching "uavcan*id", using regex and plain match:
+
+\b
+    y rl 100-128 | jq 'map_values([.[] | select(test("uavcan.+id"))])'
+    y rl 100-128 | jq 'map_values([.[] | select(startswith("uavcan.") and endswith(".id"))])'
 
 {INT_SET_USER_DOC}
 """

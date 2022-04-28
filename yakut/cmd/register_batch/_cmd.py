@@ -65,7 +65,7 @@ _PREDICATES = {
     "-o",
     type=click.Choice(list(_PREDICATES.keys()), case_sensitive=False),
     help="""
-Filter the output to include only mutable/persistent, immutable/volatile registers.
+Filter the output to include only mutable/immutable, persistent/volatile registers.
 All registers are always written regardless, this option only affects the final output.
 """,
 )
@@ -100,6 +100,11 @@ async def register_batch(
 
     \b
         y rl 42 | y rb -omp | jq '.[]' > single_node_config.json
+
+    Filter output registers by name; in this case those matching "uavcan.*.id":
+
+    \b
+        y rl 125 | y rb | jq 'map_values(with_entries(select(.key | test("uavcan.+id"))))'
     """
     predicate: Predicate = _PREDICATES[only] if only else lambda _: True
     formatter = purser.make_formatter(FormatterHints(single_document=True))

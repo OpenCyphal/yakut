@@ -233,6 +233,12 @@ async def subscribe(
         yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata --count=1
         yakut sub 33 42 5789 --sync-monoclust-arrival=0.1
         yakut sub uavcan.node.heartbeat
+
+    Extracting a specific field, sub-object, data manipulation:
+
+    \b
+        y sub uavcan.node.heartbeat | jq '.[].health.value'
+        y sub uavcan.node.heartbeat +M | jq '.[]|[._meta_.transfer_id, ._meta_.timestamp.system]'
     """
     config = click.get_current_context().ensure_object(Config)
     try:

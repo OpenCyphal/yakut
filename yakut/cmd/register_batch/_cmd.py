@@ -5,16 +5,16 @@
 from __future__ import annotations
 import sys
 import dataclasses
-from typing import TYPE_CHECKING, TextIO, Optional, Union, Callable, TypeVar, Any
+from typing import TYPE_CHECKING, TextIO, Optional, Callable, TypeVar
 import click
 import pycyphal
 import yakut
-from yakut.progress import ProgressReporter, ProgressCallback
+from yakut.progress import ProgressReporter
 from yakut.param.formatter import FormatterHints
 from yakut.yaml import Loader
 from yakut.util import compose
 from ._directive import Directive
-from ._executor import execute
+from ._caller import do_calls
 
 if TYPE_CHECKING:
     import pycyphal.application
@@ -54,7 +54,7 @@ def _eye(x: T) -> T:
 
 @yakut.subcommand(aliases=["rbat", "rb"])
 @click.argument(
-    "register_yaml_file",
+    "register_file",
     type=click.File("r"),
     default=sys.stdin,
 )
@@ -75,7 +75,7 @@ def _eye(x: T) -> T:
 @yakut.asynchronous()
 async def register_batch(
     purser: yakut.Purser,
-    register_yaml_file: TextIO,
+    register_file: TextIO,
     timeout: float,
     mutability_filter: Filter,
     persistence_filter: Filter,
@@ -86,7 +86,6 @@ async def register_batch(
     Accepts a YAML/JSON file containing register names and/or values per node; the default is to read from stdin.
     Acceptable formats are generated either by register-list (in which case registers will be only read)
     or by this command (in which case the specified values will be written).
-    Null-valued registers will be only read.
 
     Save registers from multiple nodes into a file (using verbose form for clarity here):
 
@@ -103,15 +102,15 @@ async def register_batch(
         y rl 42 | y rdump +MP | jq '.[]' > single_node_config.json
     """
     flt: Filter = compose(mutability_filter or _eye, persistence_filter or _eye)
-    with register_yaml_file:
-        directive = Directive.load(Loader().load(register_yaml_file))
+    with register_file:
+        directive = Directive.load(Loader().load(register_file))
     formatter = purser.make_formatter(FormatterHints(single_document=True))
     with purser.get_node("register_batch", allow_anonymous=False) as node:
         with ProgressReporter() as prog:
-            result = await execute(node, prog, directive=directive, timeout=timeout)
-    for msg in result.errors:
-        click.secho(msg, err=True, fg="red", bold=True)
+            result = await do_calls(node, prog, directive=directive, timeout=timeout)
+    success = False
+    # TODO report errors
     # FIXME
     sys.stdout.write(formatter(result.responses_per_node))
     sys.stdout.flush()
-    return 0 if not result.errors else 1
+    return 0 if success else 1

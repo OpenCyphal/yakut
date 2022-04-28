@@ -9,7 +9,8 @@ import pycyphal
 
 if TYPE_CHECKING:
     import pycyphal.application
-    from uavcan.register import Value_1, Access_1
+    from pycyphal.application.register import Value
+    from uavcan.register import Access_1
 
 
 async def fetch_registers(
@@ -66,7 +67,7 @@ async def fetch_registers(
     return regs
 
 
-def unexplode(xpl: Any, prototype: Optional["Value_1"] = None) -> Optional["Value_1"]:
+def unexplode(xpl: Any, prototype: Optional["Value"] = None) -> Optional["Value"]:
     """
     Reverse the effect of :func:`explode`.
     Returns None if the exploded form is invalid or not applicable to the prototype.
@@ -75,7 +76,7 @@ def unexplode(xpl: Any, prototype: Optional["Value_1"] = None) -> Optional["Valu
     Some unambiguous simplified forms may be unexploded autonomously.
 
     >>> from tests.dsdl import ensure_compiled_dsdl
-    >>> _ = ensure_compiled_dsdl()
+    >>> ensure_compiled_dsdl()
     >>> from pycyphal.application.register import Value, Natural16
 
     >>> unexplode(None)                                         # None is a simplified form of Empty.
@@ -94,63 +95,65 @@ def unexplode(xpl: Any, prototype: Optional["Value_1"] = None) -> Optional["Valu
     True
     """
     from pycyphal.dsdl import update_from_builtin
-    from pycyphal.application.register import ValueProxy
-    from uavcan.register import Value_1
+    from pycyphal.application.register import ValueProxy, Value
 
     # Non-simplified forms.
-    if isinstance(xpl, dict) and "value" in xpl:  # Strip the outer container like Access.Response.
-        xpl = xpl["value"]
+    k_inner = "value"
+    if isinstance(xpl, dict) and xpl.get(k_inner) and isinstance(xpl.get(k_inner), dict):  # E.g., Access.Response.
+        xpl = xpl[k_inner]
     if isinstance(xpl, dict) and xpl:  # Empty dict is not a valid representation.
         try:
-            res = update_from_builtin(Value_1(), xpl)
-            assert isinstance(res, Value_1)
+            res = update_from_builtin(Value(), xpl)
+            assert isinstance(res, Value)
             return res
         except (ValueError, TypeError):
             pass
 
     # Unambiguous simplified forms.
     if xpl is None:
-        return Value_1()
+        return Value()
 
     # Further processing requires the type information.
     if prototype is not None:
         ret = ValueProxy(prototype)
         try:
             ret.assign(xpl)
-            assert isinstance(ret.value, Value_1)
+            assert isinstance(ret.value, Value)
             return ret.value
         except (ValueError, TypeError):
             pass
     return None
 
 
-def explode(val: Union["Value_1", "Access_1.Response"], *, simplified: bool = False) -> Any:
+def explode(val: Union["Value", "Access_1.Response"], *, simplified: bool = False) -> Any:
     """
     Represent the register value or the register access response (which includes the value along with metadata)
     using primitives (list, dict, string, etc.).
     If simplified mode is selected,
     the metadata and type information will be discarded and only a human-friendly representation of the
     value will be constructed.
+    The reconstruction back to the original form is a bit involved but we provide :func:`unexplode` for that.
     """
-    from uavcan.register import Access_1, Value_1
+    from pycyphal.application.register import Value
+    from uavcan.register import Access_1
 
     if not simplified:
         return pycyphal.dsdl.to_builtin(val)
     if isinstance(val, Access_1.Response):
         return _simplify(val.value)
-    if isinstance(val, Value_1):
+    if isinstance(val, Value):
         return _simplify(val)
     raise TypeError(f"Cannot explode {type(val).__name__}")
 
 
-def _simplify(msg: "Value_1") -> Any:
+def _simplify(msg: "Value") -> Any:
     """
     Construct simplified human-friendly representation of the register value using primitives (list, string, etc.).
     Designed for use with commands that output compact register values in YAML/JSON/TSV/whatever,
     discarding the detailed type information.
 
     >>> from tests.dsdl import ensure_compiled_dsdl
-    >>> _ = ensure_compiled_dsdl()
+    >>> ensure_compiled_dsdl()
     >>> from pycyphal.application.register import Value, Empty
     >>> from pycyphal.application.register import Integer8, Natural8, Integer32, String, Unstructured
 

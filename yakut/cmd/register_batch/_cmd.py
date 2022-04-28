@@ -87,6 +87,9 @@ async def register_batch(
     Acceptable formats are generated either by register-list (in which case registers will be only read)
     or by this command (in which case the specified values will be written).
 
+    The specified nodes and their registers will be processed strictly in the order they are defined in the file
+    (this matters if register access has side effects).
+
     Save registers from multiple nodes into a file (using verbose form for clarity here):
 
     \b

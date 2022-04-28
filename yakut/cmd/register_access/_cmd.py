@@ -39,6 +39,8 @@ The final value returned by the node is always printed at the end,
 which may be different from the assigned value depending on the internal logic of the node
 (e.g., the value could be adjusted to satisfy constraints, the register could be read-only, etc.).
 
+The specified nodes will be processed strictly in order (this matters if register access has side effects).
+
 Examples:
 
 \b

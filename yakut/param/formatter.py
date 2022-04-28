@@ -235,13 +235,13 @@ def _unittest_formatter() -> None:
   ghi: 789
 """
     )
-    assert _FORMATTERS["JSON"](default_hints)(obj) == '{"2345":{"abc":{"def":[123,456]},"ghi":789}}'
-    assert _FORMATTERS["TSV"](default_hints)(obj) == "123\t456\t789"
+    assert _FORMATTERS["JSON"](default_hints)(obj) == '{"2345":{"abc":{"def":[123,456]},"ghi":789}}\n'
+    assert _FORMATTERS["TSV"](default_hints)(obj) == "123\t456\t789\n"
     tsvh_formatter = _FORMATTERS["TSVH"](default_hints)
     # first time should include a header
-    assert tsvh_formatter(obj) == "2345.abc.def.[0]\t2345.abc.def.[1]\t2345.ghi\n123\t456\t789"
+    assert tsvh_formatter(obj) == "2345.abc.def.[0]\t2345.abc.def.[1]\t2345.ghi\n123\t456\t789\n"
     # subsequent calls shouldn't include a header
-    assert tsvh_formatter(obj) == "123\t456\t789"
+    assert tsvh_formatter(obj) == "123\t456\t789\n"
     from decimal import Decimal
     from math import nan
 
@@ -279,11 +279,11 @@ def _unittest_formatter() -> None:
         "	142.value.torque.newton_meter	142.value.torque}	142.value}	142}\n{	{	{"
         "	1640611164.396007	4765.594161	}	nominal	28	21	}"
         "	{	309697890	}	{	{	{	nan	}	{	0.0	}"
-        "	{	0.0	}	}	{	nan	}	}	}"
+        "	{	0.0	}	}	{	nan	}	}	}\n"
     )
     assert (
         _FORMATTERS["TSV"](default_hints)(obj)
-        == "1640611164.396007\t4765.594161\tnominal\t28\t21\t309697890\tnan\t0.0\t0.0\tnan"
+        == "1640611164.396007\t4765.594161\tnominal\t28\t21\t309697890\tnan\t0.0\t0.0\tnan\n"
     )
 
     assert (
@@ -294,5 +294,5 @@ def _unittest_formatter() -> None:
         "\t142.value.kinematics.angular_velocity.radian_per_second\t142.value.kinematics.angular_acceleration."
         "radian_per_second_per_second\t142.value.torque.newton_meter"
         "\n1640611164.396007\t4765.594161\tnominal\t2"
-        "8\t21\t309697890\tnan\t0.0\t0.0\tnan"
+        "8\t21\t309697890\tnan\t0.0\t0.0\tnan\n"
     )

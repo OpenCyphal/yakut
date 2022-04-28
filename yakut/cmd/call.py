@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import sys
 from typing import Any, Callable, TYPE_CHECKING
 import decimal
 from functools import lru_cache
@@ -214,7 +215,8 @@ async def _run(
         )
     bi.update(pycyphal.dsdl.to_builtin(response))
 
-    print(formatter({client.port_id: bi}))
+    sys.stdout.write(formatter({client.port_id: bi}))
+    sys.stdout.flush()
 
 
 async def _resolve(

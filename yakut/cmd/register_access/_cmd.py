@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import sys
 from typing import Any, Sequence, TYPE_CHECKING
 import click
 import pycyphal
@@ -150,7 +151,8 @@ async def register_access(
         click.secho(msg, err=True, fg="yellow")
 
     final = _flatten(result.value_per_node) if flat else result.value_per_node
-    print(formatter(final))
+    sys.stdout.write(formatter(final))
+    sys.stdout.flush()
 
     return 1 if result.errors else 0
 

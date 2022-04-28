@@ -343,7 +343,8 @@ async def _run(synchronizer: Synchronizer, formatter: Formatter, with_metadata: 
 
         if redraw:
             click.clear()
-        print(formatter(outer))  # Use print to properly handle end-of-line for both TTY and files on all platforms
+        sys.stdout.write(formatter(outer))
+        sys.stdout.flush()
         count -= 1
         if count <= 0:
             _logger.debug("Reached the specified synchronized group count, stopping")

@@ -20,6 +20,12 @@ class FormatterHints:
 
 
 Formatter = Callable[[Any], str]
+"""
+The output represents a complete document with the terminating newline if such is necessary.
+The caller need not add anything.
+If sending this to stdout, do not use print() as-is because it will add an extra newline at the end.
+"""
+
 FormatterFactory = Callable[[FormatterHints], Formatter]
 
 
@@ -84,7 +90,7 @@ def _make_json_formatter(_hints: FormatterHints) -> Formatter:
     #  - simplejson supports Decimal.
     import simplejson as json  # type: ignore
 
-    return lambda data: cast(str, json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    return lambda data: cast(str, json.dumps(data, ensure_ascii=False, separators=(",", ":"))) + _NEWLINE
 
 
 def _insert_format_specifier(
@@ -150,7 +156,7 @@ def _make_tsv_formatter(hints: FormatterHints) -> Formatter:
     _ = hints  # TODO not used yet
 
     def tsv_format_function(data: Any) -> str:
-        return "\t".join(str(v) for k, v in _flatten_start(data).items())
+        return "\t".join(str(v) for k, v in _flatten_start(data).items()) + _NEWLINE
 
     return tsv_format_function
 
@@ -164,17 +170,24 @@ def _make_tsvh_formatter_factory(with_format_specifiers: bool) -> FormatterFacto
             nonlocal is_first_time
             if is_first_time:
                 is_first_time = False
-                return (
-                    "\t".join(
-                        str(k) for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
-                    )
-                    + "\n"
-                    + "\t".join(
-                        str(v) for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
+                return _NEWLINE.join(
+                    (
+                        "\t".join(
+                            str(k)
+                            for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
+                        ),
+                        "\t".join(
+                            str(v)
+                            for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
+                        ),
+                        "",
                     )
                 )
-            return "\t".join(
-                str(v) for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
+            return (
+                "\t".join(
+                    str(v) for k, v in _flatten_start(data, with_format_specifiers=with_format_specifiers).items()
+                )
+                + _NEWLINE
             )
 
         return tsv_format_function_with_header
@@ -197,6 +210,7 @@ _FORMATTERS = {
     "TSVFC": _make_tsvh_formatter_factory(with_format_specifiers=True),
 }
 
+_NEWLINE = "\n"
 
 _logger = logging.getLogger(__name__)
 

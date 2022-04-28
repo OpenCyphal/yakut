@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import sys
 from typing import Sequence, TYPE_CHECKING
 import click
 import pycyphal
@@ -80,6 +81,7 @@ async def register_list(
         click.secho(msg, err=True, fg="red", bold=True)
     for msg in result.warnings:
         click.secho(msg, err=True, fg="yellow")
-    print(formatter(result.names_per_node))
+    sys.stdout.write(formatter(result.names_per_node))
+    sys.stdout.flush()
 
     return 1 if result.errors else 0

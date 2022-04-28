@@ -69,7 +69,7 @@ async def _unittest_logic(compiled_dsdl: Any) -> None:
         assert not res.errors
         assert not res.warnings
         assert len(res.value_per_node) == 1
-        assert res.value_per_node[10]["value"]["string"]["value"]
+        assert res.value_per_node[10]["string"]["value"]
 
         # READ EXISTING REGISTER BUT ONE NODE IS MISSING
         res = await once(

@@ -3,14 +3,13 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-from typing import Any, TYPE_CHECKING, Callable, Union, Optional
+from typing import Any, TYPE_CHECKING, Callable, Optional
 import logging
 import pycyphal
 
 if TYPE_CHECKING:
     import pycyphal.application
     from pycyphal.application.register import Value
-    from uavcan.register import Access_1
 
 
 async def fetch_registers(
@@ -67,7 +66,7 @@ async def fetch_registers(
     return regs
 
 
-def unexplode(xpl: Any, prototype: Optional["Value"] = None) -> Optional["Value"]:
+def unexplode_value(xpl: Any, prototype: Optional["Value"] = None) -> Optional["Value"]:
     """
     Reverse the effect of :func:`explode`.
     Returns None if the exploded form is invalid or not applicable to the prototype.
@@ -78,29 +77,28 @@ def unexplode(xpl: Any, prototype: Optional["Value"] = None) -> Optional["Value"
     >>> from tests.dsdl import ensure_compiled_dsdl
     >>> ensure_compiled_dsdl()
     >>> from pycyphal.application.register import Value, Natural16
+    >>> ux = unexplode_value
 
-    >>> unexplode(None)                                         # None is a simplified form of Empty.
+    >>> ux(None)                                         # None is a simplified form of Empty.
     uavcan.register.Value...(empty=...)
-    >>> unexplode({"value": {"integer8": {"value": [1,2,3]}}})  # Part of Access.Response
+    >>> ux({"value": {"integer8": {"value": [1,2,3]}}})  # Part of Access.Response
     uavcan.register.Value...(integer8=...[1,2,3]))
-    >>> unexplode({"integer8": {"value": [1,2,3]}})             # Pure Value (same as above)
+    >>> ux({"integer8": {"value": [1,2,3]}})             # Pure Value (same as above)
     uavcan.register.Value...(integer8=...[1,2,3]))
-    >>> unexplode([1,2,3]) is None                              # Prototype required.
+    >>> ux([1,2,3]) is None                              # Prototype required.
     True
-    >>> unexplode([1,2,3], Value(natural16=Natural16([0,0,0])))
+    >>> ux([1,2,3], Value(natural16=Natural16([0,0,0])))
     uavcan.register.Value...(natural16=...[1,2,3]))
-    >>> unexplode(123, Value(natural16=Natural16([0])))
+    >>> ux(123, Value(natural16=Natural16([0])))
     uavcan.register.Value...(natural16=...[123]))
-    >>> unexplode("abc", Value(natural16=Natural16([0]))) is None # Not applicable
+    >>> ux("abc", Value(natural16=Natural16([0]))) is None # Not applicable
     True
     """
     from pycyphal.dsdl import update_from_builtin
-    from pycyphal.application.register import ValueProxy, Value
+    from pycyphal.application.register import ValueProxy, Value, ValueConversionError
 
-    # Non-simplified forms.
-    k_inner = "value"
-    if isinstance(xpl, dict) and xpl.get(k_inner) and isinstance(xpl.get(k_inner), dict):  # E.g., Access.Response.
-        xpl = xpl[k_inner]
+    if xpl is None:
+        return Value()
     if isinstance(xpl, dict) and xpl:  # Empty dict is not a valid representation.
         try:
             res = update_from_builtin(Value(), xpl)
@@ -108,45 +106,31 @@ def unexplode(xpl: Any, prototype: Optional["Value"] = None) -> Optional["Value"
             return res
         except (ValueError, TypeError):
             pass
-
-    # Unambiguous simplified forms.
-    if xpl is None:
-        return Value()
-
-    # Further processing requires the type information.
     if prototype is not None:
         ret = ValueProxy(prototype)
         try:
             ret.assign(xpl)
             assert isinstance(ret.value, Value)
             return ret.value
-        except (ValueError, TypeError):
+        except ValueConversionError:
             pass
     return None
 
 
-def explode(val: Union["Value", "Access_1.Response"], *, simplified: bool = False) -> Any:
+def explode_value(val: "Value", *, simplified: bool = False) -> Any:
     """
-    Represent the register value or the register access response (which includes the value along with metadata)
-    using primitives (list, dict, string, etc.).
+    Represent the register value using primitives (list, dict, string, etc.).
     If simplified mode is selected,
     the metadata and type information will be discarded and only a human-friendly representation of the
     value will be constructed.
     The reconstruction back to the original form is a bit involved but we provide :func:`unexplode` for that.
     """
-    from pycyphal.application.register import Value
-    from uavcan.register import Access_1
-
     if not simplified:
         return pycyphal.dsdl.to_builtin(val)
-    if isinstance(val, Access_1.Response):
-        return _simplify(val.value)
-    if isinstance(val, Value):
-        return _simplify(val)
-    raise TypeError(f"Cannot explode {type(val).__name__}")
+    return _simplify_value(val)
 
 
-def _simplify(msg: "Value") -> Any:
+def _simplify_value(msg: "Value") -> Any:
     """
     Construct simplified human-friendly representation of the register value using primitives (list, string, etc.).
     Designed for use with commands that output compact register values in YAML/JSON/TSV/whatever,
@@ -157,19 +141,19 @@ def _simplify(msg: "Value") -> Any:
     >>> from pycyphal.application.register import Value, Empty
     >>> from pycyphal.application.register import Integer8, Natural8, Integer32, String, Unstructured
 
-    >>> None is _simplify(Value())  # empty is none
+    >>> None is _simplify_value(Value())  # empty is none
     True
-    >>> _simplify(Value(integer8=Integer8([123])))
+    >>> _simplify_value(Value(integer8=Integer8([123])))
     123
-    >>> _simplify(Value(natural8=Natural8([123, 23])))
+    >>> _simplify_value(Value(natural8=Natural8([123, 23])))
     [123, 23]
-    >>> _simplify(Value(integer32=Integer32([123, -23, 105])))
+    >>> _simplify_value(Value(integer32=Integer32([123, -23, 105])))
     [123, -23, 105]
-    >>> _simplify(Value(integer32=Integer32([99999])))
+    >>> _simplify_value(Value(integer32=Integer32([99999])))
     99999
-    >>> _simplify(Value(string=String("Hello world")))
+    >>> _simplify_value(Value(string=String("Hello world")))
     'Hello world'
-    >>> _simplify(Value(unstructured=Unstructured(b"Hello world")))
+    >>> _simplify_value(Value(unstructured=Unstructured(b"Hello world")))
     b'Hello world'
     """
     # This is kinda crude, perhaps needs improvement.

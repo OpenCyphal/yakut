@@ -6,7 +6,7 @@ from __future__ import annotations
 import dataclasses
 from typing import TYPE_CHECKING, Any, Union, Callable, Optional
 import yakut
-from yakut.register import unexplode
+from yakut.register import unexplode_value
 
 if TYPE_CHECKING:
     from pycyphal.application.register import Value
@@ -66,7 +66,7 @@ def _load_node(ast: Any) -> dict[str, RegisterDirective]:
 
 
 def _load_leaf(exploded: Any) -> RegisterDirective:
-    return unexplode(exploded) or (lambda proto: unexplode(exploded, proto))
+    return unexplode_value(exploded) or (lambda proto: unexplode_value(exploded, proto))
 
 
 _logger = yakut.get_logger(__name__)

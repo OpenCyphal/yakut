@@ -4,10 +4,9 @@
 
 from __future__ import annotations
 import dataclasses
-from typing import Sequence, TYPE_CHECKING, Union, Optional
+from typing import Sequence, TYPE_CHECKING, Union, Optional, Callable
 import pycyphal
 import yakut
-from yakut.progress import ProgressCallback
 
 
 if TYPE_CHECKING:
@@ -24,7 +23,7 @@ class Result:
 
 async def access(
     local_node: "pycyphal.application.Node",
-    progress: ProgressCallback,
+    progress: Callable[[str], None],
     node_ids: Sequence[int],
     *,
     reg_name: str,
@@ -71,7 +70,7 @@ class _Timeout:
 
 async def _access(
     local_node: pycyphal.application.Node,
-    progress: ProgressCallback,
+    progress: Callable[[str], None],
     node_ids: Sequence[int],
     reg_name: str,
     reg_val_str: str | None,
@@ -93,7 +92,7 @@ async def _access(
         Access_1.Response | _NoService | _Timeout | pycyphal.application.register.ValueConversionError,
     ] = {}
     for nid in node_ids:
-        progress(f"{reg_name!r} @{nid: 5}")
+        progress(f"{nid: 5}: {reg_name!r}")
         cln = local_node.make_client(Access_1, nid)
         try:
             cln.response_timeout = timeout

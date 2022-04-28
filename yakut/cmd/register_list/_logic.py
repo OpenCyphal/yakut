@@ -4,10 +4,9 @@
 
 from __future__ import annotations
 import dataclasses
-from typing import Sequence, TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING, Callable
 import bisect
 import yakut
-from yakut.progress import ProgressCallback
 
 if TYPE_CHECKING:
     import pycyphal.application
@@ -22,7 +21,7 @@ class Result:
 
 async def list_names(
     local_node: "pycyphal.application.Node",
-    progress: ProgressCallback,
+    progress: Callable[[str], None],
     node_ids: Sequence[int],
     *,
     optional_service: bool,
@@ -58,7 +57,7 @@ class _Timeout:
 
 async def _impl_list_names(
     local_node: "pycyphal.application.Node",
-    progress: ProgressCallback,
+    progress: Callable[[str], None],
     node_ids: Sequence[int],
     *,
     timeout: float,
@@ -72,7 +71,7 @@ async def _impl_list_names(
             cln.response_timeout = timeout
             name_list: list[str | _Timeout] | _NoService = []
             for idx in range(2**16):
-                progress(f"#{idx: 5} @{nid: 5}")
+                progress(f"{nid: 5}: {idx: 5}")
                 resp = await cln(List_1.Request(index=idx))
                 assert isinstance(name_list, list)
                 if resp is None:

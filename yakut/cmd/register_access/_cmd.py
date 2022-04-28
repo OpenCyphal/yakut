@@ -9,7 +9,7 @@ import click
 import pycyphal
 import yakut
 from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
-from yakut.progress import ProgressReporter
+from yakut.ui import ProgressReporter, show_error, show_warning
 from yakut.param.formatter import FormatterHints
 from yakut.register import explode_value, get_access_response_metadata
 from ._logic import access
@@ -140,9 +140,9 @@ async def register_access(
             )
     # The node is no longer needed.
     for msg in result.errors:
-        click.secho(msg, err=True, fg="red", bold=True)
+        show_error(msg)
     for msg in result.warnings:
-        click.secho(msg, err=True, fg="yellow")
+        show_warning(msg)
 
     final = {k: representer(v) for k, v in result.value_per_node.items()}
     sys.stdout.write(formatter(final))

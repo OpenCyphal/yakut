@@ -43,3 +43,11 @@ def _mk_impl() -> ProgressCallback:
     if sys.stderr.isatty():
         return lambda text: click.secho(f"\r{text}\r", nl=False, file=sys.stderr, fg="green")
     return lambda _: None
+
+
+def show_error(msg: str) -> None:
+    click.secho(msg, err=True, fg="red", bold=True)
+
+
+def show_warning(msg: str) -> None:
+    click.secho(msg, err=True, fg="yellow")

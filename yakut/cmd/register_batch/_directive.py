@@ -47,6 +47,11 @@ class Directive:
                 registers_per_node[node_id] = nd
                 _logger.debug("Loaded node directive for %d: %r", node_id, nd)
             return Directive(registers_per_node=registers_per_node)
+
+        if ast is None:
+            _logger.warning("Empty directive, nothing to do")
+            return Directive({})
+
         raise InvalidDirectiveError(f"Invalid directive: expected mapping (node_id->...), found {type(ast).__name__}")
 
 
@@ -59,8 +64,11 @@ def _load_node(ast: Any) -> dict[str, RegisterDirective]:
     if isinstance(ast, dict) and all(isinstance(x, str) for x in ast.keys()):
         return {reg_name: _load_leaf(reg_spec) for reg_name, reg_spec in ast.items()}
 
+    if ast is None:
+        return {}
+
     raise InvalidDirectiveError(
-        f"Invalid node specifier: expected [register_name] or (register_name->register_value); "
+        f"Invalid node specifier: expected [register_name] or (register_name->register_value) or null; "
         f"found {type(ast).__name__}"
     )
 
@@ -94,12 +102,14 @@ def _unittest_directive() -> None:
                 "d": {"empty": {}},
             },
             " 2 ": ["e", "f"],
+            3: None,
         },
     )
     assert dr.registers_per_node == {
         0: {"a": CV(string=String("z"))},
         1: {"b": CV(string=String("y")), "c": CV(), "d": CV()},
         2: {"e": CV(), "f": CV()},
+        3: {},
     }
 
     # Load simplified form, deferred callables returned.

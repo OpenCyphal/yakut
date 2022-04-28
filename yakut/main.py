@@ -256,8 +256,7 @@ def _click_main(
 
 
 def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
-    def err(text: str) -> None:
-        click.secho(text, err=True, fg="red", bold=True)
+    from yakut.ui import show_error
 
     status: Any = 1
     # noinspection PyBroadException
@@ -281,11 +280,11 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
             click.secho("", err=True, nl=False)
 
     except Exception as ex:  # pylint: disable=broad-except
-        err(f"{type(ex).__name__}: {ex}")
+        show_error(f"{type(ex).__name__}: {ex}")
         _logger.debug("EXCEPTION %s: %s", type(ex).__name__, ex, exc_info=True)
 
     except BaseException as ex:  # pylint: disable=broad-except
-        err(f"Internal error, please report: {ex}")
+        show_error(f"Internal error, please report: {ex}")
         _logger.error("%s: %s", type(ex).__name__, ex, exc_info=True)
 
     _logger.debug("EXIT %r", status)

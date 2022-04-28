@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING, Callable, Optional
 import logging
 import pycyphal
+from yakut.util import METADATA_KEY
 
 if TYPE_CHECKING:
     import pycyphal.application
@@ -82,7 +83,7 @@ def unexplode_value(xpl: Any, prototype: Optional["Value"] = None) -> Optional["
 
     >>> ux(None)                                         # None is a simplified form of Empty.
     uavcan.register.Value...(empty=...)
-    >>> ux({"integer8": {"value": [1,2,3]}, "_metadata_": {"whatever": 0}})  # Metadata ignored.
+    >>> ux({"integer8": {"value": [1,2,3]}, "_meta_": {"whatever": 0}})  # Metadata ignored.
     uavcan.register.Value...(integer8=...[1,2,3]))
     >>> ux({"integer8": {"value": [1,2,3]}})             # Pure Value (same as above)
     uavcan.register.Value...(integer8=...[1,2,3]))
@@ -133,12 +134,12 @@ def explode_value(val: "Value", *, simplify: bool = False, metadata: dict[str, A
     the metadata and type information will be discarded and only a human-friendly representation of the
     value will be constructed.
     The reconstruction back to the original form is a bit involved but we provide :func:`unexplode` for that.
-    The metadata is added under a key ``_metadata_``, if there is any, but it is ignored in simplified mode.
+    The metadata is added under a key ``_meta_``, if there is any, but it is ignored in simplified mode.
     """
     if not simplify:
         out = pycyphal.dsdl.to_builtin(val)
         if metadata is not None:
-            out["_meta_"] = dict(metadata)
+            out[METADATA_KEY] = dict(metadata)
         return out
     return _simplify_value(val)
 

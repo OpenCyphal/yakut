@@ -86,7 +86,7 @@ def _unittest_directive() -> None:
     dr = Directive.load(
         {
             "0": {
-                "a": {"string": {"value": "z"}, "_metadata_": {"ignored": "very ignored"}},
+                "a": {"string": {"value": "z"}, "_meta_": {"ignored": "very ignored"}},
             },
             1: {
                 "b": {"string": {"value": "y"}},

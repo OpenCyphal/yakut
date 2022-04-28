@@ -115,24 +115,24 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
 
     assert 1 <= len(heartbeats) <= 20
     for m in heartbeats:
-        src_nid = m["7509"]["_metadata_"]["source_node_id"]
+        src_nid = m["7509"]["_meta_"]["source_node_id"]
         if src_nid == 51:  # The publisher
-            assert "high" in m["7509"]["_metadata_"]["priority"].lower()
-            assert m["7509"]["_metadata_"]["transfer_id"] >= 0
+            assert "high" in m["7509"]["_meta_"]["priority"].lower()
+            assert m["7509"]["_meta_"]["transfer_id"] >= 0
             assert m["7509"]["uptime"] in range(10)
             assert m["7509"]["vendor_specific_status_code"] == 54
         elif src_nid == 52:  # The caller (GetInfo)
-            assert "nominal" in m["7509"]["_metadata_"]["priority"].lower()
-            assert m["7509"]["_metadata_"]["transfer_id"] >= 0
+            assert "nominal" in m["7509"]["_meta_"]["priority"].lower()
+            assert m["7509"]["_meta_"]["transfer_id"] >= 0
             assert m["7509"]["uptime"] in range(4)
         else:
             assert False
 
     assert len(diagnostics) == 3
     for m in diagnostics:
-        assert "slow" in m["4321"]["_metadata_"]["priority"].lower()
-        assert m["4321"]["_metadata_"]["transfer_id"] >= 0
-        assert m["4321"]["_metadata_"]["source_node_id"] == 51
+        assert "slow" in m["4321"]["_meta_"]["priority"].lower()
+        assert m["4321"]["_meta_"]["transfer_id"] >= 0
+        assert m["4321"]["_meta_"]["source_node_id"] == 51
         assert m["4321"]["timestamp"]["microsecond"] == 123456
         assert m["4321"]["text"] == "Hello world!"
 
@@ -198,9 +198,9 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         # Hence, to support the case of redundant transports, we use 'greater or equal' here.
         assert len(diagnostics) >= 2
         for m in diagnostics:
-            assert "nominal" in m["8184"]["_metadata_"]["priority"].lower()
-            assert m["8184"]["_metadata_"]["transfer_id"] >= 0
-            assert m["8184"]["_metadata_"]["source_node_id"] is None
+            assert "nominal" in m["8184"]["_meta_"]["priority"].lower()
+            assert m["8184"]["_meta_"]["transfer_id"] >= 0
+            assert m["8184"]["_meta_"]["source_node_id"] is None
             assert m["8184"]["timestamp"]["microsecond"] == 0
             assert m["8184"]["text"] == ""
 

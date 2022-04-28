@@ -247,7 +247,7 @@ def _unittest_formatter() -> None:
 
     obj = {
         142: {
-            "_metadata_": {
+            "_meta_": {
                 "timestamp": {"system": Decimal("1640611164.396007"), "monotonic": Decimal("4765.594161")},
                 "priority": "nominal",
                 "transfer_id": 28,
@@ -266,10 +266,10 @@ def _unittest_formatter() -> None:
     }
     tsvfc_formatter = _FORMATTERS["TSVFC"](default_hints)
     assert (
-        tsvfc_formatter(obj) == "142{	142._metadata_{	142._metadata_.timestamp{"
-        "	142._metadata_.timestamp.system	142._metadata_.timestamp.monotonic"
-        "	142._metadata_.timestamp}	142._metadata_.priority	142._metadata_.transfer_id"
-        "	142._metadata_.source_node_id	142._metadata_}	142.timestamp{	142.timestamp.microsecond"
+        tsvfc_formatter(obj) == "142{	142._meta_{	142._meta_.timestamp{"
+        "	142._meta_.timestamp.system	142._meta_.timestamp.monotonic"
+        "	142._meta_.timestamp}	142._meta_.priority	142._meta_.transfer_id"
+        "	142._meta_.source_node_id	142._meta_}	142.timestamp{	142.timestamp.microsecond"
         "	142.timestamp}	142.value{	142.value.kinematics{	142.value.kinematics.angular_position{"
         "	142.value.kinematics.angular_position.radian	142.value.kinematics.angular_position}"
         "	142.value.kinematics.angular_velocity{	142.value.kinematics.angular_velocity.radian_per_second"
@@ -288,8 +288,8 @@ def _unittest_formatter() -> None:
 
     assert (
         _FORMATTERS["TSVH"](default_hints)(obj)
-        == "142._metadata_.timestamp.system\t142._metadata_.timestamp.monotonic\t142._metadata_.priority\t"
-        "142._metadata_.transfer_id\t142._metadata_.source_node_id\t142.timestamp.microsecond\t"
+        == "142._meta_.timestamp.system\t142._meta_.timestamp.monotonic\t142._meta_.priority\t"
+        "142._meta_.transfer_id\t142._meta_.source_node_id\t142.timestamp.microsecond\t"
         "142.value.kinematics.angular_position.radian"
         "\t142.value.kinematics.angular_velocity.radian_per_second\t142.value.kinematics.angular_acceleration."
         "radian_per_second_per_second\t142.value.torque.newton_meter"

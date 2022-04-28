@@ -11,6 +11,8 @@ import pycyphal
 
 T = TypeVar("T")
 
+METADATA_KEY = "_meta_"
+
 
 def compose(*fs: Callable[..., T]) -> Callable[..., T]:
     """
@@ -37,7 +39,7 @@ def convert_transfer_metadata_to_builtin(
         "source_node_id": transfer.source_node_id,
     }
     out.update(extra_fields)
-    return {"_metadata_": out}
+    return {METADATA_KEY: out}
 
 
 _MICRO = decimal.Decimal("0.000001")

@@ -196,7 +196,7 @@ $ export UAVCAN__UDP__IFACE=127.63.0.0
 $ yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata
 ---
 33:
-  _metadata_:
+  _meta_:
     timestamp: {system: 1608987583.298886, monotonic: 788272.540747}
     priority: nominal
     transfer_id: 0
@@ -206,7 +206,7 @@ $ yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata
 
 ---
 33:
-  _metadata_:
+  _meta_:
     timestamp: {system: 1608987583.298886, monotonic: 788272.540747}
     priority: nominal
     transfer_id: 1

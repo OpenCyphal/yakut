@@ -85,8 +85,8 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
     # Parse the output and validate it.
     parsed = json.loads(stdout)
     print("PARSED RESPONSE:", parsed)
-    assert parsed["222"]["_metadata_"]["priority"] == "slow"
-    assert parsed["222"]["_metadata_"]["source_node_id"] == 22
+    assert parsed["222"]["_meta_"]["priority"] == "slow"
+    assert parsed["222"]["_meta_"]["source_node_id"] == 22
     assert parsed["222"]["slope"] == pytest.approx(0.1)
     assert parsed["222"]["y_intercept"] == pytest.approx(0.0)
 
@@ -115,8 +115,8 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
     # Parse the output and validate it.
     parsed = json.loads(stdout)
     print("PARSED RESPONSE:", parsed)
-    assert parsed["222"]["_metadata_"]["priority"] == "fast"
-    assert parsed["222"]["_metadata_"]["source_node_id"] == 22
+    assert parsed["222"]["_meta_"]["priority"] == "fast"
+    assert parsed["222"]["_meta_"]["source_node_id"] == 22
     assert parsed["222"]["slope"] == pytest.approx(0.3)
     assert parsed["222"]["y_intercept"] == pytest.approx(0.0)
 
@@ -144,8 +144,8 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
     # Parse the output and validate it.
     parsed = json.loads(stdout)
     print("PARSED RESPONSE:", parsed)
-    assert parsed["222"]["_metadata_"]["priority"] == "nominal"
-    assert parsed["222"]["_metadata_"]["source_node_id"] == 22
+    assert parsed["222"]["_meta_"]["priority"] == "nominal"
+    assert parsed["222"]["_meta_"]["source_node_id"] == 22
     assert parsed["222"]["slope"] == pytest.approx(0.4)
     assert parsed["222"]["y_intercept"] == pytest.approx(0.0)
 

@@ -135,7 +135,7 @@ def _handle_option_synchronizer_transfer_id(ctx: click.Context, _param: click.Pa
     "+M/-M",
     default=False,
     show_default=True,
-    help="When enabled, each message object is prepended with an extra field named `_metadata_`.",
+    help="When enabled, each message object is prepended with an extra field named `_meta_`.",
 )
 @click.option(
     "--count",

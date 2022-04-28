@@ -108,12 +108,12 @@ def _insert_format_specifier(
 
 
 def _flatten_start(
-    d: dict[Any, Any] | Collection[Any],
+    outer: Any,
     parent_key: str = "",
     sep: str = ".",
     with_format_specifiers: bool = False,
 ) -> dict[str, Any]:
-    def flatten(d: dict[Any, Any] | Collection[Any], parent_key: str = "") -> dict[str, Any]:
+    def flatten(data: Any, parent_key: str = "") -> dict[str, Any]:
         def add_item(items: list[tuple[str, Any]], new_key: str, v: Mapping[Any, Any] | Collection[Any]) -> None:
             if with_format_specifiers:
                 _insert_format_specifier(items, new_key, v)
@@ -127,21 +127,21 @@ def _flatten_start(
             if with_format_specifiers:
                 _insert_format_specifier(items, new_key, v, is_start=False)
 
-        if isinstance(d, Mapping):
+        if isinstance(data, Mapping):
             items: list[tuple[str, Any]] = []
-            for k, v in d.items():
+            for k, v in data.items():
                 new_key = parent_key + sep + str(k) if parent_key else str(k)
                 add_item(items, new_key, v)
             return dict(items)
-        if isinstance(d, Collection) and not isinstance(d, str):
+        if isinstance(data, Collection) and not isinstance(data, str):
             items = []
-            for i, v in enumerate(d):
+            for i, v in enumerate(data):
                 new_key = parent_key + sep + f"[{i}]" if parent_key else str(f"[{i}]")
                 add_item(items, new_key, v)
             return dict(items)
         return {}
 
-    return flatten(d, parent_key)
+    return flatten(outer, parent_key)
 
 
 def _make_tsv_formatter(hints: FormatterHints) -> Formatter:
@@ -149,7 +149,7 @@ def _make_tsv_formatter(hints: FormatterHints) -> Formatter:
     # Transpose lists in a similar manner.
     _ = hints  # TODO not used yet
 
-    def tsv_format_function(data: dict[Any, Any]) -> str:
+    def tsv_format_function(data: Any) -> str:
         return "\t".join(str(v) for k, v in _flatten_start(data).items())
 
     return tsv_format_function
@@ -160,7 +160,7 @@ def _make_tsvh_formatter_factory(with_format_specifiers: bool) -> FormatterFacto
         _ = hints  # TODO see above
         is_first_time = True
 
-        def tsv_format_function_with_header(data: dict[Any, Any]) -> str:
+        def tsv_format_function_with_header(data: Any) -> str:
             nonlocal is_first_time
             if is_first_time:
                 is_first_time = False

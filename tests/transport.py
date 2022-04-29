@@ -24,7 +24,7 @@ class TransportConfig:
     environment: dict[str, str]
 
 
-TransportFactory = typing.Callable[[int | None], TransportConfig]
+TransportFactory = typing.Callable[[typing.Optional[int]], TransportConfig]
 """
 This factory constructs arguments for the CLI instructing it to use a particular transport configuration.
 The factory takes one argument - the node-ID - which can be None (anonymous).

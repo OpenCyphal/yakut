@@ -2,6 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
+from __future__ import annotations
 import os
 import sys
 import time
@@ -13,11 +14,17 @@ from .subprocess import Subprocess
 
 @dataclasses.dataclass(frozen=True)
 class TransportConfig:
+    """
+    Either "expression" or "environment" can be used to initialize the node.
+    The configurations should be nearly equivalent.
+    """
+
     expression: str
     can_transmit: bool
+    environment: dict[str, str]
 
 
-TransportFactory = typing.Callable[[typing.Optional[int]], TransportConfig]
+TransportFactory = typing.Callable[[int | None], TransportConfig]
 """
 This factory constructs arguments for the CLI instructing it to use a particular transport configuration.
 The factory takes one argument - the node-ID - which can be None (anonymous).
@@ -31,6 +38,13 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
     Sensible transport configurations supported by the CLI to test against.
     Don't forget to extend when adding support for new transports.
     """
+
+    def mk_env(node_id: int | None, **items: typing.Any) -> dict[str, str]:
+        return {
+            **{k: str(v) for k, v in items.items()},
+            **({"UAVCAN__NODE__ID": str(node_id)} if node_id is not None else {}),
+        }
+
     if sys.platform == "linux":  # pragma: no branch
 
         def sudo(cmd: str, ensure_success: bool = True) -> None:
@@ -52,6 +66,11 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
             yield lambda nid: TransportConfig(
                 expression=f"CAN(can.media.socketcan.SocketCANMedia('vcan0',64),local_node_id={nid})",
                 can_transmit=True,
+                environment=mk_env(
+                    nid,
+                    UAVCAN__CAN__IFACE="socketcan:vcan0",
+                    UAVCAN__CAN__MTU=64,
+                ),
             )
 
         def vcan_tmr() -> typing.Iterator[TransportFactory]:
@@ -64,6 +83,11 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
                     )
                 ),
                 can_transmit=True,
+                environment=mk_env(
+                    nid,
+                    UAVCAN__CAN__IFACE="socketcan:vcan0 socketcan:vcan1 socketcan:vcan2",
+                    UAVCAN__CAN__MTU="64",
+                ),
             )
 
         yield vcan
@@ -87,6 +111,10 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
         yield lambda nid: TransportConfig(
             expression=f"Serial('{serial_endpoint}',local_node_id={nid})",
             can_transmit=True,
+            environment=mk_env(
+                nid,
+                UAVCAN__SERIAL__IFACE=serial_endpoint,
+            ),
         )
         assert broker.alive
         time.sleep(1.0)  # Ensure all clients have disconnected to avoid warnings in the test logs.
@@ -95,9 +123,23 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
 
     def udp_loopback() -> typing.Iterator[TransportFactory]:
         yield lambda nid: (
-            TransportConfig(expression=f"UDP('127.0.0.0',{nid})", can_transmit=True)
+            TransportConfig(
+                expression=f"UDP('127.0.0.0',{nid})",
+                can_transmit=True,
+                environment=mk_env(
+                    nid,
+                    UAVCAN__UDP__IFACE="127.0.0.0",
+                ),
+            )
             if nid is not None
-            else TransportConfig(expression="UDP('127.0.0.1',None)", can_transmit=False)
+            else TransportConfig(
+                expression="UDP('127.0.0.1',None)",
+                can_transmit=False,
+                environment=mk_env(
+                    nid,
+                    UAVCAN__UDP__IFACE="127.0.0.1",
+                ),
+            )
         )
 
     def heterogeneous_udp_serial() -> typing.Iterator[TransportFactory]:
@@ -113,6 +155,11 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
                 )
             ),
             can_transmit=nid is not None,
+            environment=mk_env(
+                nid,
+                UAVCAN__SERIAL__IFACE=serial_endpoint,
+                UAVCAN__UDP__IFACE="127.0.0.1",
+            ),
         )
         assert broker.alive
         time.sleep(1.0)  # Ensure all clients have disconnected to avoid warnings in the test logs.

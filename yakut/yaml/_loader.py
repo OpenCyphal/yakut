@@ -15,7 +15,7 @@ class Loader:
     """
 
     def __init__(self) -> None:
-        self._impl = ruamel.yaml.YAML(typ="unsafe")
+        self._impl = ruamel.yaml.YAML()
 
     def load(self, text: str | TextIO) -> Any:
         return self._impl.load(text)

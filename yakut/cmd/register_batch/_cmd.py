@@ -101,7 +101,19 @@ async def register_batch(
     \b
         y rl 42 | y rb -omp | jq '.[]' > single_node_config.json
 
-    Filter output registers by name; in this case those matching "uavcan.*.id":
+    Apply the above file to nodes 10,11,12,13,14:
+
+    \b
+        cat single_node_config.json | \\
+        jq '. as $in | [range(10;15) | {key: .|tostring, value: $in}] | from_entries' | \\
+        y rb
+
+    ...same but applied to one node 125:
+
+    \b
+        cat single_node_config.json | jq '{"125": .}' | y rb
+
+    Filter output registers by name; in this case those matching "uavcan*id":
 
     \b
         y rl 125 | y rb | jq 'map_values(with_entries(select(.key | test("uavcan.+id"))))'

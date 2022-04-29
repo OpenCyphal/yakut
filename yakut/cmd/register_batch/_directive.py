@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import dataclasses
-from typing import TYPE_CHECKING, Any, Union, Callable, Optional
+from typing import TYPE_CHECKING, Any, Union, Callable, Optional, Iterable, Mapping, Sequence
 import yakut
 from yakut.register import unexplode_value
 
@@ -24,6 +24,21 @@ class InvalidDirectiveError(ValueError):
     pass
 
 
+SCHEMA_USER_DOC = """
+If node-IDs are given explicitly, the following schemas are accepted:
+
+\b
+    [register_name]
+    {register_name->register_value}
+
+If node-IDs are not given, they shall be contained in the input:
+
+\b
+    {node_id->[register_name]}
+    {node_id->{register_name->register_value}}
+"""
+
+
 @dataclasses.dataclass(frozen=True)
 class Directive:
     registers_per_node: dict[int, dict[str, RegisterDirective]]
@@ -35,17 +50,22 @@ class Directive:
     """
 
     @staticmethod
-    def load(ast: Any) -> Directive:
-        if isinstance(ast, dict):
+    def load(ast: Any, node_ids: Iterable[int] | None) -> Directive:
+        node_ids = list(sorted(node_ids)) if node_ids is not None else None
+        if node_ids is not None:
+            ast = {n: ast for n in node_ids}
+            _logger.debug("Decorated: %r", ast)
+
+        if isinstance(ast, Mapping):
             registers_per_node: dict[int, dict[str, RegisterDirective]] = {}
             for node_id_orig, node_spec in ast.items():
                 try:
-                    node_id = int(node_id_orig)
+                    nid = int(node_id_orig)
                 except ValueError:
                     raise InvalidDirectiveError(f"Not a valid node-ID: {node_id_orig}") from None
                 nd = _load_node(node_spec)
-                registers_per_node[node_id] = nd
-                _logger.debug("Loaded node directive for %d: %r", node_id, nd)
+                registers_per_node[nid] = nd
+                _logger.debug("Loaded node directive for %d: %r", nid, nd)
             return Directive(registers_per_node=registers_per_node)
 
         if ast is None:
@@ -58,10 +78,10 @@ class Directive:
 def _load_node(ast: Any) -> dict[str, RegisterDirective]:
     from pycyphal.application.register import Value
 
-    if isinstance(ast, list) and all(isinstance(x, str) for x in ast):
+    if isinstance(ast, Sequence) and all(isinstance(x, str) for x in ast):
         return {str(x): Value() for x in ast}
 
-    if isinstance(ast, dict) and all(isinstance(x, str) for x in ast.keys()):
+    if isinstance(ast, Mapping) and all(isinstance(x, str) for x in ast.keys()):
         return {reg_name: _load_leaf(reg_spec) for reg_name, reg_spec in ast.items()}
 
     if ast is None:
@@ -104,12 +124,36 @@ def _unittest_directive() -> None:
             " 2 ": ["e", "f"],
             3: None,
         },
+        node_ids=None,
     )
     assert dr.registers_per_node == {
         0: {"a": CV(string=String("z"))},
         1: {"b": CV(string=String("y")), "c": CV(), "d": CV()},
         2: {"e": CV(), "f": CV()},
         3: {},
+    }
+
+    # Load full form with explicit node-IDs
+    dr = Directive.load(
+        {
+            "a": {"string": {"value": "z"}},
+            "b": None,
+        },
+        node_ids=[0, 1],
+    )
+    assert dr.registers_per_node == {
+        0: {"a": CV(string=String("z")), "b": CV()},
+        1: {"a": CV(string=String("z")), "b": CV()},
+    }
+
+    # Load names only with explicit node-IDs
+    dr = Directive.load(
+        ["a", "b"],
+        node_ids=[0, 1],
+    )
+    assert dr.registers_per_node == {
+        0: {"a": CV(), "b": CV()},
+        1: {"a": CV(), "b": CV()},
     }
 
     # Load simplified form, deferred callables returned.
@@ -120,6 +164,7 @@ def _unittest_directive() -> None:
                 "b": 456,
             },
         },
+        node_ids=None,
     )
     assert dr and len(dr.registers_per_node) == 1
     assert {"a", "b"} == dr.registers_per_node[0].keys()
@@ -133,10 +178,10 @@ def _unittest_directive() -> None:
 
     # Errors.
     with raises(InvalidDirectiveError):
-        Directive.load([])
+        Directive.load([], node_ids=None)
     with raises(InvalidDirectiveError):
-        Directive.load("")
+        Directive.load("", node_ids=None)
     with raises(InvalidDirectiveError):
-        Directive.load({"z": []})
+        Directive.load({"z": []}, node_ids=None)
     with raises(InvalidDirectiveError):
-        Directive.load({"z": "q"})
+        Directive.load({"z": "q"}, node_ids=None)

@@ -6,6 +6,9 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import Any
+import json
+import tempfile
+from pathlib import Path
 from pprint import pprint
 import pytest
 from tests.dsdl import OUTPUT_DIR
@@ -66,20 +69,38 @@ async def _unittest_caller(compiled_dsdl: Any) -> None:
         await asyncio.sleep(1)
 
 
-@pytest.mark.skip(reason="TODO FIXME")
 def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> None:
     _ = compiled_dsdl
-    # Run a dummy node which we can query.
-    bg_node = Subprocess.cli(
-        "sub",
-        "1000:uavcan.primitive.empty",
-        environment_variables={
-            "YAKUT_TRANSPORT": transport_factory(10).expression,
-            "YAKUT_PATH": str(OUTPUT_DIR),
-        },
-    )
+    file = Path(tempfile.mktemp("yakut_register_batch_test.yaml"))
+    # Run dummy nodes which we can query.
+    bg_nodes = [
+        Subprocess.cli(
+            "sub",
+            "1000:uavcan.primitive.empty",
+            environment_variables={
+                **transport_factory(10 + idx).environment,
+                "YAKUT_PATH": str(OUTPUT_DIR),
+            },
+        )
+        for idx in range(2)
+    ]
     time.sleep(3)
     try:
-        pass
+        file.write_text("{10: [uavcan.node.id, uavcan.node.description], 11: [uavcan.node.id]}")
+        status, stdout, _ = execute_cli(
+            "--format=json",
+            "register-batch",
+            f"--file={file}",
+            environment_variables={
+                **transport_factory(100).environment,
+                "YAKUT_PATH": str(OUTPUT_DIR),
+            },
+        )
+        assert status == 0
+        data = json.loads(stdout.strip())
+        print(json.dumps(data, indent=4))
+        assert len(data) > 1
     finally:
-        bg_node.wait(10, interrupt=True)
+        for bg in bg_nodes:
+            bg.wait(10, interrupt=True)
+        file.unlink()

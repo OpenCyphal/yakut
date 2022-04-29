@@ -3,7 +3,6 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-
 import logging
 import sys
 from typing import TYPE_CHECKING, TextIO, Union, Callable, Any
@@ -13,8 +12,9 @@ import yakut
 from yakut.ui import ProgressReporter, show_error, show_warning
 from yakut.param.formatter import FormatterHints
 from yakut.yaml import Loader
+from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
 from yakut.register import explode_value, get_access_response_metadata
-from ._directive import Directive
+from ._directive import Directive, SCHEMA_USER_DOC
 from ._caller import do_calls, TypeCoercionFailure, Timeout, Skipped, Tag
 
 if TYPE_CHECKING:
@@ -39,11 +39,80 @@ _PREDICATES = {
 }
 
 
-@yakut.subcommand(aliases=["rbat", "rb"])
+_HELP = f"""
+Read/write multiple registers at multiple nodes (useful for network configuration management).
+
+Accepts a YAML/JSON file containing register names and/or values per node; the default is to read from stdin.
+Acceptable formats are generated either by register-list (in which case registers will be only read)
+or by this command (in which case the specified values will be written).
+
+The specified nodes and their registers will be processed strictly in the order they are specified
+(this matters if register access has side effects).
+
+Save configuration parameters into a file (using verbose form for clarity here):
+
+\b
+    yakut register-list 125     | yakut register-batch 125 --only=mp > pure_config.json
+    yakut register-list 125,    | yakut register-batch     --only=mp > node_125_config.json
+    yakut register-list 120-128 | yakut register-batch     --only=mp > network_config.json
+
+To get human-friendly output either add --format=yaml to the last command, or pipe the output through "jq".
+
+You can also remove the node-ID keys using jq '.[]' (this may be useful if you already have an existing file):
+
+\b
+    cat node_125_config.json | jq '.[]'
+
+Apply the same parameters to nodes 10,11,12,13,14:
+
+\b
+    cat pure_config.json | y rb 10-15
+
+You can also convert a pure config file that is not keyed by node-ID by adding the IDs using jq
+(this is obviously not intended for interactive use):
+
+\b
+    cat pure_config.json | \\
+    jq '. as $in | [range(10;15) | {{key: .|tostring, value: $in}}] | from_entries' | \\
+    y rb
+
+...same but applied to one node 125:
+
+\b
+    cat pure_config.json | jq '{{"125": .}}' | y rb
+
+Filter output registers by name preserving the node-ID keys; in this case those matching "uavcan*id":
+
+\b
+    y rl 125, | y rb | jq 'map_values(with_entries(select(.key | test("uavcan.+id"))))'
+
+Read diagnostic registers from two similar nodes
+(protip: save the register names into a file instead of calling register-list each time):
+
+\b
+    y rl 124 | y rb 124,125 -oiv
+    cat diagnostic_registers.yaml | y rb 124,125 -oiv
+
+{INT_SET_USER_DOC}
+"""
+
+
+@yakut.subcommand(aliases=["rbat", "rb"], help=_HELP)
 @click.argument(
-    "file",
+    "node_ids",
+    required=False,
+    type=lambda x: parse_int_set(x, collapse=True) if x is not None else None,
+)
+@click.option(
+    "--file",
+    "-f",
     type=click.File("r"),
     default=sys.stdin,
+    help=f"""
+Defaults to stdin. Supports YAML/JSON.
+
+{SCHEMA_USER_DOC}
+""",
 )
 @click.option(
     "--timeout",
@@ -73,56 +142,21 @@ All registers are always written regardless, this option only affects the final 
 @yakut.asynchronous()
 async def register_batch(
     purser: yakut.Purser,
+    node_ids: set[int] | int | None,
     file: TextIO,
     timeout: float,
     detailed: int,
     only: str | None,
 ) -> int:
-    """
-    Read/write multiple registers at multiple nodes (useful for network configuration management).
-
-    Accepts a YAML/JSON file containing register names and/or values per node; the default is to read from stdin.
-    Acceptable formats are generated either by register-list (in which case registers will be only read)
-    or by this command (in which case the specified values will be written).
-
-    The specified nodes and their registers will be processed strictly in the order they are defined in the file
-    (this matters if register access has side effects).
-
-    Save configuration parameters from multiple nodes into a file (using verbose form for clarity here):
-
-    \b
-        yakut register-list 42,45-50 | yakut register-batch --only=mp > network_config.json
-
-    To get human-friendly output either add --format=yaml to the last command, or pipe the output through "jq".
-
-    Save configuration parameters from one node into a file not keyed by node-ID
-    (using shorthand commands here for brevity):
-
-    \b
-        y rl 42 | y rb -omp | jq '.[]' > single_node_config.json
-
-    Apply the above file to nodes 10,11,12,13,14:
-
-    \b
-        cat single_node_config.json | \\
-        jq '. as $in | [range(10;15) | {key: .|tostring, value: $in}] | from_entries' | \\
-        y rb
-
-    ...same but applied to one node 125:
-
-    \b
-        cat single_node_config.json | jq '{"125": .}' | y rb
-
-    Filter output registers by name; in this case those matching "uavcan*id":
-
-    \b
-        y rl 125 | y rb | jq 'map_values(with_entries(select(.key | test("uavcan.+id"))))'
-    """
     predicate: Predicate = _PREDICATES[only] if only else lambda _: True
     formatter = purser.make_formatter(FormatterHints(single_document=True))
     representer = _make_representer(detail=detailed)
     with file:
-        directive = Directive.load(Loader().load(file))
+        directive = Directive.load(
+            Loader().load(file),
+            node_ids=node_ids if not isinstance(node_ids, int) else {node_ids},
+        )
+    _logger.debug("Loaded directive: %r", directive)
     with purser.get_node("register_batch", allow_anonymous=False) as node:
         with ProgressReporter() as prog:
             result = await do_calls(node, prog, directive=directive, timeout=timeout)
@@ -150,7 +184,7 @@ async def register_batch(
             elif isinstance(response, TypeCoercionFailure):
                 error(prefix + "Type coercion failed, original value left unchanged")
             elif isinstance(response, Timeout):
-                error(prefix + "Timed out")
+                error(prefix + "Timed out and gave up on this node")
             elif isinstance(response, Skipped):
                 assert not success
             else:
@@ -160,7 +194,7 @@ async def register_batch(
             assert not success
             show_warning(f"{node_id}: {failed_count} failed of {len(per_node)} total. Output incomplete.")
 
-    final = {
+    final: Any = {
         node_id: {
             reg_name: representer(response)
             for reg_name, response in per_node.items()
@@ -168,6 +202,8 @@ async def register_batch(
         }
         for node_id, per_node in result.responses_per_node.items()
     }
+    if isinstance(node_ids, int):
+        final = final[node_ids]
     sys.stdout.write(formatter(final))
     sys.stdout.flush()
     return 0 if success else 1

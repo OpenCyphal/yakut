@@ -89,10 +89,27 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
     time.sleep(3)
     expect_register = "uavcan.node.description"
     try:
+        # Not keyed by node-ID.
         status, stdout, _ = execute_cli(
             "--format=json",
             "register-list",
             "10",
+            environment_variables={
+                "YAKUT_TRANSPORT": transport_factory(100).expression,
+                "YAKUT_PATH": str(OUTPUT_DIR),
+            },
+        )
+        assert status == 0
+        data = json.loads(stdout.strip())
+        print(json.dumps(data, indent=4))
+        assert len(data) > 1
+        assert expect_register in data
+
+        # Keyed by node-ID.
+        status, stdout, _ = execute_cli(
+            "--format=json",
+            "register-list",
+            "10,",  # Mind the comma!
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
                 "YAKUT_PATH": str(OUTPUT_DIR),

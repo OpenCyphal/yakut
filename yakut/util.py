@@ -3,7 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, Type
 import decimal
 import functools
 import pycyphal
@@ -27,19 +27,27 @@ def _compose_unit(f: Callable[..., T], g: Callable[..., T]) -> Callable[..., T]:
 
 
 def convert_transfer_metadata_to_builtin(
-    transfer: pycyphal.transport.TransferFrom, **extra_fields: dict[str, Any]
-) -> dict[str, Any]:
-    out = {
-        "timestamp": {
-            "system": transfer.timestamp.system.quantize(_MICRO),
-            "monotonic": transfer.timestamp.monotonic.quantize(_MICRO),
-        },
-        "priority": transfer.priority.name.lower(),
-        "transfer_id": transfer.transfer_id,
-        "source_node_id": transfer.source_node_id,
+    transfer: pycyphal.transport.TransferFrom,
+    *,
+    dtype: Any,
+    **extra_fields: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    return {
+        METADATA_KEY: {
+            "ts_system": transfer.timestamp.system.quantize(_MICRO),
+            "ts_monotonic": transfer.timestamp.monotonic.quantize(_MICRO),
+            "source_node_id": transfer.source_node_id,
+            "transfer_id": transfer.transfer_id,
+            "priority": transfer.priority.name.lower(),
+            "dtype": get_dtype_full_name_with_version(dtype),
+            **extra_fields,
+        }
     }
-    out.update(extra_fields)
-    return {METADATA_KEY: out}
+
+
+@functools.lru_cache(None)
+def get_dtype_full_name_with_version(dtype: Any) -> str:
+    return str(pycyphal.dsdl.get_model(dtype))
 
 
 _MICRO = decimal.Decimal("0.000001")

@@ -323,18 +323,6 @@ async def _make_subscribers(
 
 
 async def _run(synchronizer: Synchronizer, formatter: Formatter, with_metadata: bool, count: int, redraw: bool) -> None:
-    metadata_cache: dict[object, dict[str, Any]] = {}
-
-    def get_extra_metadata(sub: Subscriber[Any]) -> dict[str, Any]:
-        try:
-            return metadata_cache[sub]
-        except LookupError:  # This may be expensive so we only do it once.
-            model = pycyphal.dsdl.get_model(sub.dtype)
-            metadata_cache[sub] = {
-                "dtype": str(model),
-            }
-        return metadata_cache[sub]
-
     def process_group(group: tuple[tuple[tuple[Any, TransferFrom], Subscriber[Any]], ...]) -> None:
         nonlocal count
         outer: dict[int, dict[str, Any]] = {}
@@ -343,7 +331,7 @@ async def _run(synchronizer: Synchronizer, formatter: Formatter, with_metadata: 
             assert isinstance(meta, TransferFrom) and isinstance(subscriber, Subscriber)
             bi: dict[str, Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
             if with_metadata:
-                bi.update(convert_transfer_metadata_to_builtin(meta, **get_extra_metadata(subscriber)))
+                bi.update(convert_transfer_metadata_to_builtin(meta, dtype=subscriber.dtype))
             bi.update(pycyphal.dsdl.to_builtin(msg))
             outer[subscriber.port_id] = bi
 

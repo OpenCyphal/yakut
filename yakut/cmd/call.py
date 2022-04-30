@@ -207,10 +207,8 @@ async def _run(
         bi.update(
             convert_transfer_metadata_to_builtin(
                 transfer,
-                roundtrip_time={
-                    "transport_layer": (transfer.timestamp.monotonic - request_ts_transport.monotonic).quantize(qnt),
-                    "application_layer": application_duration.quantize(qnt),
-                },
+                dtype=client.dtype,
+                rtt=(transfer.timestamp.monotonic - request_ts_transport.monotonic).quantize(qnt),
             )
         )
     bi.update(pycyphal.dsdl.to_builtin(response))

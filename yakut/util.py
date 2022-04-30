@@ -3,7 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-from typing import Any, Callable, TypeVar, Type
+from typing import Any, Callable, TypeVar
 import decimal
 import functools
 import pycyphal

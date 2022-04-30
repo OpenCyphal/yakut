@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 import sys
-from typing import Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING
 import click
 import pycyphal
 import yakut

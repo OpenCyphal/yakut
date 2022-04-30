@@ -18,9 +18,9 @@ if TYPE_CHECKING:
 class Tag:
     def __eq__(self, other: object) -> bool:
         """
-        >>> TypeCoercionFailure() == TypeCoercionFailure()
+        >>> TypeCoercionFailure("foo") == TypeCoercionFailure("bar")
         True
-        >>> TypeCoercionFailure() == Timeout()
+        >>> TypeCoercionFailure("") == Timeout()
         False
         """
         return issubclass(type(self), type(other)) and issubclass(type(other), type(self))

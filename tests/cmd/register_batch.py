@@ -84,7 +84,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         )
         for idx in range(2)
     ]
-    time.sleep(3)
+    time.sleep(2)
     try:
         file.write_text("{10: [uavcan.node.id, uavcan.node.description], 11: [uavcan.node.id]}")
         status, stdout, _ = execute_cli(

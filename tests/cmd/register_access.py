@@ -144,14 +144,31 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         "sub",
         "1000:uavcan.primitive.empty",
         environment_variables={
-            "YAKUT_TRANSPORT": transport_factory(10).expression,
+            **transport_factory(10).environment,
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(3)
+    time.sleep(2)
     expect_register = "uavcan.node.description"
     try:
-        # READ EXISTING REGISTER
+        # READ EXISTING REGISTER, MAP OUTPUT
+        status, stdout, _ = execute_cli(
+            "--format=json",
+            "register-access",
+            "10,",
+            expect_register,
+            environment_variables={
+                "YAKUT_TRANSPORT": transport_factory(100).expression,
+                "YAKUT_PATH": str(OUTPUT_DIR),
+            },
+        )
+        assert status == 0
+        data = json.loads(stdout.strip())
+        print(json.dumps(data, indent=4))
+        assert len(data) == 1
+        assert data["10"] == ""
+
+        # READ EXISTING REGISTER, FLAT OUTPUT
         status, stdout, _ = execute_cli(
             "--format=json",
             "register-access",
@@ -165,14 +182,13 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         assert status == 0
         data = json.loads(stdout.strip())
         print(json.dumps(data, indent=4))
-        assert len(data) == 1
-        assert data["10"] == ""
+        assert data == ""
 
-        # MODIFY REGISTER
+        # MODIFY REGISTER, MAP OUTPUT
         status, stdout, _ = execute_cli(
             "--format=json",
             "register-access",
-            "10",
+            "10,",
             expect_register,
             "Reference value",
             environment_variables={

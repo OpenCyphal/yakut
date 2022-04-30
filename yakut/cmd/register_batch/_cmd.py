@@ -46,7 +46,7 @@ Accepts a YAML/JSON file containing register names and/or values per node; the d
 Acceptable formats are generated either by register-list (in which case registers will be only read)
 or by this command (in which case the specified values will be written).
 
-The specified nodes and their registers will be processed strictly in the order they are specified
+The specified registers will be processed strictly sequentially in the order they are specified
 (this matters if register access has side effects).
 
 Save configuration parameters into a file (using verbose form for clarity here):
@@ -101,7 +101,7 @@ Read diagnostic registers from two similar nodes
 @click.argument(
     "node_ids",
     required=False,
-    type=lambda x: parse_int_set(x, collapse=True) if x is not None else None,
+    type=lambda x: parse_int_set(x) if x is not None else None,
 )
 @click.option(
     "--file",

@@ -52,7 +52,7 @@ Compute intersection -- registers that are available in all of the queried nodes
 
 
 @yakut.subcommand(aliases=["rl", "regls"], help=_HELP)
-@click.argument("node_ids", type=lambda x: parse_int_set(x, collapse=True))
+@click.argument("node_ids", type=parse_int_set)
 @click.option(
     "--timeout",
     "-T",

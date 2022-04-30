@@ -25,26 +25,20 @@ Integer set notation examples:
 """.strip()
 
 
-def parse_int_set(text: str, *, collapse: bool = False) -> set[int] | int:
+def parse_int_set(text: str) -> set[int] | int:
     """
     Unpacks the integer set notation.
     Accepts JSON-list (subset of YAML) of integers at input, too.
-    If collapse=True, then a single scalar is returned as-is (suppress by adding a separator at the end).
+    A single scalar is returned as-is unless there is a separator at the end ("125,") or JSON list is used.
     Raises :class:`IntSetError` on syntax error.
     Usage:
 
     >>> parse_int_set("")
     set()
-    >>> parse_int_set("123")
-    {123}
-    >>> parse_int_set("123", collapse=True)
-    123
-    >>> parse_int_set("123,")
-    {123}
-    >>> parse_int_set("123,", collapse=True)
-    {123}
-    >>> parse_int_set("-0")
-    {0}
+    >>> parse_int_set("123"), parse_int_set("[123]"), parse_int_set("123,")
+    (123, {123}, {123})
+    >>> parse_int_set("-0"), parse_int_set("[-0]"), parse_int_set("-0,")
+    (0, {0}, {0})
     >>> sorted(parse_int_set("0..0x0A"))    # Half-open interval with .. or ... or -
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     >>> sorted(parse_int_set("-9...-5,"))
@@ -69,6 +63,7 @@ def parse_int_set(text: str, *, collapse: bool = False) -> set[int] | int:
         except ValueError:
             return None
 
+    collapse = not _RE_JSON_LIST.match(text)
     incl: set[int] = set()
     excl: set[int] = set()
     for item in _RE_SPLIT.split(_RE_JSON_LIST.sub(r"\1", text)):

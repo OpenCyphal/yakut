@@ -39,12 +39,16 @@ The final value returned by the node is always printed at the end,
 which may be different from the assigned value depending on the internal logic of the node
 (e.g., the value could be adjusted to satisfy constraints, the register could be read-only, etc.).
 
-The specified nodes will be processed strictly in order (this matters if register access has side effects).
+The output (but not the behavior) depends on how the node-ID set is specified:
+if it's a single number, the result will be only the value of the specified register;
+if multiple node-IDs are given or the sole node-ID is given in the set notation,
+the output will be a map of (node_id->register_value).
 
 Examples:
 
 \b
-    yakut reg 120-125 m.inductance_dq
+    yakut reg 125  m.inductance_dq                      # Outputs only the value
+    yakut reg 125, m.inductance_dq                      # Outputs {{125: value}}
     yakut reg 120-125 m.inductance_dq '12.0e-6 14.7e-6'
     yakut reg 120-125 m.inductance_dq  12.0e-6 14.7e-6  # Quotes are optional
     y r 120-125 m.inductance_dq | jq 'flatten|unique'   # Remove duplicate values from output
@@ -99,7 +103,7 @@ Best-effort output will always be produced regardless of this option; that is, i
 @yakut.asynchronous()
 async def register_access(
     purser: yakut.Purser,
-    node_ids: Sequence[int],
+    node_ids: Sequence[int] | int,
     register_name: str,
     register_value_element: Sequence[str],
     timeout: float,
@@ -107,7 +111,6 @@ async def register_access(
     optional_register: bool,
     detailed: int,
 ) -> int:
-    node_ids = list(sorted(node_ids))
     _logger.debug(
         "node_ids=%r, register_name=%r, register_value_element=%r timeout=%r",
         node_ids,
@@ -131,7 +134,7 @@ async def register_access(
             result = await access(
                 node,
                 prog,
-                node_ids,
+                list(sorted(node_ids)) if not isinstance(node_ids, int) else [node_ids],
                 reg_name=register_name,
                 reg_val_str=reg_val_str,
                 optional_service=optional_service,
@@ -144,7 +147,11 @@ async def register_access(
     for msg in result.warnings:
         show_warning(msg)
 
-    final = {k: representer(v) for k, v in result.value_per_node.items()}
+    final = (
+        {k: representer(v) for k, v in result.value_per_node.items()}
+        if not isinstance(node_ids, int)
+        else representer(result.value_per_node[node_ids])
+    )
     sys.stdout.write(formatter(final))
     sys.stdout.flush()
 

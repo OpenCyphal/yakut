@@ -20,6 +20,10 @@ class TransportConfig:
     """
 
     expression: str
+    """
+    Please do not use this in new tests,
+    consider using the environment variables instead as they are the recommended form now.
+    """
     can_transmit: bool
     environment: dict[str, str]
 

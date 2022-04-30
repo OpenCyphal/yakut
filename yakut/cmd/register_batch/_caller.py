@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from uavcan.register import Access_1
 
 
+@dataclasses.dataclass(frozen=True)
 class Tag:
     def __eq__(self, other: object) -> bool:
         """
@@ -25,14 +26,19 @@ class Tag:
         return issubclass(type(self), type(other)) and issubclass(type(other), type(self))
 
 
+@dataclasses.dataclass(frozen=True)
 class TypeCoercionFailure(Tag):
-    pass
+    msg: str
+
+    __eq__ = Tag.__eq__
 
 
+@dataclasses.dataclass(frozen=True)
 class Timeout(Tag):
     pass
 
 
+@dataclasses.dataclass(frozen=True)
 class Skipped(Tag):
     pass
 
@@ -104,7 +110,7 @@ async def _process_one(
     assert callable(directive)
     coerced = directive(resp.value)
     if coerced is None:
-        return TypeCoercionFailure()
+        return TypeCoercionFailure(f"Value not coercible to {resp.value}")
 
     # Send the write request with the updated coerced value.
     req = Access_1.Request(name=Name_1(register_name), value=coerced)

@@ -82,11 +82,11 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         "sub",
         "1000:uavcan.primitive.empty",
         environment_variables={
-            "YAKUT_TRANSPORT": transport_factory(10).expression,
+            **transport_factory(10).environment,
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(3)
+    time.sleep(2)
     expect_register = "uavcan.node.description"
     try:
         # Not keyed by node-ID.

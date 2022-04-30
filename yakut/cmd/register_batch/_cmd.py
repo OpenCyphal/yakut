@@ -81,7 +81,8 @@ You can also convert a pure config file that is not keyed by node-ID by adding t
 \b
     cat pure_config.json | jq '{{"125": .}}' | y rb
 
-Filter output registers by name preserving the node-ID keys; in this case those matching "uavcan*id":
+Filter output registers by name preserving the node-ID keys; in thisK7fg31
+ case those matching "uavcan*id":
 
 \b
     y rl 125, | y rb | jq 'map_values(with_entries(select(.key | test("uavcan.+id"))))'
@@ -124,6 +125,16 @@ Defaults to stdin. Supports YAML/JSON.
     help="Service response timeout.",
 )
 @click.option(
+    "--optional-register",
+    "-r",
+    is_flag=True,
+    help="""
+If modification is requested (i.e., if a value is given),
+nodes that report that they don't have such register are silently ignored instead of reporting an error.
+Best-effort output will always be produced regardless of this option; that is, it only affects the exit code.
+""",
+)
+@click.option(
     "--detailed",
     "-d",
     count=True,
@@ -145,6 +156,7 @@ async def register_batch(
     node_ids: set[int] | int | None,
     file: TextIO,
     timeout: float,
+    optional_register: bool,
     detailed: int,
     only: str | None,
 ) -> int:
@@ -180,9 +192,12 @@ async def register_batch(
             failed_count += 1
             prefix = f"{node_id}:{reg_name!r}: "
             if isinstance(response, Access_1.Response) and response.value.empty:
-                error(prefix + "No such register")
+                if optional_register:
+                    show_warning(prefix + "No such register, ignored as requested")
+                else:
+                    error(prefix + "No such register")
             elif isinstance(response, TypeCoercionFailure):
-                error(prefix + "Type coercion failed, original value left unchanged")
+                error(prefix + f"Original value unchanged because coercion failed: {response.msg}")
             elif isinstance(response, Timeout):
                 error(prefix + "Timed out and gave up on this node")
             elif isinstance(response, Skipped):
@@ -191,7 +206,6 @@ async def register_batch(
                 assert False, response
         _logger.info("Node %r: total %r, failed %r", node_id, len(per_node), failed_count)
         if failed_count > 0:
-            assert not success
             show_warning(f"{node_id}: {failed_count} failed of {len(per_node)} total. Output incomplete.")
 
     final: Any = {

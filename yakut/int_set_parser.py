@@ -92,7 +92,7 @@ def parse_int_set(text: str) -> set[int] | int:
     assert isinstance(result, set)
     if collapse and len(result) == 1:
         (result,) = result
-    _logger.debug("Int set %r (collapse=%r) parsed as %r", text, collapse, result)
+    _logger.debug("Int set %r parsed as %r", text, result)
     return result
 
 

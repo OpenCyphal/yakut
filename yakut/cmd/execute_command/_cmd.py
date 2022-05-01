@@ -220,9 +220,9 @@ def _parse_command(inp: str) -> int:
     ...
     ClickException: ...
     """
-    for fun in (lambda x: int(x), lambda x: int(x, 0)):
+    for fun in (int, lambda x: int(x, 0)):
         try:
-            return fun(inp)
+            return fun(inp)  # type: ignore
         except ValueError:
             pass
 

@@ -32,10 +32,11 @@ Reset many nodes at once, some of which may not be present (for Cyphal/CAN this 
 \b
     yakut execute-command 0-128 reset -e
 
-Request multiple nodes to install the same software image (although you could also use the file server command):
+Request multiple nodes to install the same software image
+(requires a file server node) (also see the file server command):
 
 \b
-    y ec 122-126 begin_software_update /path/to/software/image
+    y cmd 122-126 begin_software_update /path/to/software/image
 
 {INT_SET_USER_DOC}
 """
@@ -56,7 +57,7 @@ def _parse_status_set(inp: str) -> set[int] | None:
     return set(ins) if not isinstance(ins, (int, float)) else {ins}
 
 
-@yakut.subcommand(aliases=["ec", "cmd"], help=_HELP)
+@yakut.subcommand(aliases="cmd", help=_HELP)
 @click.argument("node_ids", type=parse_int_set)
 @click.argument("command")
 @click.argument("parameter", default="")

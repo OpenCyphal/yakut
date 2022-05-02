@@ -27,10 +27,15 @@ Invoke uavcan.node.ExecuteCommand on a group of nodes.
 The response objects are returned as a per-node mapping unless the set of node-IDs is one integer,
 in which case only that object is returned without the node-ID.
 
-Reset many nodes at once, some of which may not be present (for Cyphal/CAN this would be the entire network):
+The command may be specified either as an explicit integer or as a mnemonic name defined in the
+uavcan.node.ExecuteCommand service specification; e.g., restart=65535, begin_software_update=65533;
+abbreviations are also accepted.
+
+Restart many nodes at once, some of which may not be present (for Cyphal/CAN this would be the entire network):
 
 \b
-    yakut execute-command 0-128 reset -e
+    yakut execute-command 0-128 restart -e
+    yakut execute-command 0-128 65535 -e    # Same, with the command code given explicitly.
 
 Request multiple nodes to install the same software image
 (requires a file server node) (also see the file server command):

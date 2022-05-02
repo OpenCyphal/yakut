@@ -46,7 +46,7 @@ Filter by name, in this case those matching "uavcan*id" (mind the comma!):
 Compute intersection -- registers that are available in all of the queried nodes:
 
 \b
-    y rl 100-128 | jq '. as $in|reduce .[] as $item ($in|flatten|flatten;.-(.-$item))|unique'
+    y rl 120-128 | jq '. as $in|reduce .[] as $item ($in|flatten|flatten;.-(.-$item))|unique'
 
 {INT_SET_USER_DOC}
 """

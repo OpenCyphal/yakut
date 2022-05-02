@@ -50,9 +50,9 @@ Examples:
 \b
     yakut reg 125  m.inductance_dq                      # Outputs only the value
     yakut reg 125, m.inductance_dq                      # Outputs {{125: value}}
-    yakut reg 120-125 m.inductance_dq '12.0e-6 14.7e-6'
-    yakut reg 120-125 m.inductance_dq  12.0e-6 14.7e-6  # Quotes are optional
-    y r 120-125 m.inductance_dq | jq 'flatten|unique'   # Remove duplicate values from output
+    yakut reg 122-126 m.inductance_dq '12.0e-6 14.7e-6'
+    yakut reg 122-126 m.inductance_dq  12.0e-6 14.7e-6  # Quotes are optional
+    y r 122-126 m.inductance_dq | jq '[.[]]|unique'     # Remove duplicate values from output
     y r 125 uavcan.node.description "Motor rear-left #3"
 
 {INT_SET_USER_DOC}

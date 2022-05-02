@@ -47,7 +47,7 @@ Accepts a YAML/JSON file containing register names and/or values per node; the d
 Acceptable formats are generated either by register-list (in which case registers will be only read)
 or by this command (in which case the specified values will be written).
 
-The specified registers will be processed strictly sequentially in the order they are specified
+The registers will be processed strictly sequentially in the order they are specified
 (this matters if register access has side effects).
 
 Save configuration parameters into a file (using verbose form for clarity here):
@@ -82,8 +82,7 @@ You can also convert a pure config file that is not keyed by node-ID by adding t
 \b
     cat pure_config.json | jq '{{"125": .}}' | y rb
 
-Filter output registers by name preserving the node-ID keys; in thisK7fg31
- case those matching "uavcan*id":
+Filter output registers by name preserving the node-ID keys; in this case those matching "uavcan*id":
 
 \b
     y rl 125, | y rb | jq 'map_values(with_entries(select(.key | test("uavcan.+id"))))'
@@ -93,7 +92,6 @@ Read diagnostic registers from two similar nodes
 
 \b
     y rl 124 | y rb 124,125 -oiv
-    cat diagnostic_registers.yaml | y rb 124,125 -oiv
 
 {INT_SET_USER_DOC}
 """

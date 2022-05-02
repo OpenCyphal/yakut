@@ -196,22 +196,11 @@ $ export UAVCAN__UDP__IFACE=127.63.0.0
 $ yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata
 ---
 33:
-  _meta_:
-    timestamp: {system: 1608987583.298886, monotonic: 788272.540747}
-    priority: nominal
-    transfer_id: 0
-    source_node_id: 42
-    dtype: uavcan.si.unit.angle.Scalar.1.0
+  _meta_: {ts_system: 1651525532.267223, ts_monotonic: 1827406.498846, source_node_id: 112, transfer_id: 2, priority: nominal, dtype: uavcan.si.unit.angle.Scalar.1.0}
   radian: 2.309999942779541
-
 ---
 33:
-  _meta_:
-    timestamp: {system: 1608987583.298886, monotonic: 788272.540747}
-    priority: nominal
-    transfer_id: 1
-    source_node_id: 42
-    dtype: uavcan.si.unit.angle.Scalar.1.0
+  _meta_: {ts_system: 1651525533.274571, ts_monotonic: 1827407.506242, source_node_id: 112, transfer_id: 3, priority: nominal, dtype: uavcan.si.unit.angle.Scalar.1.0}
   radian: 2.309999942779541
 ```
 
@@ -257,7 +246,7 @@ $ y sub 100 110 120 140 150 --sync-monoclust-arrival
     voltage: {volt: 24.92441749572754}
 140: {dc_voltage: 125, dc_current: 0, phase_current_amplitude: 4, velocity: 111, ratiometric_setpoint: 9}
 150:
-  current: [0.0020294189453125, 0.70458984375]
+  current: [0.0020294189453, 0.7045898]
   voltage: [0.1893310546875, 1.3359375]
 ```
 
@@ -408,6 +397,10 @@ In the latter case it will actively query other nodes using the standard introsp
 
 Some transports, Cyphal/UDP in particular, require elevated privileges to run this tool due to the security
 implications of low-level packet capture.
+
+## Working with registers
+
+TODO
 
 ## Updating node software
 

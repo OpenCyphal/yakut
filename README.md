@@ -252,12 +252,11 @@ $ y sub 100 110 120 140 150 --sync-monoclust-arrival
 
 #### Exporting data for offline analysis
 
-Here the `reg.udral.physics.dynamics.rotation.PlanarTs` message is formatted using the TSV formatter
-with headers prepended.
-The resulting data can be imported as-is into Pandas, Excel, Wolfram Mathematica, etc.
+The TSV format option can be used to export data for offline analysis using Pandas, Excel, etc.
+To see all available options use `yakut --help`.
 
 ```bash
-y --format=tsvh sub 1252 1255 --sync-monotonic-arrival > ~/out.tsv
+y --format=tsvh sub 1252 1255 --sync-monoclust-arrival > ~/out.tsv
 ```
 
 <img src="docs/jupyter.png" alt="Pandas import">

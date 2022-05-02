@@ -274,7 +274,7 @@ async def file_server(
             # the file server to slow down significantly because the event loop would be blocked here on disk reads.
             get_node_tracker().add_update_handler(check_software_update)
         else:
-            _logger.info("Software update checked not required")
+            _logger.info("Software update checker is not required")
 
         await asyncio.sleep(1e100)
 

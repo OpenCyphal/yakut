@@ -281,7 +281,6 @@ async def subscribe(
                     _logger.info("% 4s: %s", sub.port_id, sub.sample_statistics())
     finally:
         pycyphal.util.broadcast(finalizers[::-1])()
-        await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop
 
 
 async def _make_subscribers(

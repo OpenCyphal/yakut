@@ -310,7 +310,6 @@ async def publish(
             _log_final_report(node.presentation)
     finally:
         pycyphal.util.broadcast(finalizers[::-1])()
-        await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop
 
 
 def _log_final_report(presentation: pycyphal.presentation.Presentation) -> None:

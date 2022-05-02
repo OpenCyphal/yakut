@@ -159,7 +159,6 @@ async def call(
         await _run(client, request, formatter, with_metadata=with_metadata)
     finally:
         pycyphal.util.broadcast(finalizers[::-1])()
-        await asyncio.sleep(1e-3)  # Let the background tasks finalize before leaving the loop.
 
 
 async def _run(

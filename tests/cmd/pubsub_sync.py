@@ -209,7 +209,6 @@ def _unittest_async(transport_factory: TransportFactory, compiled_dsdl: typing.A
         "2000:uavcan.primitive.String",
         "--no-metadata",
         "--count=4",
-        "--async",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),

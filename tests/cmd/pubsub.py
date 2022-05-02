@@ -229,6 +229,7 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
         "sub",
         "1000:uavcan.primitive.string",
         "2000:uavcan.primitive.string",
+        "--sync-monoclust-arrival",
         "--no-metadata",
         "--count=3",
         environment_variables={
@@ -278,6 +279,7 @@ def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_ds
         "1000",  # Use discovery.
         "2000",  # Use discovery.
         "--no-metadata",
+        "--sync-monoclust-arrival",
         "--count=3",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,

@@ -215,19 +215,27 @@ $ yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata
   radian: 2.309999942779541
 ```
 
-If more than one subject is specified,
-a synchronizer will be used to group messages from multiple subjects into synchronized groups,
-which are then printed all at once.
-If subjects are not updated in lockstep some or all messages may be dropped.
+#### Synchronization
+
+If more than one subject is specified, the default behavior is to output each received message separately.
+Often there are synchronous subjects that are updated in lockstep,
+where it is desirable to group received messages pertaining to the same time point into *synchronized groups*.
+This can be achieved with options like `--sync-monoclust`, `--sync-monoclust-arrival`, `--sync-transfer-id`,
+which select different
+[synchronization policies](https://pycyphal.readthedocs.io/en/stable/api/pycyphal.presentation.subscription_synchronizer.html)
+(see `--help` for technical details).
+If the synchronized subjects are not updated in lockstep some or all messages may be dropped.
 
 <img src="docs/subject_synchronization.png" alt="subject synchronization">
 
-Yakut can determine the data type names automatically if the publisher node(s) support the required
-network introspection services.
+#### Data type discovery
+
+Yakut can determine the data type names automatically if the other node(s) utilizing this subject support the required
+network introspection services (most nodes do).
 In the following example only the subject-IDs are provided and the type information is discovered automatically:
 
 ```bash
-$ y sub 100 110 120 140 150
+$ y sub 100 110 120 140 150 --sync-monoclust-arrival
 ---
 100:
   heartbeat:
@@ -253,17 +261,17 @@ $ y sub 100 110 120 140 150
   voltage: [0.1893310546875, 1.3359375]
 ```
 
-Use `--help` to see additional options (`--async` and `--redraw` are often useful).
-
-#### Exporting data to computer algebra systems or spreadsheet processors
+#### Exporting data for offline analysis
 
 Here the `reg.udral.physics.dynamics.rotation.PlanarTs` message is formatted using the TSV formatter
 with headers prepended.
-The resulting data can be imported as-is into Excel, Wolfram Mathematica, etc.
+The resulting data can be imported as-is into Pandas, Excel, Wolfram Mathematica, etc.
 
 ```bash
-yakut --format=TSVH subscribe 142:reg.udral.physics.dynamics.rotation.PlanarTs > rotation_data.tsv
+y --format=tsvh sub 1252 1255 --sync-monotonic-arrival > ~/out.tsv
 ```
+
+<img src="docs/jupyter.png" alt="Pandas import">
 
 ### Publishing messages
 

@@ -19,7 +19,6 @@ from yakut.param.formatter import Formatter
 from yakut.util import convert_transfer_metadata_to_builtin
 from yakut.subject_specifier_processor import process_subject_specifier, SubjectResolver
 from ._sync import Synchronizer, SynchronizerFactory
-from ._sync_unary import make_sync_unary
 
 if TYPE_CHECKING:
     import pycyphal.application
@@ -51,16 +50,9 @@ class Config:
 
     def get_synchronizer_factory(self) -> SynchronizerFactory:
         if self._synchronizer_factory is None:
-            from ._sync_monoclust import make_sync_monoclust
-            from pycyphal.presentation.subscription_synchronizer import get_local_reception_timestamp
+            from ._sync_async import make_sync_async
 
-            self.set_synchronizer_factory(
-                lambda subs: make_sync_monoclust(
-                    subs,
-                    f_key=get_local_reception_timestamp,
-                    tolerance_minmax=SYNC_MONOCLUST_TOLERANCE_MINMAX_TS_ARRIVAL,
-                )
-            )
+            self.set_synchronizer_factory(make_sync_async)
         assert self._synchronizer_factory is not None
         return self._synchronizer_factory
 
@@ -128,14 +120,6 @@ def _handle_option_synchronizer_transfer_id(ctx: click.Context, _param: click.Pa
         ctx.ensure_object(Config).set_synchronizer_factory(make_sync_transfer_id)
 
 
-def _handle_option_synchronizer_async(ctx: click.Context, _param: click.Parameter, value: bool) -> None:
-    if value:
-        from ._sync_async import make_sync_async
-
-        _logger.debug("Configuring asynchronous synchronizer")
-        ctx.ensure_object(Config).set_synchronizer_factory(make_sync_async)
-
-
 @yakut.subcommand(aliases=["sub", "s"])
 @click.argument("subject", type=str, nargs=-1)
 @click.option(
@@ -159,7 +143,7 @@ Exit automatically after this many messages (or synchronous message groups) have
     "--no-scroll",
     "-R",
     is_flag=True,
-    help="Clear terminal output before printing output. This option only has effect if stdout is a tty.",
+    help="Clear terminal before printing output. This option only has effect if stdout is a tty.",
 )
 @click.option(
     "--sync-monoclust",
@@ -185,7 +169,7 @@ The optional value is the synchronization tolerance in seconds; autodetect if no
     flag_value=float("nan"),
     help=f"""
 Use the monotonic clustering synchronizer with the local arrival timestamp as the clustering key.
-Works with all data types but may perform poorly depending on the timing and system latency.
+Works with all data types but may perform poorly depending on the local timestamping accuracy and system latency.
 The optional value is the synchronization tolerance in seconds; autodetect if not specified.
 """,
 )
@@ -199,14 +183,6 @@ The optional value is the synchronization tolerance in seconds; autodetect if no
 Use the transfer-ID synchronizer.
 Messages that originate from the same node AND share the same transfer-ID will be grouped together.
 """,
-)
-@click.option(
-    "--async",
-    "-A",
-    callback=_handle_option_synchronizer_async,
-    expose_value=False,
-    is_flag=True,
-    help="Do not synchronize subjects. Each received message will comprise its own synchronized group of one.",
 )
 @yakut.pass_purser
 @yakut.asynchronous(interrupted_ok=True)
@@ -234,18 +210,14 @@ async def subscribe(
         TYPE_NAME[.MAJOR[.MINOR]]
         SUBJECT_ID
 
-    If multiple subjects are specified, a synchronous subscription will be used.
-    It is intended for subscribing to a group of coupled subjects like lockstep sensor feeds or other coupled objects.
+    The output documents (YAML/JSON/etc depending on the chosen format) will contain one message object each,
+    unless synchronization is enabled via --sync-*.
+    In that case, each output document will contain a complete synchronized group of messages (ordering retained).
+    Synchronous subscription is intended for subscribing to a group of coupled subjects like coupled sensor feeds.
     More on subscription synchronization is available in the PyCyphal docs.
-    If no synchronizer is specified, Yakut will choose one automatically.
 
-    Each received object or synchronized group is emitted to stdout as a key-value mapping,
-    where the number of elements equals the number of subjects the command is asked to subscribe to;
-    the keys are subject-IDs and values are the received message objects.
-
-    The special "asynchronous" synchronizer emits one message per synchronized group and it can be used for
-    simultaneous subscription to unrelated subjects.
-    In this case exactly one message is emitted per group.
+    Each received message or synchronized group is emitted to stdout as a key-value mapping,
+    where the keys are subject-IDs and values are the received message objects.
 
     Examples:
 
@@ -253,7 +225,7 @@ async def subscribe(
         yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata --count=1
         yakut sub 33 42 5789 --sync-monoclust-arrival=0.1
         yakut sub uavcan.node.heartbeat
-        y sub 1220 1230 1240 1250 --async
+        y sub 1220 1230 1240 1250 --sync-monoclust
 
     Extracting a specific field, sub-object, data manipulation:
 
@@ -289,13 +261,10 @@ async def subscribe(
 
         subscribers: list[Subscriber[Any]] = await _make_subscribers(subject, get_node)
         finalizers += [s.close for s in subscribers]
-        if len(subscribers) > 1:
-            synchronizer = config.get_synchronizer_factory()(subscribers)
-        elif len(subscribers) == 1:
-            synchronizer = make_sync_unary([subscribers[0]])
-        else:
+        if len(subscribers) == 0:
             _logger.warning("Nothing to do because no subjects are specified")
             return
+        synchronizer = config.get_synchronizer_factory()(subscribers)
 
         # The node is closed through the finalizers at exit.
         # Note that we can't close the node before closing the subscribers to avoid resource errors inside PyCyphal.

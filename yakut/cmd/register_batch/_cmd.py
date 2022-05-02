@@ -14,6 +14,7 @@ from yakut.param.formatter import FormatterHints
 from yakut.yaml import Loader
 from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
 from yakut.register import explode_value, get_access_response_metadata
+from yakut.util import EXIT_CODE_UNSUCCESSFUL
 from ._directive import Directive, SCHEMA_USER_DOC
 from ._caller import do_calls, TypeCoercionFailure, Timeout, Skipped, Tag
 
@@ -220,7 +221,7 @@ async def register_batch(
         final = final[node_ids]
     sys.stdout.write(formatter(final))
     sys.stdout.flush()
-    return 0 if success else 1
+    return 0 if success else EXIT_CODE_UNSUCCESSFUL
 
 
 def _make_representer(detail: int) -> Callable[[Union[Tag, "Access_1.Response"]], Any]:

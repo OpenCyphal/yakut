@@ -179,7 +179,7 @@ async def _run(
     request_ts_application = pycyphal.transport.Timestamp.now()
     result = await client.call(request)
     response_ts_application = pycyphal.transport.Timestamp.now()
-    if result is None:
+    if result is None:  # TODO this should exit with yakut.util.EXIT_CODE_UNSUCCESSFUL
         raise click.ClickException(f"The request has timed out after {client.response_timeout:0.1f} seconds")
     if not request_ts_transport:  # pragma: no cover
         request_ts_transport = request_ts_application

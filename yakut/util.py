@@ -13,6 +13,11 @@ T = TypeVar("T")
 
 METADATA_KEY = "_meta_"
 
+EXIT_CODE_UNSUCCESSFUL = 100
+"""
+The command was invoked and executed correctly but the desired goal could not be attained for external reasons.
+"""
+
 
 def compose(*fs: Callable[..., T]) -> Callable[..., T]:
     """

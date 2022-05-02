@@ -12,6 +12,7 @@ from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
 from yakut.ui import ProgressReporter, show_error, show_warning
 from yakut.param.formatter import FormatterHints
 from yakut.register import explode_value, get_access_response_metadata
+from yakut.util import EXIT_CODE_UNSUCCESSFUL
 from ._logic import access
 
 if TYPE_CHECKING:
@@ -155,7 +156,7 @@ async def register_access(
     sys.stdout.write(formatter(final))
     sys.stdout.flush()
 
-    return 1 if result.errors else 0
+    return EXIT_CODE_UNSUCCESSFUL if result.errors else 0
 
 
 def _make_representer(simplify: bool, metadata: bool) -> Callable[[Optional["Access_1.Response"]], Any]:

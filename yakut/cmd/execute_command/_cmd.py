@@ -12,8 +12,10 @@ import yakut
 from yakut.int_set_parser import parse_int_set, INT_SET_USER_DOC
 from yakut.ui import ProgressReporter, show_error, show_warning
 from yakut.param.formatter import FormatterHints
+from yakut.util import EXIT_CODE_UNSUCCESSFUL
 
 if TYPE_CHECKING:
+    import pycyphal.application
     from uavcan.node import ExecuteCommand_1
 
 _logger = yakut.get_logger(__name__)
@@ -154,7 +156,7 @@ async def execute_command(
         final = final[node_ids]
     sys.stdout.write(formatter(final))
     sys.stdout.flush()
-    return 0 if success else 1
+    return 0 if success else EXIT_CODE_UNSUCCESSFUL
 
 
 async def _run(

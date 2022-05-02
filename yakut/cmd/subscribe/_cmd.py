@@ -128,6 +128,14 @@ def _handle_option_synchronizer_transfer_id(ctx: click.Context, _param: click.Pa
         ctx.ensure_object(Config).set_synchronizer_factory(make_sync_transfer_id)
 
 
+def _handle_option_synchronizer_async(ctx: click.Context, _param: click.Parameter, value: bool) -> None:
+    if value:
+        from ._sync_async import make_sync_async
+
+        _logger.debug("Configuring asynchronous synchronizer")
+        ctx.ensure_object(Config).set_synchronizer_factory(make_sync_async)
+
+
 @yakut.subcommand(aliases=["sub", "s"])
 @click.argument("subject", type=str, nargs=-1)
 @click.option(
@@ -192,6 +200,14 @@ Use the transfer-ID synchronizer.
 Messages that originate from the same node AND share the same transfer-ID will be grouped together.
 """,
 )
+@click.option(
+    "--async",
+    "-A",
+    callback=_handle_option_synchronizer_async,
+    expose_value=False,
+    is_flag=True,
+    help="Do not synchronize subjects. Each received message will comprise its own synchronized group of one.",
+)
 @yakut.pass_purser
 @yakut.asynchronous(interrupted_ok=True)
 async def subscribe(
@@ -227,12 +243,17 @@ async def subscribe(
     where the number of elements equals the number of subjects the command is asked to subscribe to;
     the keys are subject-IDs and values are the received message objects.
 
+    The special "asynchronous" synchronizer emits one message per synchronized group and it can be used for
+    simultaneous subscription to unrelated subjects.
+    In this case exactly one message is emitted per group.
+
     Examples:
 
     \b
         yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata --count=1
         yakut sub 33 42 5789 --sync-monoclust-arrival=0.1
         yakut sub uavcan.node.heartbeat
+        y sub 1220 1230 1240 1250 --async
 
     Extracting a specific field, sub-object, data manipulation:
 
@@ -323,11 +344,13 @@ async def _make_subscribers(
 
 
 async def _run(synchronizer: Synchronizer, formatter: Formatter, with_metadata: bool, count: int, redraw: bool) -> None:
-    def process_group(group: tuple[tuple[tuple[Any, TransferFrom], Subscriber[Any]], ...]) -> None:
+    def process_group(group: tuple[tuple[tuple[Any, TransferFrom] | None, Subscriber[Any]], ...]) -> None:
         nonlocal count
         outer: dict[int, dict[str, Any]] = {}
-        # noinspection PyTypeChecker
-        for (msg, meta), subscriber in group:
+        for maybe_msg_meta, subscriber in group:
+            if maybe_msg_meta is None:
+                continue  # Asynchronous mode.
+            msg, meta = maybe_msg_meta
             assert isinstance(meta, TransferFrom) and isinstance(subscriber, Subscriber)
             bi: dict[str, Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
             if with_metadata:

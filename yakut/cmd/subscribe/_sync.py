@@ -9,7 +9,15 @@ import pycyphal
 
 
 SynchronizerOutput = Callable[
-    [Tuple[Tuple[Tuple[Any, pycyphal.transport.TransferFrom], pycyphal.presentation.Subscriber[Any]], ...]],
+    [
+        Tuple[
+            Tuple[
+                Tuple[Any, pycyphal.transport.TransferFrom] | None,
+                pycyphal.presentation.Subscriber[Any],
+            ],
+            ...,
+        ]
+    ],
     None,
 ]
 

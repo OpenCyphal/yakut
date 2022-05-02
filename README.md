@@ -253,7 +253,7 @@ $ y sub 100 110 120 140 150
   voltage: [0.1893310546875, 1.3359375]
 ```
 
-Use `--help` to see additional options (`--redraw` is often useful).
+Use `--help` to see additional options (`--async` and `--redraw` are often useful).
 
 #### Exporting data to computer algebra systems or spreadsheet processors
 

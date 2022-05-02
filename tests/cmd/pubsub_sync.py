@@ -198,3 +198,36 @@ def _unittest_transfer_id(transport_factory: TransportFactory, compiled_dsdl: ty
         {"1000": {"value": "1"}, "2000": {"value": "1"}},
         {"1000": {"value": "2"}, "2000": {"value": "2"}},
     ]
+
+
+def _unittest_async(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    _ = compiled_dsdl
+    proc_sub = Subprocess.cli(
+        "--format=json",
+        "sub",
+        "1000:uavcan.primitive.String",
+        "2000:uavcan.primitive.String",
+        "--no-metadata",
+        "--count=4",
+        "--async",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(10).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    time.sleep(3.0)
+    env = {
+        **transport_factory(11).environment,
+        "YAKUT_PATH": str(OUTPUT_DIR),
+    }
+    execute_cli("pub", "--count=1", "1000:uavcan.primitive.String", "abc", environment_variables=env)
+    execute_cli("pub", "--count=1", "2000:uavcan.primitive.String", "def", environment_variables=env)
+    execute_cli("pub", "--count=2", "1000:uavcan.primitive.String", "ghi", environment_variables=env)
+    out_sub = proc_sub.wait(30.0)[1].splitlines()
+    msgs = list(map(json.loads, out_sub))
+    assert msgs == [
+        {"1000": {"value": "abc"}},
+        {"2000": {"value": "def"}},
+        {"1000": {"value": "ghi"}},
+        {"1000": {"value": "ghi"}},
+    ]

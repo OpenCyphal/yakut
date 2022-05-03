@@ -32,7 +32,7 @@ class Dumper:
 
         # FIXME HACK configure ruamel.yaml to not emit the ellipsis (how?)
         suf = "\n...\n"
-        out = out[: -len(suf)] if out.endswith(suf) else out  # removesuffix() not supported in Python 3.8
+        out = out[:-4] if out.endswith(suf) else out  # The trailing end-of-line shall be kept.
 
         return out
 

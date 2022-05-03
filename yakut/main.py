@@ -318,7 +318,13 @@ def asynchronous(*, interrupted_ok: bool = False) -> Callable[[Callable[..., Awa
             finally:
                 _logger.debug("Event loop finalization with exc=%r", sys.exc_info())
                 try:
-                    loop.set_exception_handler(handle_task_exception)
+                    loop.set_exception_handler(handle_task_exception)  # Reduce severity of exception reports
+
+                    # Suppress finalization errors from PyCyphal https://github.com/OpenCyphal/pycyphal/issues/227
+                    pycyphal_logger = logging.getLogger("pycyphal")
+                    if not pycyphal_logger.isEnabledFor(logging.INFO):  # Do not suppress if verbose
+                        pycyphal_logger.setLevel(logging.CRITICAL)
+
                     orphans = asyncio.all_tasks(loop)
                     if orphans:
                         for ts in orphans:

@@ -45,6 +45,12 @@ and
 
 ### Additional third-party tools
 
+Since Yakut heavily relies on YAML/JSON documents exchanged via stdin/stdout,
+[**`jq`**](https://stedolan.github.io/jq/) is often needed for any non-trivial usage of the tool,
+so consider installing it as well.
+Users of GNU/Linux will likely find it in the default software repositories
+(`pacman -S jq`, `apt install jq`, etc.).
+
 - Cyphal/CAN on GNU/Linux: [`can-utils`](https://github.com/linux-can/can-utils)
 - Cyphal/UDP or Cyphal/CAN: [Wireshark](https://www.wireshark.org/)
   (n.b.: Wireshark might label Cyphal captures as UAVCAN due to rebranding)
@@ -263,15 +269,14 @@ y --format=tsvh sub 1252 1255 --sync-monoclust-arrival > ~/out.tsv
 
 ### Publishing messages
 
-Publishing two messages synchronously twice (four messages total):
+Publishing a message twice (you can use a subscriber as explained earlier to see it on the bus):
 
 ```bash
 export UAVCAN__UDP__IFACE=127.63.0.0
 export UAVCAN__NODE__ID=42
-yakut pub -N2 33:uavcan.si.unit.angle.scalar 2.31 uavcan.diagnostic.record '{text: "2.31 radian"}'
+yakut pub -N2 33:uavcan.si.unit.angle.scalar 2.31
 ```
 
-We did not specify the subject-ID for the second subject, so Yakut defaulted to the fixed subject-ID.
 Like in the case of subscriber, automatic subject type discovery is also available here.
 
 The above example will publish constant values which is rarely useful.
@@ -294,8 +299,8 @@ It allows the user to control distributed processes or equipment in real time, s
 Function `A(x,y)` returns the normalized value of axis `y` from connected controller `x`
 (for full details see `yakut pub --help`);
 likewise, there is `B(x,y)` for push buttons and `T(x,y)` for toggle switches.
-The next example will publish 3D angular velocity setpoint, thrust setpoint, and the arming switch state,
-allowing the user to control these parameters interactively:
+The next example will simultaneously publish 3D angular velocity setpoint, thrust setpoint,
+and the arming switch state, allowing the user to control these parameters interactively:
 
 ```bash
 yakut pub -T 0.1 \
@@ -307,15 +312,12 @@ yakut pub -T 0.1 \
 To see the published values, either launch a subscriber in a new terminal as `y sub 5 6 7`, or add `--verbose`.
 
 Observe that we didn't spell out the field names here (`radian_per_second`, `watt`, `value`)
-because it is actually not required;
+because positional initialization is also supported;
 information on the accepted formats can be found in the documentation in PyCyphal API for
 [`pycyphal.dsdl.update_from_builtin()`](https://pycyphal.readthedocs.io/en/stable/api/pycyphal.dsdl.html#pycyphal.dsdl.update_from_builtin).
 
-The list of connected controllers and how their axes are mapped can be seen using `yakut joystick`,
-as shown in the video:
-
-[![yakut joystick](https://img.youtube.com/vi/YPr98KM1RFM/maxresdefault.jpg)](https://www.youtube.com/watch?v=YPr98KM1RFM)
-
+The list of connected controllers and how their axes are mapped can be seen using `yakut joystick`
+(video: <https://youtube.com/watch?v=YPr98KM1RFM>).
 Here is an example where a MIDI controller is used to interactively change the frequency and amplitude of a sinewave:
 
 [![yakut publish](https://img.youtube.com/vi/DSsI882ZYh0/maxresdefault.jpg)](https://www.youtube.com/watch?v=DSsI882ZYh0)
@@ -362,7 +364,7 @@ The data type name can also be given in all-lowercase for ease of typing.
 Automatic data type discovery is also available here but the service has to be referred by name, not port-ID:
 
 ```bash
-y q 42 least_squares '[[10, 1], [20, 2]]'  # "y q" is shorthand for "yakut call" (see --help for more)
+y q 42 least_squares '[[10, 1], [20, 2]]'  # "y q" is shorthand for "yakut call"
 ```
 
 You can still override the type if you want to use a different one
@@ -399,7 +401,349 @@ implications of low-level packet capture.
 
 ## Working with registers
 
-TODO
+Cyphal registers are typed named values stored locally per-node.
+They are used to establish node configuration, sample diagnostics, read calibration parameters, and more.
+The network service is defined in the standard namespace `uavcan.register`.
+
+Read the list of register names available on a node
+(we are using short names here for brevity; long names are also available but are inconvenient for interactive use):
+
+```shell
+$ y rl 125  # rl is short for register-list
+[drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.Q_eangvel, ...]
+```
+
+You can specify a set of node-IDs like `x-y` which denotes interval `[x, y)`, or a simple list `x,y,z`,
+a list with exclusion `x-y!w,z` which means `[x, y) except w and z`, and so on.
+This is convenient when you are working with a large network interactively.
+One important distinction is that a single node-ID like `125` and a set of node-IDs of one element like `125,`
+are treated differently (kind of like tuples of one element in some programming languages):
+
+```shell
+$ y rl 125,     # Mind the comma! It changes the output to be a mapping of one element.
+125: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.Q_eangvel, ...]
+
+$ y rl 122-126  # Produce list of register names per node
+122: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.Q_eangvel, ...]
+123: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.Q_eangvel, ...]
+124: [vsi.pins, vsi.pwm_dead_time, vsi.pwm_freq, vsi.shortest_time_in_disabled_state, ...]
+125: [vsi.pins, vsi.pwm_dead_time, vsi.pwm_freq, vsi.shortest_time_in_disabled_state, ...]
+```
+
+The distinction between grouped and flat output becomes relevant when this command is combined with others,
+like `register-batch` (short `rb`):
+
+```shell
+$ y rl 122-126 | y rb  # Read all registers from nodes 122,123,124,125
+122:
+  drv.acm.std.pppwm_threshold: 0.8999999761581421
+  drv.acm.std.xcoupling_inductance_compensation: false
+  drv.obs.ekf.Q_eangvel: 3000000.0
+  # output truncated for clarity...
+123:
+  drv.acm.std.pppwm_threshold: 0.8999999761581421
+  drv.acm.std.xcoupling_inductance_compensation: false
+  drv.obs.ekf.Q_eangvel: 3000000.0
+  # ...
+124:
+  vsi.pins: [0, 0, 3, 1, 1]
+  vsi.pwm_dead_time: 0.0
+  vsi.pwm_freq: 47009.6640625
+  vsi.shortest_time_in_disabled_state: 1.9999999494757503e-05
+  # ...
+125:
+  vsi.pins: [0, 0, 3, 1, 1]
+  vsi.pwm_dead_time: 0.0
+  vsi.pwm_freq: 47009.6640625
+  vsi.shortest_time_in_disabled_state: 1.9999999494757503e-05
+  # ...
+```
+
+In the above invocation the register-batch (`rb`) command will obtain the list of register names per node from stdin.
+It is also possible to provide a flat list of names to sample the same registers from multiple nodes,
+but in this case the register-batch command needs to be given a list of nodes explicitly,
+since it is no longer contained in the directive read from stdin:
+
+```shell
+$ y rl 125 | jq 'map(select(test("sys.+")))' > sys_register_names.json   # using jq to filter the list
+
+$ cat sys_register_names.json
+[
+  "sys.debug",
+  "sys.info.mem",
+  "sys.info.time"
+]
+
+$ cat sys_register_names.json | y rb 122-126
+122:
+  sys.debug: true
+  sys.info.mem: [4096, 160, 16384, 13536, 100704, 40064, 44160, 888, 0]
+  sys.info.time: [6.333333431030042e-07, 5.0099999498343095e-05]
+123:
+  sys.debug: true
+  sys.info.mem: [4096, 160, 16384, 13536, 100704, 40064, 44160, 888, 0]
+  sys.info.time: [6.333333431030042e-07, 4.9966667575063184e-05]
+124:
+  sys.debug: true
+  sys.info.mem: [4096, 160, 16384, 13536, 100704, 40064, 44160, 888, 0]
+  sys.info.time: [6.333333431030042e-07, 5.008888911106624e-05]
+125:
+  sys.debug: true
+  sys.info.mem: [4096, 160, 16384, 13536, 100704, 40832, 44928, 888, 0]
+  sys.info.time: [6.333333431030042e-07, 5.008888911106624e-05]
+```
+
+Notice that unless the output format is given explicitly via `--format`,
+Yakut defaults to YAML if stdout is connected to the terminal for the benefit of the human,
+otherwise (in case of piping/redirection) the default is JSON which enables compatibility with `jq` and similar tools.
+
+Option `--only=mp` can be given to `register-batch` (`rb`) to show only mutable-persistent registers;
+see `--help` for more info.
+This is useful when you want to store the configuration parameters of a given node (or several).
+
+To interactively read/write a single register on one or several nodes use `yakut register`, or simply `y r`:
+
+```shell
+$ y r 125 sys.debug         # Read register
+true
+
+$ y r 125 sys.debug 0       # Write register
+false                       # New value returned by the node after assignment
+
+$ y r 122-126 m.inductance_dq   # Read from several nodes; output grouped by node-ID
+122: [1.2549953680718318e-05, 1.2549953680718318e-05]
+123: [1.2549953680718318e-05, 1.2549953680718318e-05]
+124: [1.2549953680718318e-05, 1.2549953680718318e-05]
+125: [1.2549953680718318e-05, 1.2549953680718318e-05]
+
+$ y r 122-126 m.inductance_dq 13e-6 12e-6   # Change register on several nodes
+122: [1.3e-05, 1.2e-05]
+123: [1.3e-05, 1.2e-05]
+124: [1.3e-05, 1.2e-05]
+125: [1.3e-05, 1.2e-05]
+
+$ y r 125, m.inductance_dq --detailed  # Show type and force node-ID grouping with comma
+125:
+  real32:
+    value: [1.2999999853491317e-05, 1.2000000424450263e-05]
+
+$ y r 125, m.inductance_dq --detailed --detailed  # Show even more information
+125:
+  real32:
+    value: [1.2999999853491317e-05, 1.2000000424450263e-05]
+  _meta_: {mutable: true, persistent: true}
+ 
+$ y r 125 no.such.register   # If there is no such register, we get a null (empty)
+null
+```
+
+The accepted value representations are specified in the standard register service documentation
+`uavcan.register.Access` in the section on environment variables.
+
+Perhaps one of the most important use cases for the register tools is to save the node configuration into a YAML file,
+then edit that file manually to keep only relevant parameters,
+and use that later to configure the entire network in one command.
+
+## Execute standard and custom commands
+
+The standard RPC-service `uavcan.node.ExecuteCommand` allows one to perform certain standard and vendor-specific
+activities on the node.
+Yakut provides `execute-command`, or simply `cmd`, as a more convenient alternative to calling
+`yakut call uavcan.node.ExecuteCommand` manually:
+
+```shell
+# "emergency" is an abbreviation of "COMMAND_EMERGENCY_STOP", the code is 65531.
+$ y cmd 125 emergency
+{status: 0}
+
+# Restart nodes 122,123,124,125; instead of "restart" one could say 65535.
+$ y cmd 122-126 restart
+122: {status: 0}
+123: {status: 0}
+124: {status: 0}
+125: {status: 0}
+
+# Reset 128 nodes to factory defaults concurrently, do not wait/check responses.
+$ y cmd -e 0-128 factory_reset
+# (output not shown)
+
+# Install the same software image on multiple nodes
+# (a file server would be required though; there is a separate command for that).
+$ y cmd 122-126 begin_software_update "/path/to/firmware.app.bin"
+
+# Execute a vendor-specific command 42 with some argument.
+$ y cmd 122-126 42 'some command argument'
+```
+
+## Node configuration example
+
+Suppose we have a bunch of similar nodes that we want to configure.
+First we need to dump the mutable-persistent registers into a YAML file:
+
+```shell
+y rl 125, | y --format=yaml rb --only=mp > cyphal_config.yaml
+```
+
+Then edit that file manually to remove irrelevant parameters and copy those that should be different per node.
+Suppose that when we are done with editing we end up with something like this
+(notice how we use the YAML dict merge syntax to avoid repetition):
+
+```yaml
+122: &prototype
+  m.pole_count:             24
+  m.current_max:            50
+  m.resistance:             0.03427
+  m.inductance_dq:          [12.55e-06, 12.55e-06]
+  m.flux_linkage:           0.001725
+  m.current_ramp:           1000.0
+  m.voltage_ramp:           20.0
+  m.velocity_accel_decel:   [7000.0, 5000.0]
+  m.fw_voltage_boost:       1.0
+
+  mns.pub_interval_min:             0.005
+  mns.ratiometric_setpoint_min:     0.03
+  mns.ratiometric_to_absolute_mul:  0.0
+  mns.setpoint_index:               0
+
+  uavcan.can.bitrate: [1000000, 0]
+  uavcan.can.count: 1
+
+  uavcan.pub.dynamics.id:           1222
+  uavcan.pub.feedback.id:           1223
+  uavcan.pub.power.id:              1225
+  uavcan.pub.compact.id:            0xFFFF  # disabled
+  uavcan.pub.dq.id:                 0xFFFF  # disabled
+  uavcan.pub.status.id:             0xFFFF  # disabled
+
+  uavcan.sub.readiness.id:          10
+  uavcan.sub.setpoint_dyn.id:       0xFFFF  # disabled
+  uavcan.sub.setpoint_r_torq.id:    0xFFFF  # disabled
+  uavcan.sub.setpoint_r_torq_u9.id: 0xFFFF  # disabled
+  uavcan.sub.setpoint_r_volt.id:    14
+  uavcan.sub.setpoint_r_volt_u9.id: 0xFFFF  # disabled
+  uavcan.sub.setpoint_vel.id:       0xFFFF  # disabled
+
+  uavcan.srv.low_level_io.id:       0xFFFF  # disabled
+
+123:  # This item is for node-ID 123, and so on.
+  # The construct below is the YAML dict merge statement.
+  # It makes this entry inherit all parameters from the above
+  # but the inherited keys can be overridden.
+  <<: *prototype
+  uavcan.pub.dynamics.id:   1230  # Override this subject.
+  uavcan.pub.feedback.id:   1231  # and so on...
+  uavcan.pub.power.id:      1232
+  mns.setpoint_index:       1
+
+124:
+  <<: *prototype
+  uavcan.pub.dynamics.id:   1240
+  uavcan.pub.feedback.id:   1241
+  uavcan.pub.power.id:      1242
+  mns.setpoint_index:       2
+
+125:
+  <<: *prototype
+  uavcan.pub.dynamics.id:   1250
+  uavcan.pub.feedback.id:   1251
+  uavcan.pub.power.id:      1252
+  mns.setpoint_index:       3
+```
+
+The above is a valid register file that is both human-friendly and can be understood by `yakut register-batch`.
+Then to deploy the configuration to the network we need to do simply:
+
+```shell
+cat cyphal_config.yaml | y rb
+```
+
+Alternatively (same result, different syntax; this option may be more convenient for Windows users):
+
+```shell
+y rb --file=cyphal_config.yaml
+```
+
+When the configuration is deployed, we will probably need to restart the nodes for the changes to take effect:
+
+```shell
+$ y cmd 122-126 restart -e
+Responses not checked as requested
+122: {status: 0}
+123: {status: 0}
+124: {status: 0}
+125: {status: 0}
+```
+
+Now in this example we are dealing with motor controllers,
+so let's spin one motor (controlled by joystick) for testing purposes
+(the subject mapping is defined in the YAML file we just wrote):
+
+```shell
+# Publish on two subjects: 10 with auto-discovered type; 14 with explicit type.
+y pub -T 0.01 \
+  10 '!$ 3*T(1,23)' \
+  14:reg.udral.service.actuator.common.sp.Vector6.0.1 '!$ "[0, 0, 0, A(1,3)-A(1,4), 0, 0]"
+```
+
+Subscribe to telemetry from one of the nodes:
+
+```shell
+$ y sub 1250 1251 1252 --sync-mca
+---
+1250:
+  timestamp: {microsecond: 0}
+  value:
+    kinematics:
+      angular_position: {radian: -0.04534203186631203}
+      angular_velocity: {radian_per_second: 16.172361373901367}
+      angular_acceleration: {radian_per_second_per_second: 0.08729696273803711}
+    torque: {newton_meter: 0.019268255680799484}
+1251:
+  heartbeat:
+    readiness: {value: 3}
+    health: {value: 0}
+  demand_factor_pct: 1
+1252:
+  timestamp: {microsecond: 0}
+  value:
+    current: {ampere: 0.013030902482569218}
+    voltage: {volt: 24.99659538269043}
+# ...
+```
+
+Fetch the port-ID and type information directly from the running nodes:
+
+```yaml
+# You can pipe the last output through "jq" (without arguments) to get a nicely formatted and colored JSON.
+$ y rl 122-126 | jq 'map_values([.[] | select(test("uavcan.+(id|type)"))])' | y rb
+122: {uavcan.node.id: 122, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1222, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1223, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1225, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
+123: {uavcan.node.id: 123, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1230, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1231, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1232, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
+124: {uavcan.node.id: 124, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1240, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1241, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1242, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
+125: {uavcan.node.id: 125, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1250, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1251, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1252, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
+```
+
+The most important diagnostic tool is `yakut monitor`.
+If you run it you should see the state of the entire network at a glance:
+
+<img src="docs/monitor_esc_spinning.png" alt="Yakut monitor on a live network with one motor spinning">
+
+You can see the data published by our publisher command to subjects 10 and 14 in the upper-left corner
+of the matrix,
+and further to the right you can see that several other nodes consume data from these subjects
+(specifically they are our motor controllers and the monitor itself).
+Then there is a staggered diagonal structure showing each of the motor controllers publishing telemetry
+on its own set of subjects.
+The one that is currently running the motor publishes at 100 Hz, others (that are idle) are limited to 1 Hz.
+
+The service traffic is shown to be zero which is usually the normal state for any operational network.
+If you run a command that needs network discovery you will see some brief activity there.
+
+The summary rows/columns show the total traffic in transfers per second and bytes per second per subject and per node.
+The totals shown at the very bottom-right corner are the total network utilization estimated at the application layer
+(in this specific example the network carries 516 transfers per second,
+6 kibibytes of application-layer payload per second).
+
+There are some transport-layer errors reported by the tool that are due to the suboptimal wiring configuration.
 
 ## Updating node software
 

@@ -3,7 +3,6 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-import asyncio
 import math
 from typing import Tuple, List, Sequence, Callable, Any, Dict
 import dataclasses

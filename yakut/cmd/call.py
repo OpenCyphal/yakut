@@ -7,7 +7,6 @@ import sys
 from typing import Any, Callable, TYPE_CHECKING
 import decimal
 from functools import lru_cache
-import asyncio
 import click
 import pycyphal
 import yakut

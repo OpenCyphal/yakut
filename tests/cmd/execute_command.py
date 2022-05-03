@@ -6,9 +6,9 @@ from __future__ import annotations
 import asyncio
 from typing import Any, AsyncIterable, Callable, Awaitable
 import json
-import pycyphal
-import pytest
 import concurrent.futures
+import pytest
+import pycyphal
 from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 from tests.subprocess import execute_cli

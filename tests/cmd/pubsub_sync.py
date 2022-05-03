@@ -20,7 +20,7 @@ def _unittest_monoclust_ts_field_auto(transport_factory: TransportFactory, compi
         "2000:uavcan.si.sample.mass.Scalar",
         "--no-metadata",
         "--count=3",
-        "--sync-monoclust",  # Automatic tolerance setting.
+        "--smcf",  # Automatic tolerance setting.
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
@@ -65,7 +65,7 @@ def _unittest_monoclust_ts_field_manual(transport_factory: TransportFactory, com
         "1000:uavcan.si.sample.mass.Scalar",
         "2000:uavcan.si.sample.mass.Scalar",
         "--no-metadata",
-        "--sync-monoclust=0.25",  # Fixed tolerance setting; count not limited
+        "--smcf=0.25",  # Fixed tolerance setting; count not limited
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
@@ -112,7 +112,7 @@ def _unittest_monoclust_ts_field_type_not_timestamped(
         "sub",
         "1000:uavcan.si.unit.mass.Scalar",
         "2000:uavcan.si.unit.mass.Scalar",
-        "--sync-monoclust",  # Require timestamp field matching but the data types have no such field
+        "--smcf",  # Require timestamp field matching but the data types have no such field
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
@@ -135,7 +135,7 @@ def _unittest_monoclust_ts_arrival_auto(transport_factory: TransportFactory, com
         "2000:uavcan.primitive.String",
         "--no-metadata",
         "--count=3",
-        "--sync-monoclust-arrival",  # Automatic tolerance setting.
+        "--smca",  # Automatic tolerance setting.
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
@@ -172,7 +172,7 @@ def _unittest_transfer_id(transport_factory: TransportFactory, compiled_dsdl: ty
         "2000:uavcan.primitive.String",
         "--no-metadata",
         "--count=3",
-        "--sync-transfer-id",
+        "--stid",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),

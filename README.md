@@ -215,7 +215,7 @@ $ yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata
 If more than one subject is specified, the default behavior is to output each received message separately.
 Often there are synchronous subjects that are updated in lockstep,
 where it is desirable to group received messages pertaining to the same time point into *synchronized groups*.
-This can be achieved with options like `--sync-monoclust`, `--sync-monoclust-arrival`, `--sync-transfer-id`,
+This can be achieved with options like `--sync-monoclust-field`, `--sync-monoclust-arrival`, `--sync-transfer-id`,
 which select different
 [synchronization policies](https://pycyphal.readthedocs.io/en/stable/api/pycyphal.presentation.subscription_synchronizer.html)
 (see `--help` for technical details).
@@ -262,7 +262,7 @@ The TSV format option can be used to export data for offline analysis using Pand
 To see all available options use `yakut --help`.
 
 ```bash
-y --tsvh sub 1252 1255 --sync-monoclust-arrival > ~/out.tsv
+y --tsvh sub 1252 1255 --sync > ~/out.tsv
 ```
 
 <img src="docs/jupyter.png" alt="Pandas import">
@@ -600,7 +600,7 @@ Suppose that when we are done with editing we end up with something like this
 (notice how we use the YAML dict merge syntax to avoid repetition):
 
 ```yaml
-122: &prototype
+122: &prototype_esc
   m.pole_count:             24
   m.current_max:            50
   m.resistance:             0.03427
@@ -640,21 +640,21 @@ Suppose that when we are done with editing we end up with something like this
   # The construct below is the YAML dict merge statement.
   # It makes this entry inherit all parameters from the above
   # but the inherited keys can be overridden.
-  <<: *prototype
+  <<: *prototype_esc
   uavcan.pub.dynamics.id:   1230  # Override this subject.
   uavcan.pub.feedback.id:   1231  # and so on...
   uavcan.pub.power.id:      1232
   mns.setpoint_index:       1
 
 124:
-  <<: *prototype
+  <<: *prototype_esc
   uavcan.pub.dynamics.id:   1240
   uavcan.pub.feedback.id:   1241
   uavcan.pub.power.id:      1242
   mns.setpoint_index:       2
 
 125:
-  <<: *prototype
+  <<: *prototype_esc
   uavcan.pub.dynamics.id:   1250
   uavcan.pub.feedback.id:   1251
   uavcan.pub.power.id:      1252
@@ -699,7 +699,7 @@ y pub -T 0.01 \
 Subscribe to telemetry from one of the nodes:
 
 ```shell
-$ y sub 1250 1251 1252 --sync-mca
+$ y sub 1250 1251 1252 --sync
 ---
 1250:
   timestamp: {microsecond: 0}

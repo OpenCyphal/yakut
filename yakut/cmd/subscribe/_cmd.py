@@ -145,8 +145,8 @@ Exit automatically after this many messages (or synchronous message groups) have
     help="Clear terminal before printing output. This option only has effect if stdout is a tty.",
 )
 @click.option(
-    "--sync-monoclust",
-    "--sync-mc",
+    "--sync-monoclust-field",
+    "--smcf",
     callback=_handle_option_synchronizer_monoclust_timestamp_field,
     expose_value=False,
     type=float,
@@ -160,7 +160,8 @@ The optional value is the synchronization tolerance in seconds; autodetect if no
 )
 @click.option(
     "--sync-monoclust-arrival",
-    "--sync-mca",
+    "--smca",
+    "--sync",  # This is currently the default because it works with any data type.
     callback=_handle_option_synchronizer_monoclust_timestamp_arrival,
     expose_value=False,
     type=float,
@@ -174,7 +175,7 @@ The optional value is the synchronization tolerance in seconds; autodetect if no
 )
 @click.option(
     "--sync-transfer-id",
-    "--sync-tid",
+    "--stid",
     callback=_handle_option_synchronizer_transfer_id,
     expose_value=False,
     is_flag=True,

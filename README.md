@@ -433,7 +433,7 @@ $ y rl 122-126  # Produce list of register names per node
 The distinction between grouped and flat output becomes relevant when this command is combined with others,
 like `register-batch` (short `rb`):
 
-```shell
+```yaml
 $ y rl 122-126 | y rb  # Read all registers from nodes 122,123,124,125
 122:
   drv.acm.std.pppwm_threshold: 0.8999999761581421
@@ -464,7 +464,7 @@ It is also possible to provide a flat list of names to sample the same registers
 but in this case the register-batch command needs to be given a list of nodes explicitly,
 since it is no longer contained in the directive read from stdin:
 
-```shell
+```yaml
 $ y rl 125 | jq 'map(select(test("sys.+")))' > sys_register_names.json   # using jq to filter the list
 
 $ cat sys_register_names.json
@@ -551,7 +551,7 @@ activities on the node.
 Yakut provides `execute-command`, or simply `cmd`, as a more convenient alternative to calling
 `yakut call uavcan.node.ExecuteCommand` manually:
 
-```shell
+```yaml
 # "emergency" is an abbreviation of "COMMAND_EMERGENCY_STOP", the code is 65531.
 $ y cmd 125 emergency
 {status: 0}
@@ -608,9 +608,9 @@ Suppose that when we are done with editing we end up with something like this
   uavcan.can.bitrate: [1000000, 0]
   uavcan.can.count: 1
 
-  uavcan.pub.dynamics.id:           1222
-  uavcan.pub.feedback.id:           1223
-  uavcan.pub.power.id:              1225
+  uavcan.pub.dynamics.id:           1220
+  uavcan.pub.feedback.id:           1221
+  uavcan.pub.power.id:              1222
   uavcan.pub.compact.id:            0xFFFF  # disabled
   uavcan.pub.dq.id:                 0xFFFF  # disabled
   uavcan.pub.status.id:             0xFFFF  # disabled
@@ -665,7 +665,7 @@ y rb --file=cyphal_config.yaml
 
 When the configuration is deployed, we will probably need to restart the nodes for the changes to take effect:
 
-```shell
+```yaml
 $ y cmd 122-126 restart -e
 Responses not checked as requested
 122: {status: 0}
@@ -687,7 +687,7 @@ y pub -T 0.01 \
 
 Subscribe to telemetry from one of the nodes:
 
-```shell
+```yaml
 $ y sub 1250 1251 1252 --sync-mca
 ---
 1250:
@@ -716,7 +716,7 @@ Fetch the port-ID and type information directly from the running nodes:
 ```yaml
 # You can pipe the last output through "jq" (without arguments) to get a nicely formatted and colored JSON.
 $ y rl 122-126 | jq 'map_values([.[] | select(test("uavcan.+(id|type)"))])' | y rb
-122: {uavcan.node.id: 122, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1222, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1223, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1225, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
+122: {uavcan.node.id: 122, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1220, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1221, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1222, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
 123: {uavcan.node.id: 123, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1230, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1231, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1232, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
 124: {uavcan.node.id: 124, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1240, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1241, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1242, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
 125: {uavcan.node.id: 125, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1250, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1251, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1252, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}

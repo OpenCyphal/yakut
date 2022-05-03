@@ -22,14 +22,14 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "YAKUT_PATH": str(OUTPUT_DIR),
     }
     proc_sub_heartbeat = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "uavcan.node.heartbeat",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "4321:uavcan.diagnostic.record",
         "--count=3",
@@ -37,14 +37,14 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         environment_variables=env,
     )
     proc_sub_diagnostic_wrong_pid = Subprocess.cli(
-        "--format=yaml",
+        "-y",
         "sub",
         "uavcan.diagnostic.record",
         "--count=3",
         environment_variables=env,
     )
     proc_sub_temperature = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "555:uavcan.si.sample.temperature.scalar",
         "--count=3",
@@ -77,7 +77,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     _, stdout, _ = execute_cli(
         f"--transport={transport_factory(52).expression}",
         f"--path={OUTPUT_DIR}",
-        "--format=yaml",
+        "-y",
         "call",
         "51",
         "uavcan.node.getinfo.1.0",
@@ -150,21 +150,21 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "YAKUT_PATH": str(OUTPUT_DIR),
     }
     proc_sub_heartbeat = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "sub",
         "uavcan.node.heartbeat",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_with_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "sub",
         "uavcan.diagnostic.record",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_no_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "sub",
         "uavcan.diagnostic.record",
         "--no-metadata",
@@ -225,7 +225,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
 def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.primitive.string",
         "2000:uavcan.primitive.string",
@@ -274,7 +274,7 @@ def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_ds
     )
     time.sleep(3.0)  # Let the publisher boot up.
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000",  # Use discovery.
         "2000",  # Use discovery.

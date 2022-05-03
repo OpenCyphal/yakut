@@ -20,7 +20,7 @@ def _unittest_publish_expression_a(compiled_dsdl: typing.Any, serial_broker: str
     }
 
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "7654:uavcan.primitive.array.Real64.1.0",
         environment_variables=env,
@@ -71,7 +71,7 @@ def _unittest_publish_expression_b(compiled_dsdl: typing.Any, serial_broker: str
     }
 
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "7654:uavcan.primitive.String.1.0",
         environment_variables=env,

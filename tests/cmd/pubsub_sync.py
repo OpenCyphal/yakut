@@ -14,7 +14,7 @@ from tests.transport import TransportFactory
 def _unittest_monoclust_ts_field_auto(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.si.sample.mass.Scalar",
         "2000:uavcan.si.sample.mass.Scalar",
@@ -60,7 +60,7 @@ def _unittest_monoclust_ts_field_auto(transport_factory: TransportFactory, compi
 def _unittest_monoclust_ts_field_manual(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.si.sample.mass.Scalar",
         "2000:uavcan.si.sample.mass.Scalar",
@@ -129,7 +129,7 @@ def _unittest_monoclust_ts_field_type_not_timestamped(
 def _unittest_monoclust_ts_arrival_auto(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.primitive.String",
         "2000:uavcan.primitive.String",
@@ -166,7 +166,7 @@ def _unittest_monoclust_ts_arrival_auto(transport_factory: TransportFactory, com
 def _unittest_transfer_id(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.primitive.String",
         "2000:uavcan.primitive.String",
@@ -203,7 +203,7 @@ def _unittest_transfer_id(transport_factory: TransportFactory, compiled_dsdl: ty
 def _unittest_async(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.primitive.String",
         "2000:uavcan.primitive.String",

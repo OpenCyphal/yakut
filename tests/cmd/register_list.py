@@ -91,7 +91,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
     try:
         # Not keyed by node-ID.
         status, stdout, _ = execute_cli(
-            "--format=json",
+            "-j",
             "register-list",
             "10",
             environment_variables={
@@ -107,7 +107,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
 
         # Keyed by node-ID.
         status, stdout, _ = execute_cli(
-            "--format=json",
+            "-j",
             "register-list",
             "10,",  # Mind the comma!
             environment_variables={
@@ -123,7 +123,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
 
         # Poll non-existent nodes.
         status, stdout, _ = execute_cli(
-            "--format=json",
+            "-j",
             "register-list",
             "10..13",
             environment_variables={
@@ -142,7 +142,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
 
         # Same but no error.
         status, stdout, _ = execute_cli(
-            "--format=json",
+            "-j",
             "register-list",
             "10..13",
             "--optional-service",

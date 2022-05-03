@@ -153,7 +153,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
     try:
         # READ EXISTING REGISTER, MAP OUTPUT
         status, stdout, _ = execute_cli(
-            "--format=json",
+            "-j",
             "register-access",
             "10,",
             expect_register,
@@ -170,7 +170,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
 
         # READ EXISTING REGISTER, FLAT OUTPUT
         status, stdout, _ = execute_cli(
-            "--format=json",
+            "-j",
             "register-access",
             "10",
             expect_register,
@@ -186,7 +186,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
 
         # MODIFY REGISTER, MAP OUTPUT
         status, stdout, _ = execute_cli(
-            "--format=json",
+            "-j",
             "register-access",
             "10,",
             expect_register,

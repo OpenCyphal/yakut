@@ -30,24 +30,27 @@ FormatterFactory = Callable[[FormatterHints], Formatter]
 
 
 def formatter_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
-    def validate(ctx: click.Context, param: object, value: str) -> FormatterFactory:
-        _ = ctx, param
-        try:
-            return _FORMATTERS[value.upper()]
-        except LookupError:
-            raise click.BadParameter(f"Invalid format name: {value!r}") from None
+    override: str | None = None
 
-    choices = list(_FORMATTERS.keys())
-    default = choices[0]
+    def install_override(_ctx: click.Context, _param: click.Parameter, value: str) -> None:
+        nonlocal override
+        override = value or override
+
+    def validate(ctx: click.Context, param: click.Parameter, value: str) -> FormatterFactory:
+        try:
+            return _FORMATTERS[(override or value).upper()]
+        except LookupError:
+            raise click.BadParameter(f"Invalid format name: {value!r}", ctx=ctx, param=param) from None
+
     doc = f"""
 The format of data printed to stdout.
-This option is only relevant for commands that produce data (pub, call, etc.); other commands ignore it.
+This option is only relevant for commands that produce data (sub, call, etc.).
 
 The final representation of the output data is constructed from an intermediate "builtin-based" representation,
 which is a simplified form that is stripped of the detailed DSDL type information, like JSON.
 For more info please read the PyCyphal documentation on builtin-based representations.
 
-Option "auto" selects YAML if the output is shown on the terminal for the benefit of the user;
+Option "auto" (default) selects YAML if the output is shown on the terminal for the benefit of the user;
 if the output is redirected (e.g., piped to another command or to a file),
 JSON is selected to enable compatibility with jq and other 3rd-party stream processing tools.
 It helps to remember that JSON is a subset of YAML.
@@ -68,12 +71,28 @@ reader understand the structure of the data without looking at the headers.
         "-F",
         "formatter_factory",
         envvar="YAKUT_FORMAT",
-        type=click.Choice(choices, case_sensitive=False),
+        type=click.Choice(list(_FORMATTERS.keys()), case_sensitive=False),
         callback=validate,
-        default=default,
+        default=list(_FORMATTERS.keys())[0],
         show_default=True,
         help=doc,
     )(f)
+
+    def shortcut(opt: str) -> None:
+        nonlocal f
+        f = click.option(
+            f"--{opt}",
+            "-" + opt[0],
+            flag_value=opt,
+            callback=install_override,
+            help=f"Same as --format={opt}",
+            is_eager=True,
+            expose_value=False,
+        )(f)
+
+    shortcut("yaml")
+    shortcut("json")
+    shortcut("tsvh")
     return f
 
 

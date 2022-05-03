@@ -262,7 +262,7 @@ The TSV format option can be used to export data for offline analysis using Pand
 To see all available options use `yakut --help`.
 
 ```bash
-y --format=tsvh sub 1252 1255 --sync-monoclust-arrival > ~/out.tsv
+y --tsvh sub 1252 1255 --sync-monoclust-arrival > ~/out.tsv
 ```
 
 <img src="docs/jupyter.png" alt="Pandas import">
@@ -493,7 +493,7 @@ $ cat sys_register_names.json | y rb 122-126
   sys.info.time: [6.333333431030042e-07, 5.008888911106624e-05]
 ```
 
-Notice that unless the output format is given explicitly via `--format`,
+Notice that unless the output format is given explicitly (as `--json`, `--yaml`, etc.),
 Yakut defaults to YAML if stdout is connected to the terminal for the benefit of the human,
 otherwise (in case of piping/redirection) the default is JSON which enables compatibility with `jq` and similar tools.
 
@@ -590,7 +590,9 @@ Suppose we have a bunch of similar nodes that we want to configure.
 First we need to dump the mutable-persistent registers into a YAML file:
 
 ```shell
-y rl 125, | y --format=yaml rb --only=mp > cyphal_config.yaml
+# This option   ↓↓↓↓ is needed to force YAML output. It would default to JSON because the output is redirected.
+y rl 125, | y --yaml rb --only=mp > cyphal_config.yaml
+# The filter option here  ↑↑↑↑↑↑↑ keeps only mutable persistent registers in the output.
 ```
 
 Then edit that file manually to remove irrelevant parameters and copy those that should be different per node.

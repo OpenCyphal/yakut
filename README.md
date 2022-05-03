@@ -504,36 +504,43 @@ This is useful when you want to store the configuration parameters of a given no
 To interactively read/write a single register on one or several nodes use `yakut register`, or simply `y r`:
 
 ```shell
-$ y r 125 sys.debug         # Read register
+# Read register:
+$ y r 125 sys.debug
 true
 
-$ y r 125 sys.debug 0       # Write register
-false                       # New value returned by the node after assignment
+# Write register:
+$ y r 125 sys.debug 0
+false                 # New value returned by the node after assignment
 
-$ y r 122-126 m.inductance_dq   # Read from several nodes; output grouped by node-ID
+# Read from several nodes; output grouped by node-ID:
+$ y r 122-126 m.inductance_dq
 122: [1.2549953680718318e-05, 1.2549953680718318e-05]
 123: [1.2549953680718318e-05, 1.2549953680718318e-05]
 124: [1.2549953680718318e-05, 1.2549953680718318e-05]
 125: [1.2549953680718318e-05, 1.2549953680718318e-05]
 
-$ y r 122-126 m.inductance_dq 13e-6 12e-6   # Change register on several nodes
+# Change register on several nodes:
+$ y r 122-126 m.inductance_dq 13e-6 12e-6
 122: [1.3e-05, 1.2e-05]
 123: [1.3e-05, 1.2e-05]
 124: [1.3e-05, 1.2e-05]
 125: [1.3e-05, 1.2e-05]
 
-$ y r 125, m.inductance_dq --detailed  # Show type and force node-ID grouping with comma
+# Show type and force node-ID grouping with comma:
+$ y r 125, m.inductance_dq --detailed
 125:
   real32:
     value: [1.2999999853491317e-05, 1.2000000424450263e-05]
 
-$ y r 125, m.inductance_dq --detailed --detailed  # Show even more information
+# Show even more information:
+$ y r 125, m.inductance_dq --detailed --detailed
 125:
   real32:
     value: [1.2999999853491317e-05, 1.2000000424450263e-05]
   _meta_: {mutable: true, persistent: true}
  
-$ y r 125 no.such.register   # If there is no such register, we get a null (empty)
+# If there is no such register, we get a null (empty):
+$ y r 125 no.such.register
 null
 ```
 
@@ -565,14 +572,16 @@ $ y cmd 122-126 restart
 
 # Reset 128 nodes to factory defaults concurrently, do not wait/check responses.
 $ y cmd -e 0-128 factory_reset
-# (output not shown)
+# ...
 
 # Install the same software image on multiple nodes
 # (a file server would be required though; there is a separate command for that).
 $ y cmd 122-126 begin_software_update "/path/to/firmware.app.bin"
+# ...
 
 # Execute a vendor-specific command 42 with some argument.
 $ y cmd 122-126 42 'some command argument'
+# ...
 ```
 
 ## Node configuration example
@@ -714,7 +723,7 @@ $ y sub 1250 1251 1252 --sync-mca
 Fetch the port-ID and type information directly from the running nodes:
 
 ```shell
-# You can pipe the last output through "jq" (without arguments) to get a nicely formatted and colored JSON.
+# You can pipe the last output through "jq" to get a nicely formatted and colored JSON.
 $ y rl 122-126 | jq 'map_values([.[] | select(test("uavcan.+(id|type)"))])' | y rb
 122: {uavcan.node.id: 122, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1220, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1221, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1222, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
 123: {uavcan.node.id: 123, uavcan.pub.compact.id: 65535, uavcan.pub.compact.type: zubax.telega.CompactFeedback.0.1, uavcan.pub.dq.id: 65535, uavcan.pub.dq.type: zubax.telega.DQ.0.1, uavcan.pub.dynamics.id: 1230, uavcan.pub.dynamics.type: reg.udral.physics.dynamics.rotation.PlanarTs.0.1, uavcan.pub.feedback.id: 1231, uavcan.pub.feedback.type: reg.udral.service.actuator.common.Feedback.0.1, uavcan.pub.power.id: 1232, uavcan.pub.power.type: reg.udral.physics.electricity.PowerTs.0.1, uavcan.pub.status.id: 65535, uavcan.pub.status.type: reg.udral.service.actuator.common.Status.0.1, uavcan.srv.low_level_io.id: 65535, uavcan.srv.low_level_io.type: zubax.low_level_io.Access.0.1, uavcan.sub.readiness.id: 10, uavcan.sub.readiness.type: reg.udral.service.common.Readiness.0.1, uavcan.sub.setpoint_dyn.id: 65535, uavcan.sub.setpoint_dyn.type: reg.udral.physics.dynamics.rotation.Planar.0.1, uavcan.sub.setpoint_r_torq.id: 65535, uavcan.sub.setpoint_r_torq.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_torq_u9.id: 65535, uavcan.sub.setpoint_r_torq_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_r_volt.id: 14, uavcan.sub.setpoint_r_volt.type: reg.udral.service.actuator.common.sp.Vector31.0.1, uavcan.sub.setpoint_r_volt_u9.id: 65535, uavcan.sub.setpoint_r_volt_u9.type: zubax.telega.setpoint.Raw9x56.0.1, uavcan.sub.setpoint_vel.id: 65535, uavcan.sub.setpoint_vel.type: reg.udral.service.actuator.common.sp.Vector31.0.1}
@@ -731,7 +740,7 @@ You can see the data published by our publisher command to subjects 10 and 14 in
 of the matrix,
 and further to the right you can see that several other nodes consume data from these subjects
 (specifically they are our motor controllers and the monitor itself).
-Then there is a staggered diagonal structure showing each of the motor controllers publishing telemetry
+Then there is the staggered diagonal structure showing each of the motor controllers publishing telemetry
 on its own set of subjects.
 The one that is currently running the motor publishes at 100 Hz, others (that are idle) are limited to 1 Hz.
 

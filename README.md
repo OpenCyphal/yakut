@@ -17,7 +17,7 @@ First, make sure to [have Python installed](https://docs.python.org/3/using/inde
 
 Install Yakut: **`pip install yakut`**
 
-By default, Yakut does not support joysticks or MIDI controllers (this feature is described below in section [Publishing messages](#publishing-messages)). To enable the support for input devices, install the optional dependency: **`pip install yakut[joystick]`**. GNU/Linux users will need to also install: [SDL2](https://libsdl.org), possibly libjack (with headers), possibly libasound2 (with headers) (if you are using a Debian-based distro, the required packages are: `libsdl2-dev libasound2-dev libjack-dev`).
+The default installation comes without support for input devices like joysticks or MIDI controllers. If you need this, enable this option explicitly: **`pip install yakut[joystick]`**. GNU/Linux users will need to also install: [SDL2](https://libsdl.org), possibly libjack (with headers), possibly libasound2 (with headers) (if you are using a Debian-based distro, the required packages are: `libsdl2-dev libasound2-dev libjack-dev`).
 
 Afterward do endeavor to read the docs: **`yakut --help`**
 
@@ -159,7 +159,7 @@ $ yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata
 
 #### Synchronization
 
-If more than one subject is specified, the default behavior is to output each received message separately. Often there are synchronous subjects that are updated in lockstep, where it is desirable to group received messages pertaining to the same time point into *synchronized groups*. This can be achieved with options like `--sync-monoclust-field`, `--sync-monoclust-arrival`, `--sync-transfer-id`, which select different [synchronization policies](https://pycyphal.readthedocs.io/en/stable/api/pycyphal.presentation.subscription_synchronizer.html) (see `--help` for technical details). If the synchronized subjects are not updated in lockstep some or all messages may be dropped.
+If more than one subject is specified, the default behavior is to output each received message separately. Often there are synchronous subjects that are updated in lockstep, where it is desirable to group received messages pertaining to the same time point into *synchronized groups*. This can be achieved with options like `--sync...`, which select different [synchronization policies](https://pycyphal.readthedocs.io/en/stable/api/pycyphal.presentation.subscription_synchronizer.html) (see `--help` for technical details). If the synchronized subjects are not updated in lockstep some or all messages may be dropped.
 
 <img src="docs/subject_synchronization.png" alt="subject synchronization">
 
@@ -168,7 +168,7 @@ If more than one subject is specified, the default behavior is to output each re
 Yakut can determine the data type names automatically if the other node(s) utilizing this subject support the required network introspection services (most nodes do). In the following example only the subject-IDs are provided and the type information is discovered automatically:
 
 ```bash
-$ y sub 100 110 120 140 150 --sync-monoclust-arrival
+$ y sub 100 110 120 140 150 --sync
 ---
 100:
   heartbeat:
@@ -319,18 +319,18 @@ Read the list of register names available on a node (we are using short names he
 
 ```shell
 $ y rl 125  # rl is short for register-list
-[drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.Q_eangvel, ...]
+[drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.q_eangvel, ...]
 ```
 
 You can specify a set of node-IDs like `x-y` which denotes interval `[x, y)`, or a simple list `x,y,z`, a list with exclusion `x-y!w,z` which means `[x, y) except w and z`, and so on. This is convenient when you are working with a large network interactively. One important distinction is that a single node-ID like `125` and a set of node-IDs of one element like `125,` are treated differently (kind of like tuples of one element in some programming languages):
 
 ```shell
 $ y rl 125,     # Mind the comma! It changes the output to be a mapping of one element.
-125: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.Q_eangvel, ...]
+125: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.q_eangvel, ...]
 
 $ y rl 122-126  # Produce list of register names per node
-122: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.Q_eangvel, ...]
-123: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.Q_eangvel, ...]
+122: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.q_eangvel, ...]
+123: [drv.acm.std.pppwm_threshold, drv.acm.std.xcoupling_inductance_compensation, drv.obs.ekf.q_eangvel, ...]
 124: [vsi.pins, vsi.pwm_dead_time, vsi.pwm_freq, vsi.shortest_time_in_disabled_state, ...]
 125: [vsi.pins, vsi.pwm_dead_time, vsi.pwm_freq, vsi.shortest_time_in_disabled_state, ...]
 ```
@@ -342,12 +342,12 @@ $ y rl 122-126 | y rb  # Read all registers from nodes 122,123,124,125
 122:
   drv.acm.std.pppwm_threshold: 0.8999999761581421
   drv.acm.std.xcoupling_inductance_compensation: false
-  drv.obs.ekf.Q_eangvel: 3000000.0
+  drv.obs.ekf.q_eangvel: 3000000.0
   # output truncated for clarity...
 123:
   drv.acm.std.pppwm_threshold: 0.8999999761581421
   drv.acm.std.xcoupling_inductance_compensation: false
-  drv.obs.ekf.Q_eangvel: 3000000.0
+  drv.obs.ekf.q_eangvel: 3000000.0
   # ...
 124:
   vsi.pins: [0, 0, 3, 1, 1]
@@ -489,64 +489,64 @@ Then edit that file manually to remove irrelevant parameters and copy those that
 
 ```yaml
 122: &prototype_esc
-  m.pole_count: 24
-  m.current_max: 50
-  m.resistance: 0.03427
-  m.inductance_dq: [ 12.55e-06, 12.55e-06 ]
-  m.flux_linkage: 0.001725
-  m.current_ramp: 1000.0
-  m.voltage_ramp: 20.0
-  m.velocity_accel_decel: [ 7000.0, 5000.0 ]
-  m.fw_voltage_boost: 1.0
+  m.pole_count:             24
+  m.current_max:            50
+  m.resistance:             0.03427
+  m.inductance_dq:          [ 12.55e-06, 12.55e-06 ]
+  m.flux_linkage:           0.001725
+  m.current_ramp:           1000.0
+  m.voltage_ramp:           20.0
+  m.velocity_accel_decel:   [ 7000.0, 5000.0 ]
+  m.fw_voltage_boost:       1.0
 
-  mns.pub_interval_min: 0.005
-  mns.ratiometric_setpoint_min: 0.03
-  mns.ratiometric_to_absolute_mul: 0.0
-  mns.setpoint_index: 0
+  mns.pub_interval_min:               0.005
+  mns.ratiometric_setpoint_min:       0.03
+  mns.ratiometric_to_absolute_mul:    0.0
+  mns.setpoint_index:                 0
 
-  uavcan.can.bitrate: [ 1000000, 0 ]
-  uavcan.can.count: 1
+  uavcan.can.bitrate:                 [ 1000000, 0 ]
+  uavcan.can.count:                   1
 
-  uavcan.pub.dynamics.id: 1220
-  uavcan.pub.feedback.id: 1221
-  uavcan.pub.power.id: 1222
-  uavcan.pub.compact.id: 0xFFFF  # disabled
-  uavcan.pub.dq.id: 0xFFFF  # disabled
-  uavcan.pub.status.id: 0xFFFF  # disabled
+  uavcan.pub.dynamics.id:             1220
+  uavcan.pub.feedback.id:             1221
+  uavcan.pub.power.id:                1222
+  uavcan.pub.compact.id:              0xFFFF  # disabled
+  uavcan.pub.dq.id:                   0xFFFF  # disabled
+  uavcan.pub.status.id:               0xFFFF  # disabled
 
-  uavcan.sub.readiness.id: 10
-  uavcan.sub.setpoint_dyn.id: 0xFFFF  # disabled
-  uavcan.sub.setpoint_r_torq.id: 0xFFFF  # disabled
-  uavcan.sub.setpoint_r_torq_u9.id: 0xFFFF  # disabled
-  uavcan.sub.setpoint_r_volt.id: 14
-  uavcan.sub.setpoint_r_volt_u9.id: 0xFFFF  # disabled
-  uavcan.sub.setpoint_vel.id: 0xFFFF  # disabled
+  uavcan.sub.readiness.id:            10
+  uavcan.sub.setpoint_dyn.id:         0xFFFF  # disabled
+  uavcan.sub.setpoint_r_torq.id:      0xFFFF  # disabled
+  uavcan.sub.setpoint_r_torq_u9.id:   0xFFFF  # disabled
+  uavcan.sub.setpoint_r_volt.id:      14
+  uavcan.sub.setpoint_r_volt_u9.id:   0xFFFF  # disabled
+  uavcan.sub.setpoint_vel.id:         0xFFFF  # disabled
 
-  uavcan.srv.low_level_io.id: 0xFFFF  # disabled
+  uavcan.srv.low_level_io.id:         0xFFFF  # disabled
 
 123: # This item is for node-ID 123, and so on.
   # The construct below is the YAML dict merge statement.
   # It makes this entry inherit all parameters from the above
   # but the inherited keys can be overridden.
   <<: *prototype_esc
-  uavcan.pub.dynamics.id: 1230  # Override this subject.
-  uavcan.pub.feedback.id: 1231  # and so on...
-  uavcan.pub.power.id: 1232
-  mns.setpoint_index: 1
+  uavcan.pub.dynamics.id:             1230  # Override this subject.
+  uavcan.pub.feedback.id:             1231  # and so on...
+  uavcan.pub.power.id:                1232
+  mns.setpoint_index:                 1
 
 124:
   <<: *prototype_esc
-  uavcan.pub.dynamics.id: 1240
-  uavcan.pub.feedback.id: 1241
-  uavcan.pub.power.id: 1242
-  mns.setpoint_index: 2
+  uavcan.pub.dynamics.id:             1240
+  uavcan.pub.feedback.id:             1241
+  uavcan.pub.power.id:                1242
+  mns.setpoint_index:                 2
 
 125:
   <<: *prototype_esc
-  uavcan.pub.dynamics.id: 1250
-  uavcan.pub.feedback.id: 1251
-  uavcan.pub.power.id: 1252
-  mns.setpoint_index: 3
+  uavcan.pub.dynamics.id:             1250
+  uavcan.pub.feedback.id:             1251
+  uavcan.pub.power.id:                1252
+  mns.setpoint_index:                 3
 ```
 
 The above is a valid register file that is both human-friendly and can be understood by `yakut register-batch`. Then to deploy the configuration to the network we need to do simply:
@@ -583,29 +583,7 @@ y pub -T 0.01 \
 
 Subscribe to telemetry from one of the nodes:
 
-```shell
-$ y sub 1250 1251 1252 --sync
----
-1250:
-  timestamp: {microsecond: 0}
-  value:
-    kinematics:
-      angular_position: {radian: -0.04534203186631203}
-      angular_velocity: {radian_per_second: 16.172361373901367}
-      angular_acceleration: {radian_per_second_per_second: 0.08729696273803711}
-    torque: {newton_meter: 0.019268255680799484}
-1251:
-  heartbeat:
-    readiness: {value: 3}
-    health: {value: 0}
-  demand_factor_pct: 1
-1252:
-  timestamp: {microsecond: 0}
-  value:
-    current: {ampere: 0.013030902482569218}
-    voltage: {volt: 24.99659538269043}
-# ...
-```
+<img src="docs/subscribe.gif" alt="y sub 1250 1251 1252 --sync --redraw">
 
 Fetch the port-ID and type information directly from the running nodes:
 

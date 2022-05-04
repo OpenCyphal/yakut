@@ -8,7 +8,7 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 import pycyphal
-from yakut.util import fetch_registers
+from yakut.register import fetch_registers
 
 if TYPE_CHECKING:
     import pycyphal.application

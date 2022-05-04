@@ -170,7 +170,7 @@ async def _unittest_file_server_update(compiled_dsdl: typing.Any, serial_broker:
         "file-server",
         root,
         f"--plug-and-play={root}/allocation_table.db",
-        f"+U",
+        f"-u",
         environment_variables={
             "UAVCAN__SERIAL__IFACE": serial_broker,
             "UAVCAN__NODE__ID": "42",

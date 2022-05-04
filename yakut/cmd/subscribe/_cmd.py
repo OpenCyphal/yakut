@@ -5,7 +5,6 @@
 from __future__ import annotations
 import sys
 import math
-import asyncio
 from typing import Any, Sequence, TYPE_CHECKING, Callable, Iterable
 import logging
 from functools import lru_cache
@@ -19,7 +18,6 @@ from yakut.param.formatter import Formatter
 from yakut.util import convert_transfer_metadata_to_builtin
 from yakut.subject_specifier_processor import process_subject_specifier, SubjectResolver
 from ._sync import Synchronizer, SynchronizerFactory
-from ._sync_unary import make_sync_unary
 
 if TYPE_CHECKING:
     import pycyphal.application
@@ -51,16 +49,9 @@ class Config:
 
     def get_synchronizer_factory(self) -> SynchronizerFactory:
         if self._synchronizer_factory is None:
-            from ._sync_monoclust import make_sync_monoclust
-            from pycyphal.presentation.subscription_synchronizer import get_local_reception_timestamp
+            from ._sync_async import make_sync_async
 
-            self.set_synchronizer_factory(
-                lambda subs: make_sync_monoclust(
-                    subs,
-                    f_key=get_local_reception_timestamp,
-                    tolerance_minmax=SYNC_MONOCLUST_TOLERANCE_MINMAX_TS_ARRIVAL,
-                )
-            )
+            self.set_synchronizer_factory(make_sync_async)
         assert self._synchronizer_factory is not None
         return self._synchronizer_factory
 
@@ -128,14 +119,14 @@ def _handle_option_synchronizer_transfer_id(ctx: click.Context, _param: click.Pa
         ctx.ensure_object(Config).set_synchronizer_factory(make_sync_transfer_id)
 
 
-@yakut.subcommand(aliases="sub")
+@yakut.subcommand(aliases=["sub", "s"])
 @click.argument("subject", type=str, nargs=-1)
 @click.option(
     "--with-metadata/--no-metadata",
     "+M/-M",
     default=False,
     show_default=True,
-    help="When enabled, each message object is prepended with an extra field named `_metadata_`.",
+    help="When enabled, each message object is prepended with an extra field named `_meta_`.",
 )
 @click.option(
     "--count",
@@ -151,11 +142,11 @@ Exit automatically after this many messages (or synchronous message groups) have
     "--no-scroll",
     "-R",
     is_flag=True,
-    help="Clear terminal output before printing output. This option only has effect if stdout is a tty.",
+    help="Clear terminal before printing output. This option only has effect if stdout is a tty.",
 )
 @click.option(
-    "--sync-monoclust",
-    "--sync-mc",
+    "--sync-monoclust-field",
+    "--smcf",
     callback=_handle_option_synchronizer_monoclust_timestamp_field,
     expose_value=False,
     type=float,
@@ -169,7 +160,8 @@ The optional value is the synchronization tolerance in seconds; autodetect if no
 )
 @click.option(
     "--sync-monoclust-arrival",
-    "--sync-mca",
+    "--smca",
+    "--sync",  # This is currently the default because it works with any data type.
     callback=_handle_option_synchronizer_monoclust_timestamp_arrival,
     expose_value=False,
     type=float,
@@ -177,13 +169,13 @@ The optional value is the synchronization tolerance in seconds; autodetect if no
     flag_value=float("nan"),
     help=f"""
 Use the monotonic clustering synchronizer with the local arrival timestamp as the clustering key.
-Works with all data types but may perform poorly depending on the timing and system latency.
+Works with all data types but may perform poorly depending on the local timestamping accuracy and system latency.
 The optional value is the synchronization tolerance in seconds; autodetect if not specified.
 """,
 )
 @click.option(
     "--sync-transfer-id",
-    "--sync-tid",
+    "--stid",
     callback=_handle_option_synchronizer_transfer_id,
     expose_value=False,
     is_flag=True,
@@ -210,6 +202,7 @@ async def subscribe(
     the subject-ID may be omitted if the data type defines a fixed one;
     or the type can be omitted to engage automatic type discovery
     (discovery may fail if the local node is anonymous as it will be unable to issue RPC-service requests).
+    The short data type name is case-insensitive for convenience.
     The accepted forms are:
 
     \b
@@ -217,21 +210,28 @@ async def subscribe(
         TYPE_NAME[.MAJOR[.MINOR]]
         SUBJECT_ID
 
-    If multiple subjects are specified, a synchronous subscription will be used.
-    It is intended for subscribing to a group of coupled subjects like lockstep sensor feeds or other coupled objects.
+    The output documents (YAML/JSON/etc depending on the chosen format) will contain one message object each,
+    unless synchronization is enabled via --sync-*.
+    In that case, each output document will contain a complete synchronized group of messages (ordering retained).
+    Synchronous subscription is intended for subscribing to a group of coupled subjects like coupled sensor feeds.
     More on subscription synchronization is available in the PyCyphal docs.
-    If no synchronizer is specified, Yakut will choose one automatically.
 
-    Each received object or synchronized group is emitted to stdout as a key-value mapping,
-    where the number of elements equals the number of subjects the command is asked to subscribe to;
-    the keys are subject-IDs and values are the received message objects.
+    Each received message or synchronized group is emitted to stdout as a key-value mapping,
+    where the keys are subject-IDs and values are the received message objects.
 
     Examples:
 
     \b
-        yakut sub 33:uavcan.si.unit.angle.Scalar --with-metadata --count=1
+        yakut sub 33:uavcan.si.unit.angle.scalar --with-metadata --count=1
         yakut sub 33 42 5789 --sync-monoclust-arrival=0.1
-        yakut sub uavcan.node.Heartbeat
+        yakut sub uavcan.node.heartbeat
+        y sub 1220 1230 1240 1250 --sync-monoclust
+
+    Extracting a specific field, sub-object, data manipulation:
+
+    \b
+        y sub uavcan.node.heartbeat | jq '.[].health.value'
+        y sub uavcan.node.heartbeat +M | jq '.[]|[._meta_.transfer_id, ._meta_.timestamp.system]'
     """
     config = click.get_current_context().ensure_object(Config)
     try:
@@ -261,13 +261,10 @@ async def subscribe(
 
         subscribers: list[Subscriber[Any]] = await _make_subscribers(subject, get_node)
         finalizers += [s.close for s in subscribers]
-        if len(subscribers) > 1:
-            synchronizer = config.get_synchronizer_factory()(subscribers)
-        elif len(subscribers) == 1:
-            synchronizer = make_sync_unary([subscribers[0]])
-        else:
+        if len(subscribers) == 0:
             _logger.warning("Nothing to do because no subjects are specified")
             return
+        synchronizer = config.get_synchronizer_factory()(subscribers)
 
         # The node is closed through the finalizers at exit.
         # Note that we can't close the node before closing the subscribers to avoid resource errors inside PyCyphal.
@@ -284,7 +281,6 @@ async def subscribe(
                     _logger.info("% 4s: %s", sub.port_id, sub.sample_statistics())
     finally:
         pycyphal.util.broadcast(finalizers[::-1])()
-        await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop
 
 
 async def _make_subscribers(
@@ -316,33 +312,24 @@ async def _make_subscribers(
 
 
 async def _run(synchronizer: Synchronizer, formatter: Formatter, with_metadata: bool, count: int, redraw: bool) -> None:
-    metadata_cache: dict[object, dict[str, Any]] = {}
-
-    def get_extra_metadata(sub: Subscriber[Any]) -> dict[str, Any]:
-        try:
-            return metadata_cache[sub]
-        except LookupError:  # This may be expensive so we only do it once.
-            model = pycyphal.dsdl.get_model(sub.dtype)
-            metadata_cache[sub] = {
-                "dtype": str(model),
-            }
-        return metadata_cache[sub]
-
-    def process_group(group: tuple[tuple[tuple[Any, TransferFrom], Subscriber[Any]], ...]) -> None:
+    def process_group(group: tuple[tuple[tuple[Any, TransferFrom] | None, Subscriber[Any]], ...]) -> None:
         nonlocal count
         outer: dict[int, dict[str, Any]] = {}
-        # noinspection PyTypeChecker
-        for (msg, meta), subscriber in group:
+        for maybe_msg_meta, subscriber in group:
+            if maybe_msg_meta is None:
+                continue  # Asynchronous mode.
+            msg, meta = maybe_msg_meta
             assert isinstance(meta, TransferFrom) and isinstance(subscriber, Subscriber)
             bi: dict[str, Any] = {}  # We use updates to ensure proper dict ordering: metadata before data
             if with_metadata:
-                bi.update(convert_transfer_metadata_to_builtin(meta, **get_extra_metadata(subscriber)))
+                bi.update(convert_transfer_metadata_to_builtin(meta, dtype=subscriber.dtype))
             bi.update(pycyphal.dsdl.to_builtin(msg))
             outer[subscriber.port_id] = bi
 
         if redraw:
             click.clear()
-        print(formatter(outer))  # Use print to properly handle end-of-line for both TTY and files on all platforms
+        sys.stdout.write(formatter(outer))
+        sys.stdout.flush()
         count -= 1
         if count <= 0:
             _logger.debug("Reached the specified synchronized group count, stopping")

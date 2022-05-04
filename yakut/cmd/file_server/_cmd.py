@@ -56,14 +56,25 @@ at https://pycyphal.readthedocs.io.
 """,
 )
 @click.option(
-    "--update-software/--no-update-software",
-    "+U/-U",
-    default=False,
-    show_default=True,
+    "--update-software",
+    "-u",
+    type=int,
+    is_flag=False,
+    flag_value=-1,
+    multiple=True,
+    metavar="[NODE_ID]",
     help=f"""
 Check if all online nodes are running up-to-date software; request update if not.
 The software version is determined by invoking uavcan.node.GetInfo for every node that is online or
 became online (or restarted).
+
+This option may take an optional value which shall be a node-ID,
+in which case the specified node will be explicitly commanded to begin an update once regardless of its state
+(even if an update is already in progress, but this is done only once to avoid infinite loop and only
+if a newer software image is available),
+while no other nodes will be updated.
+This option can be given multiple times to select multiple nodes to update;
+if it is given at least once without a value, all nodes will be considered candidates for an update.
 
 When a node responds to uavcan.node.GetInfo, the root directory of the file server is scanned for software packages
 that are suitable for the node.
@@ -122,7 +133,10 @@ the names are matching, the hardware version is compatible, and either condition
 @yakut.pass_purser
 @yakut.asynchronous(interrupted_ok=True)
 async def file_server(
-    purser: yakut.Purser, roots: list[Path], plug_and_play: Optional[str], update_software: bool
+    purser: yakut.Purser,
+    roots: list[Path],
+    plug_and_play: Optional[str],
+    update_software: tuple[int, ...],
 ) -> None:
     """
     Run a standard Cyphal file server; optionally run a plug-and-play node-ID allocator and software updater.
@@ -148,6 +162,9 @@ async def file_server(
 
         raise click.ClickException(make_usage_suggestion(ex.name))
 
+    update_all_nodes = any(x < 0 for x in update_software)
+    explicit_nodes = set(filter(lambda x: x >= 0, update_software))
+    _logger.info("Total update: %r; trigger explicitly: %r", update_all_nodes, sorted(explicit_nodes))
     with purser.get_node("file_server", allow_anonymous=False) as node:
         node_tracker: Optional[NodeTracker] = None  # Initialized lazily only if needed.
 
@@ -184,14 +201,23 @@ async def file_server(
                 return
             heartbeat = entry.heartbeat
             assert isinstance(heartbeat, Heartbeat)
+            if node_id not in explicit_nodes and not update_all_nodes:
+                _logger.warning(
+                    "Node %r ignored because total update mode not selected and its ID is not given explicitly "
+                    "(explicit node-IDs are: %s)",
+                    node_id,
+                    ",".join(map(str, sorted(explicit_nodes))) or "(none given)",
+                )
+                return
             if (
                 heartbeat.mode.value == heartbeat.mode.SOFTWARE_UPDATE
                 and heartbeat.health.value < heartbeat.health.WARNING
-            ):
+            ) and node_id not in explicit_nodes:
                 # Do not skip an update request if the health is WARNING because it indicates a problem, possibly
                 # caused by a missing application. Details: https://github.com/OpenCyphal/yakut/issues/27
-                _logger.info(
-                    "Node %r does not require an update because it is in the software update mode already "
+                _logger.warning(
+                    "Node %r does not require an update because it is in the software update mode already, "
+                    "we are not instructed to trigger it explicitly, "
                     "and its health is acceptable: %r",
                     node_id,
                     heartbeat,
@@ -233,16 +259,22 @@ async def file_server(
                         )
                         return
                     _logger.info("Node %r confirmed software update command %r", node_id, cmd_request)
+                    try:
+                        explicit_nodes.remove(node_id)
+                    except LookupError:
+                        pass
 
                 asyncio.create_task(do_call())
             else:
-                _logger.info("Node %r does not require a software update.", node_id)
+                _logger.warning("Node %r does not require a software update.", node_id)
 
         if update_software:
             _logger.info("Initializing the software update checker")
             # The check should be run in a separate thread because on a system with slow/busy disk IO this may cause
             # the file server to slow down significantly because the event loop would be blocked here on disk reads.
             get_node_tracker().add_update_handler(check_software_update)
+        else:
+            _logger.info("Software update checker is not required")
 
         await asyncio.sleep(1e100)
 

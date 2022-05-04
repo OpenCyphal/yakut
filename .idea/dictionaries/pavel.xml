@@ -61,6 +61,7 @@
       <w>deallocated</w>
       <w>debian</w>
       <w>decaxta</w>
+      <w>decel</w>
       <w>deduplicator</w>
       <w>deduplicators</w>
       <w>demultiplexer</w>
@@ -81,11 +82,13 @@
       <w>dsdlgp</w>
       <w>dsonar</w>
       <w>dtype</w>
+      <w>eangvel</w>
       <w>edgeitems</w>
       <w>elif</w>
       <w>emptor</w>
       <w>endfor</w>
       <w>endmacro</w>
+      <w>envvar</w>
       <w>ethertype</w>
       <w>facto</w>
       <w>ffee</w>
@@ -127,6 +130,7 @@
       <w>isfinite</w>
       <w>jmsc</w>
       <w>kibibyte</w>
+      <w>kibibytes</w>
       <w>kirienko</w>
       <w>koopman</w>
       <w>levelname</w>
@@ -187,6 +191,7 @@
       <w>pkgutil</w>
       <w>popen</w>
       <w>powershell</w>
+      <w>pppwm</w>
       <w>prio</w>
       <w>prog</w>
       <w>protip</w>
@@ -212,7 +217,9 @@
       <w>qwertyuiop</w>
       <w>raii</w>
       <w>rankdir</w>
+      <w>ratiometric</w>
       <w>rawsource</w>
+      <w>rbat</w>
       <w>readlines</w>
       <w>readthedocs</w>
       <w>reasm</w>
@@ -256,6 +263,8 @@
       <w>sitecustomize</w>
       <w>sitl</w>
       <w>slcan</w>
+      <w>smca</w>
+      <w>smcf</w>
       <w>sockaddr</w>
       <w>socketcan</w>
       <w>socketcanfd</w>
@@ -263,6 +272,7 @@
       <w>sssss</w>
       <w>ssssssss</w>
       <w>stdint</w>
+      <w>stid</w>
       <w>strictification</w>
       <w>subcommand</w>
       <w>subcommands</w>
@@ -288,6 +298,7 @@
       <w>tocfile</w>
       <w>toctree</w>
       <w>todos</w>
+      <w>torq</w>
       <w>tradeoff</w>
       <w>tsvfc</w>
       <w>tsvh</w>
@@ -296,6 +307,7 @@
       <w>uavcan</w>
       <w>uber</w>
       <w>udpros</w>
+      <w>udral</w>
       <w>ulong</w>
       <w>uname</w>
       <w>undisable</w>
@@ -323,6 +335,7 @@
       <w>worl</w>
       <w>wpcap</w>
       <w>xbee</w>
+      <w>xcoupling</w>
       <w>xddddddd</w>
       <w>xfer</w>
       <w>xxxx</w>

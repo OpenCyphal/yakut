@@ -3,15 +3,15 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import sys
 from typing import Any, Callable, TYPE_CHECKING
 import decimal
 from functools import lru_cache
-import asyncio
 import click
 import pycyphal
 import yakut
 from yakut.enum_param import EnumParam
-from yakut.param.formatter import Formatter
+from yakut.param.formatter import Formatter, FormatterHints
 from yakut.util import convert_transfer_metadata_to_builtin
 from yakut import dtype_loader
 
@@ -60,7 +60,7 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
     "+M/-M",
     default=False,
     show_default=True,
-    help="When enabled, the response object is prepended with an extra field named `_metadata_`.",
+    help="When enabled, the response object is prepended with an extra field named `_meta_`.",
 )
 @yakut.pass_purser
 @yakut.asynchronous()
@@ -88,6 +88,7 @@ async def call(
         [SERVICE_ID:]TYPE_NAME[.MAJOR[.MINOR]]
         SERVICE_NAME[:TYPE_NAME[.MAJOR[.MINOR]]]
 
+    The short data type name is case-insensitive for convenience.
     In the data type name, "/" or "\\" can be used instead of "." for convenience and filesystem autocompletion.
     If the data type is specified without the service-ID, a fixed service-ID shall be defined for this data type.
     Missing version numbers default to the latest available.
@@ -105,7 +106,7 @@ async def call(
     Examples:
 
     \b
-        yakut call 42 uavcan.node.GetInfo +M -T3 -Pe
+        yakut call 42 uavcan.node.getinfo +M -T3 -Pe
         yakut call 42 least_squares 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
         yakut call 42 least_squares:sirius_cyber_corp.PerformLinearLeastSquaresFit '[[10, 1], [20, 2]]'
     """
@@ -127,7 +128,7 @@ async def call(
     )
     finalizers: list[Callable[[], None]] = []
     try:
-        formatter = purser.make_formatter()
+        formatter = purser.make_formatter(FormatterHints(single_document=True))
 
         # The cached factory is needed to postpone node initialization as much as possible because it disturbs
         # the network and the networking hardware (if any) and is usually costly.
@@ -157,7 +158,6 @@ async def call(
         await _run(client, request, formatter, with_metadata=with_metadata)
     finally:
         pycyphal.util.broadcast(finalizers[::-1])()
-        await asyncio.sleep(1e-3)  # Let the background tasks finalize before leaving the loop.
 
 
 async def _run(
@@ -177,7 +177,7 @@ async def _run(
     request_ts_application = pycyphal.transport.Timestamp.now()
     result = await client.call(request)
     response_ts_application = pycyphal.transport.Timestamp.now()
-    if result is None:
+    if result is None:  # TODO this should exit with yakut.util.EXIT_CODE_UNSUCCESSFUL
         raise click.ClickException(f"The request has timed out after {client.response_timeout:0.1f} seconds")
     if not request_ts_transport:  # pragma: no cover
         request_ts_transport = request_ts_application
@@ -205,15 +205,14 @@ async def _run(
         bi.update(
             convert_transfer_metadata_to_builtin(
                 transfer,
-                roundtrip_time={
-                    "transport_layer": (transfer.timestamp.monotonic - request_ts_transport.monotonic).quantize(qnt),
-                    "application_layer": application_duration.quantize(qnt),
-                },
+                dtype=client.dtype,
+                rtt=(transfer.timestamp.monotonic - request_ts_transport.monotonic).quantize(qnt),
             )
         )
     bi.update(pycyphal.dsdl.to_builtin(response))
 
-    print(formatter({client.port_id: bi}))
+    sys.stdout.write(formatter({client.port_id: bi}))
+    sys.stdout.flush()
 
 
 async def _resolve(
@@ -258,7 +257,7 @@ async def _resolve(
 
     (ty_or_srv,) = specs
     del specs
-    possibly_dtype_name = ty_or_srv.count(".") >= 1 and any(x.isupper() for x in ty_or_srv)
+    possibly_dtype_name = ty_or_srv.count(".") >= 1
     if possibly_dtype_name:
         try:
             dtype = dtype_loader.load_dtype(ty_or_srv)

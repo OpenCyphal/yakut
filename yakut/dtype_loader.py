@@ -28,8 +28,9 @@ def load_dtype(name: str, allow_minor_version_mismatch: bool = False) -> Type[An
     Parses a data specifier string of the form ``full_data_type_name[.major_version[.minor_version]]``.
     Name separators may be replaced with ``/`` or ``\`` for compatibility with file system paths.
     Missing version numbers substituted with the latest one available.
+    The short data type name is case-insensitive.
 
-    :param name: Examples: ``uavcan.Heartbeat``, ``uavcan.Heartbeat.1``, ``uavcan.Heartbeat.1.0``.
+    :param name: Examples: ``uavcan.heartbeat``, ``uavcan.Heartbeat.1``, ``uavcan.HEARTBEAT.1.0``.
 
     :param allow_minor_version_mismatch:
         If the minor version is specified and there is no matching data type,
@@ -71,7 +72,7 @@ def _load(name_components: list[str], major: int | None, minor: int | None) -> T
             (x.groups(), getattr(mod, x.string))
             for x in filter(None, map(_RE_SHORT_TYPE_NAME_IDENTIFIER.match, dir(mod)))
             if (
-                short_name == x.group(1)
+                short_name.lower() == x.group(1).lower()
                 and (major is None or int(x.group(2)) == major)
                 and (minor is None or int(x.group(3)) == minor)
             )

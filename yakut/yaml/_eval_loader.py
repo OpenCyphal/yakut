@@ -2,7 +2,8 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-from typing import Any, Dict, Callable
+from __future__ import annotations
+from typing import Any, Dict, Callable, TextIO
 import time
 import ruamel.yaml
 import ruamel.yaml.constructor
@@ -50,7 +51,7 @@ class EvaluableLoader(Loader):
         """
         return self._evaluation_context
 
-    def load(self, text: str, **evaluation_context: Any) -> Any:
+    def load(self, text: str | TextIO, **evaluation_context: Any) -> Any:
         """
         Loads and evaluates the evaluable YAML in one operation.
         It is not recommended to use this method if the same YAML document needs to be evaluated multiple times
@@ -59,7 +60,7 @@ class EvaluableLoader(Loader):
         """
         return self.load_unevaluated(text)(**evaluation_context)
 
-    def load_unevaluated(self, text: str) -> Callable[..., Any]:
+    def load_unevaluated(self, text: str | TextIO) -> Callable[..., Any]:
         """
         Loads the document without evaluation.
         The result is a closure that accepts keyword arguments that extend/override the evaluation context

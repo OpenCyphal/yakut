@@ -14,19 +14,19 @@ from tests.transport import TransportFactory
 def _unittest_monoclust_ts_field_auto(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.si.sample.mass.Scalar",
         "2000:uavcan.si.sample.mass.Scalar",
         "--no-metadata",
         "--count=3",
-        "--sync-monoclust",  # Automatic tolerance setting.
+        "--smcf",  # Automatic tolerance setting.
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(10.0)
+    time.sleep(3.0)
     proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000:uavcan.si.sample.mass.Scalar",
@@ -60,18 +60,18 @@ def _unittest_monoclust_ts_field_auto(transport_factory: TransportFactory, compi
 def _unittest_monoclust_ts_field_manual(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.si.sample.mass.Scalar",
         "2000:uavcan.si.sample.mass.Scalar",
         "--no-metadata",
-        "--sync-monoclust=0.25",  # Fixed tolerance setting; count not limited
+        "--smcf=0.25",  # Fixed tolerance setting; count not limited
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(10.0)
+    time.sleep(3.0)
     proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000:uavcan.si.sample.mass.Scalar",
@@ -112,7 +112,7 @@ def _unittest_monoclust_ts_field_type_not_timestamped(
         "sub",
         "1000:uavcan.si.unit.mass.Scalar",
         "2000:uavcan.si.unit.mass.Scalar",
-        "--sync-monoclust",  # Require timestamp field matching but the data types have no such field
+        "--smcf",  # Require timestamp field matching but the data types have no such field
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
@@ -129,13 +129,13 @@ def _unittest_monoclust_ts_field_type_not_timestamped(
 def _unittest_monoclust_ts_arrival_auto(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.primitive.String",
         "2000:uavcan.primitive.String",
         "--no-metadata",
         "--count=3",
-        "--sync-monoclust-arrival",  # Automatic tolerance setting.
+        "--smca",  # Automatic tolerance setting.
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
@@ -166,13 +166,13 @@ def _unittest_monoclust_ts_arrival_auto(transport_factory: TransportFactory, com
 def _unittest_transfer_id(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000:uavcan.primitive.String",
         "2000:uavcan.primitive.String",
         "--no-metadata",
         "--count=3",
-        "--sync-transfer-id",
+        "--stid",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
             "YAKUT_PATH": str(OUTPUT_DIR),
@@ -197,4 +197,36 @@ def _unittest_transfer_id(transport_factory: TransportFactory, compiled_dsdl: ty
         {"1000": {"value": "0"}, "2000": {"value": "0"}},
         {"1000": {"value": "1"}, "2000": {"value": "1"}},
         {"1000": {"value": "2"}, "2000": {"value": "2"}},
+    ]
+
+
+def _unittest_async(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+    _ = compiled_dsdl
+    proc_sub = Subprocess.cli(
+        "-j",
+        "sub",
+        "1000:uavcan.primitive.String",
+        "2000:uavcan.primitive.String",
+        "--no-metadata",
+        "--count=4",
+        environment_variables={
+            "YAKUT_TRANSPORT": transport_factory(10).expression,
+            "YAKUT_PATH": str(OUTPUT_DIR),
+        },
+    )
+    time.sleep(3.0)
+    env = {
+        **transport_factory(11).environment,
+        "YAKUT_PATH": str(OUTPUT_DIR),
+    }
+    execute_cli("pub", "--count=1", "1000:uavcan.primitive.String", "abc", environment_variables=env)
+    execute_cli("pub", "--count=1", "2000:uavcan.primitive.String", "def", environment_variables=env)
+    execute_cli("pub", "--count=2", "1000:uavcan.primitive.String", "ghi", environment_variables=env)
+    out_sub = proc_sub.wait(30.0)[1].splitlines()
+    msgs = list(map(json.loads, out_sub))
+    assert msgs == [
+        {"1000": {"value": "abc"}},
+        {"2000": {"value": "def"}},
+        {"1000": {"value": "ghi"}},
+        {"1000": {"value": "ghi"}},
     ]

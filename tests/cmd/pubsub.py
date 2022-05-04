@@ -22,31 +22,31 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         "YAKUT_PATH": str(OUTPUT_DIR),
     }
     proc_sub_heartbeat = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
-        "uavcan.node.Heartbeat",
+        "uavcan.node.heartbeat",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
-        "4321:uavcan.diagnostic.Record",
+        "4321:uavcan.diagnostic.record",
         "--count=3",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_wrong_pid = Subprocess.cli(
-        "--format=yaml",
+        "-y",
         "sub",
-        "uavcan.diagnostic.Record",
+        "uavcan.diagnostic.record",
         "--count=3",
         environment_variables=env,
     )
     proc_sub_temperature = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
-        "555:uavcan.si.sample.temperature.Scalar",
+        "555:uavcan.si.sample.temperature.scalar",
         "--count=3",
         "--no-metadata",
         environment_variables=env,
@@ -64,7 +64,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
         '{severity: 6, timestamp: 123456, text: "Hello world!"}',  # Use shorthand init for severity, timestamp
         "1234:uavcan.diagnostic.Record",
         '{text: "Goodbye world."}',
-        "555:uavcan.si.sample.temperature.Scalar",
+        "555:uavcan.si.sample.temperature.scalar",
         "{kelvin: 123.456}",
         "--count=3",
         "--period=3",
@@ -77,9 +77,10 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     _, stdout, _ = execute_cli(
         f"--transport={transport_factory(52).expression}",
         f"--path={OUTPUT_DIR}",
+        "-y",
         "call",
         "51",
-        "uavcan.node.GetInfo.1.0",
+        "uavcan.node.getinfo.1.0",
         "--no-metadata",
         "--timeout=5",
         timeout=10.0,
@@ -114,24 +115,24 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
 
     assert 1 <= len(heartbeats) <= 20
     for m in heartbeats:
-        src_nid = m["7509"]["_metadata_"]["source_node_id"]
+        src_nid = m["7509"]["_meta_"]["source_node_id"]
         if src_nid == 51:  # The publisher
-            assert "high" in m["7509"]["_metadata_"]["priority"].lower()
-            assert m["7509"]["_metadata_"]["transfer_id"] >= 0
+            assert "high" in m["7509"]["_meta_"]["priority"].lower()
+            assert m["7509"]["_meta_"]["transfer_id"] >= 0
             assert m["7509"]["uptime"] in range(10)
             assert m["7509"]["vendor_specific_status_code"] == 54
         elif src_nid == 52:  # The caller (GetInfo)
-            assert "nominal" in m["7509"]["_metadata_"]["priority"].lower()
-            assert m["7509"]["_metadata_"]["transfer_id"] >= 0
+            assert "nominal" in m["7509"]["_meta_"]["priority"].lower()
+            assert m["7509"]["_meta_"]["transfer_id"] >= 0
             assert m["7509"]["uptime"] in range(4)
         else:
             assert False
 
     assert len(diagnostics) == 3
     for m in diagnostics:
-        assert "slow" in m["4321"]["_metadata_"]["priority"].lower()
-        assert m["4321"]["_metadata_"]["transfer_id"] >= 0
-        assert m["4321"]["_metadata_"]["source_node_id"] == 51
+        assert "slow" in m["4321"]["_meta_"]["priority"].lower()
+        assert m["4321"]["_meta_"]["transfer_id"] >= 0
+        assert m["4321"]["_meta_"]["source_node_id"] == 51
         assert m["4321"]["timestamp"]["microsecond"] == 123456
         assert m["4321"]["text"] == "Hello world!"
 
@@ -149,23 +150,23 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "YAKUT_PATH": str(OUTPUT_DIR),
     }
     proc_sub_heartbeat = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "sub",
-        "uavcan.node.Heartbeat",
+        "uavcan.node.heartbeat",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_with_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "sub",
-        "uavcan.diagnostic.Record",
+        "uavcan.diagnostic.record",
         "--with-metadata",
         environment_variables=env,
     )
     proc_sub_diagnostic_no_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "sub",
-        "uavcan.diagnostic.Record",
+        "uavcan.diagnostic.record",
         "--no-metadata",
         environment_variables=env,
     )
@@ -175,7 +176,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
     if transport_factory(None).can_transmit:
         proc = Subprocess.cli(
             "pub",
-            "uavcan.diagnostic.Record",
+            "uavcan.diagnostic.record",
             "{}",
             "--count=2",
             "--period=2",
@@ -197,9 +198,9 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         # Hence, to support the case of redundant transports, we use 'greater or equal' here.
         assert len(diagnostics) >= 2
         for m in diagnostics:
-            assert "nominal" in m["8184"]["_metadata_"]["priority"].lower()
-            assert m["8184"]["_metadata_"]["transfer_id"] >= 0
-            assert m["8184"]["_metadata_"]["source_node_id"] is None
+            assert "nominal" in m["8184"]["_meta_"]["priority"].lower()
+            assert m["8184"]["_meta_"]["transfer_id"] >= 0
+            assert m["8184"]["_meta_"]["source_node_id"] is None
             assert m["8184"]["timestamp"]["microsecond"] == 0
             assert m["8184"]["text"] == ""
 
@@ -224,10 +225,11 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
 def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
-        "1000:uavcan.primitive.String",
-        "2000:uavcan.primitive.String",
+        "1000:uavcan.primitive.string",
+        "2000:uavcan.primitive.string",
+        "--smca",
         "--no-metadata",
         "--count=3",
         environment_variables={
@@ -235,7 +237,7 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(10.0)  # Let the subscriber boot up.
+    time.sleep(3.0)  # Let the subscriber boot up.
     proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
         "1000",  # Use discovery.
@@ -260,9 +262,9 @@ def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_ds
     _ = compiled_dsdl
     proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
         "pub",
-        "1000:uavcan.primitive.String",
+        "1000:uavcan.primitive.string",
         "hello",
-        "2000:uavcan.primitive.String",
+        "2000:uavcan.primitive.string",
         "world",
         "--period=3",
         environment_variables={
@@ -270,13 +272,14 @@ def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_ds
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
-    time.sleep(10.0)  # Let the publisher boot up.
+    time.sleep(3.0)  # Let the publisher boot up.
     proc_sub = Subprocess.cli(
-        "--format=json",
+        "-j",
         "sub",
         "1000",  # Use discovery.
         "2000",  # Use discovery.
         "--no-metadata",
+        "--smca",
         "--count=3",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,

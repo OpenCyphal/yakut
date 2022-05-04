@@ -14,12 +14,12 @@ class Dumper:
     Natively represents decimal.Decimal as floats in the output.
     """
 
-    def __init__(self, explicit_start: bool = False):
+    def __init__(self, explicit_start: bool = False, prefer_block_style: bool = False):
         # We need to use the roundtrip representer to retain ordering of mappings, which is important for usability.
         self._impl = ruamel.yaml.YAML(typ="rt")
         # noinspection PyTypeHints
         self._impl.explicit_start = explicit_start
-        self._impl.default_flow_style = None  # Choose between block/inline automatically
+        self._impl.default_flow_style = False if prefer_block_style else None
         self._impl.width = 2**31  # Unlimited width
 
     def dump(self, data: Any, stream: TextIO) -> None:
@@ -28,7 +28,13 @@ class Dumper:
     def dumps(self, data: Any) -> str:
         s = io.StringIO()
         self.dump(data, s)
-        return s.getvalue()
+        out = s.getvalue()
+
+        # FIXME HACK configure ruamel.yaml to not emit the ellipsis (how?)
+        suf = "\n...\n"
+        out = out[:-4] if out.endswith(suf) else out  # The trailing end-of-line shall be kept.
+
+        return out
 
 
 def _represent_decimal(self: ruamel.yaml.BaseRepresenter, data: decimal.Decimal) -> ruamel.yaml.ScalarNode:
@@ -62,5 +68,20 @@ abc: -.inf
 def:
 - .nan
 - {qaz: 789.0}
+"""
+    )
+    ref = Dumper(explicit_start=False, prefer_block_style=True).dumps(
+        {
+            "abc": decimal.Decimal("-inf"),
+            "def": [decimal.Decimal("nan"), {"qaz": decimal.Decimal("789"), "qqq": 123}],
+        }
+    )
+    assert (
+        ref
+        == """abc: -.inf
+def:
+- .nan
+- qaz: 789.0
+  qqq: 123
 """
     )

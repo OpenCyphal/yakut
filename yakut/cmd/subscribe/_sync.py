@@ -4,12 +4,20 @@
 
 
 from __future__ import annotations
-from typing import Any, Callable, Awaitable, Iterable, Tuple
+from typing import Any, Callable, Awaitable, Iterable, Tuple, Optional
 import pycyphal
 
 
 SynchronizerOutput = Callable[
-    [Tuple[Tuple[Tuple[Any, pycyphal.transport.TransferFrom], pycyphal.presentation.Subscriber[Any]], ...]],
+    [
+        Tuple[
+            Tuple[
+                Optional[Tuple[Any, pycyphal.transport.TransferFrom]],
+                pycyphal.presentation.Subscriber[Any],
+            ],
+            ...,
+        ]
+    ],
     None,
 ]
 

@@ -64,10 +64,10 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
 
     # Invoke the service without discovery and then run the server for a few seconds to let it process the request.
     proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "call",
         "22",
-        "222:sirius_cyber_corp.PerformLinearLeastSquaresFit",
+        "222:sirius_cyber_corp.performlinearleastsquaresfit",
         "points: [{x: 10, y: 1}, {x: 20, y: 2}]",
         "--priority=SLOW",
         "--with-metadata",
@@ -85,18 +85,18 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
     # Parse the output and validate it.
     parsed = json.loads(stdout)
     print("PARSED RESPONSE:", parsed)
-    assert parsed["222"]["_metadata_"]["priority"] == "slow"
-    assert parsed["222"]["_metadata_"]["source_node_id"] == 22
+    assert parsed["222"]["_meta_"]["priority"] == "slow"
+    assert parsed["222"]["_meta_"]["source_node_id"] == 22
     assert parsed["222"]["slope"] == pytest.approx(0.1)
     assert parsed["222"]["y_intercept"] == pytest.approx(0.0)
 
     # Invoke the service with ID discovery and static type.
     last_metadata = None
     proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "call",
         "22",
-        "least_squares:sirius_cyber_corp.PerformLinearLeastSquaresFit",
+        "least_squares:sirius_cyber_corp.PERFORMLINEARLEASTSQUARESFIT",
         "points: [{x: 0, y: 0}, {x: 10, y: 3}]",
         "--priority=FAST",
         "--with-metadata",
@@ -115,15 +115,15 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
     # Parse the output and validate it.
     parsed = json.loads(stdout)
     print("PARSED RESPONSE:", parsed)
-    assert parsed["222"]["_metadata_"]["priority"] == "fast"
-    assert parsed["222"]["_metadata_"]["source_node_id"] == 22
+    assert parsed["222"]["_meta_"]["priority"] == "fast"
+    assert parsed["222"]["_meta_"]["source_node_id"] == 22
     assert parsed["222"]["slope"] == pytest.approx(0.3)
     assert parsed["222"]["y_intercept"] == pytest.approx(0.0)
 
     # Invoke the service with full discovery.
     last_metadata = None
     proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "call",
         "22",
         "least_squares",  # Type not specified -- discovered.
@@ -144,8 +144,8 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
     # Parse the output and validate it.
     parsed = json.loads(stdout)
     print("PARSED RESPONSE:", parsed)
-    assert parsed["222"]["_metadata_"]["priority"] == "nominal"
-    assert parsed["222"]["_metadata_"]["source_node_id"] == 22
+    assert parsed["222"]["_meta_"]["priority"] == "nominal"
+    assert parsed["222"]["_meta_"]["source_node_id"] == 22
     assert parsed["222"]["slope"] == pytest.approx(0.4)
     assert parsed["222"]["y_intercept"] == pytest.approx(0.0)
 
@@ -205,7 +205,7 @@ async def _unittest_call_fixed(transport_factory: TransportFactory, compiled_dsd
 
     # Invoke a fixed port-ID service.
     proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-        "--format=json",
+        "-j",
         "call",
         "22",
         "uavcan.node.GetInfo",

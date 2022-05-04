@@ -3,7 +3,6 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-import asyncio
 import math
 from typing import Tuple, List, Sequence, Callable, Any, Dict
 import dataclasses
@@ -80,13 +79,13 @@ _EXAMPLES = """
 Example: publish constant messages (no embedded expressions, just regular YAML):
 
 \b
-    yakut pub uavcan.diagnostic.Record '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
-    yakut pub 33:uavcan.si.unit.angle.Scalar 2.31 uavcan.diagnostic.Record 'text: "2.31 radian"'
+    yakut pub uavcan.diagnostic.record '{text: "Hello world!", severity: {value: 4}}' -N3 -T0.1 -P hi
+    yakut pub 33:uavcan.si.unit.angle.scalar 2.31 uavcan.diagnostic.Record 'text: "2.31 radian"'
 
 Example: publish sinewave with frequency 1 Hz, amplitude 10 meters:
 
 \b
-    yakut pub -T 0.01 1234:uavcan.si.unit.length.Scalar '!$ "sin(t * pi * 2) * 10"'
+    yakut pub -T 0.01 1234:uavcan.si.unit.length.scalar '!$ "sin(t * pi * 2) * 10"'
 
 Example: as above, but control the frequency of the sinewave and its amplitude using sliders 10 and 11
 of the first connected controller (use `yakut joystick` to find connected controllers and their axis mappings):
@@ -105,7 +104,7 @@ Example: publish 3D angular velocity setpoint, thrust setpoint, and the arming s
 Example: simulate timestamped measurement of voltage affected by white noise with standard deviation 0.25 V:
 
 \b
-    yakut pub -T 0.1 6:uavcan.si.sample.voltage.Scalar \\
+    yakut pub -T 0.1 6:uavcan.si.sample.voltage.scalar \\
         '{timestamp: !$ time()*1e6, volt: !$ "A(2,10)*100+normalvariate(0,0.25)"}'
 """.strip()
 
@@ -179,7 +178,7 @@ def _validate_message_spec(
     return [(s, f) for s, f in (value[i : i + 2] for i in range(0, len(value), 2))]  # pylint: disable=R1721
 
 
-@yakut.subcommand(help=_HELP, aliases="pub")
+@yakut.subcommand(help=_HELP, aliases=["pub", "p"])
 @click.argument(
     "message",
     type=str,
@@ -310,7 +309,6 @@ async def publish(
             _log_final_report(node.presentation)
     finally:
         pycyphal.util.broadcast(finalizers[::-1])()
-        await asyncio.sleep(0.1)  # let background tasks finalize before leaving the loop
 
 
 def _log_final_report(presentation: pycyphal.presentation.Presentation) -> None:

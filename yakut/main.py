@@ -46,7 +46,6 @@ class Purser:
         transport_factory: TransportFactory,
         node_factory: NodeFactory,
     ) -> None:
-        print("formatter_factory:", formatter_factory)
         self._paths = list(Path(x) for x in paths)
         self._f_formatter = formatter_factory
         self._f_transport = transport_factory

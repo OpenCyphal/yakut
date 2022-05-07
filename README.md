@@ -29,7 +29,11 @@ Installation & configuration screencasts are available for [Windows](https://for
 
 Since Yakut heavily relies on YAML/JSON documents exchanged via stdin/stdout, [**`jq`**](https://stedolan.github.io/jq/) is often needed for any non-trivial usage of the tool, so consider installing it as well. Users of GNU/Linux will likely find it in the default software repositories (`pacman -S jq`, `apt install jq`, etc.).
 
-- Cyphal/CAN on GNU/Linux: [`can-utils`](https://github.com/linux-can/can-utils)
+[PlotJuggler](https://plotjuggler.io) is occasionally useful for real-time data visualization. Offline data analysis may be better addressed with Jupyter+Plotly+Pandas or whatever stack you prefer.
+
+Transport layer inspection tools:
+
+- Cyphal/CAN on GNU/Linux (candump, canbusload, etc.): [`can-utils`](https://github.com/linux-can/can-utils)
 - Cyphal/UDP or Cyphal/CAN: [Wireshark](https://www.wireshark.org/)
   (n.b.: Wireshark might label Cyphal captures as UAVCAN due to rebranding)
 
@@ -203,6 +207,18 @@ y --tsvh sub 1252 1255 --sync > ~/out.tsv
 ```
 
 <img src="docs/jupyter.png" alt="Pandas import">
+
+#### Real-time visualization
+
+Being a CLI application, Yakut comes without built-in visualization facilities, but it can be easily combined with 3rd-party solutions.
+
+[PlotJuggler](https://plotjuggler.io) can accept JSON streamed from Yakut via its UDP server. To use that, start an instance of PlotJuggler, enable the UDP streaming server in JSON mode, and then pipe the output of `yakut subscribe` to the UDP server via netcat like so:
+
+```bash
+y sub 33:uavcan.si.unit.angle.scalar 1250 --sync | nc -u localhost 9870  # 9870 is the UDP port set in PlotJuggler
+```
+
+<img src="docs/plotjuggler_plots.png" alt="subject synchronization">
 
 ### Publishing messages
 

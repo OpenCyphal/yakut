@@ -2,6 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
+import re
 import http
 import typing
 import zipfile
@@ -154,7 +155,10 @@ def _fetch_archive_dirs(archive_uri: str) -> typing.List[Path]:
     (inner,) = [d for d in Path(arch_dir).iterdir() if d.is_dir()]  # Strip the outer layer, we don't need it
 
     assert isinstance(inner, Path)
-    return [d for d in inner.iterdir() if d.is_dir()]
+    return [d for d in inner.iterdir() if d.is_dir() and _RE_VALID_ROOT_NAMESPACE_NAME.match(d.name)]
+
+
+_RE_VALID_ROOT_NAMESPACE_NAME = re.compile(r"[a-zA-Z_]\w*")
 
 
 def _generate_dsdl_packages(

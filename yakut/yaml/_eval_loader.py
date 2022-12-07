@@ -35,7 +35,7 @@ class EvaluableLoader(Loader):
         super().__init__()
         self._evaluation_context = evaluation_context.copy()
 
-        class ConstructorWrapper(ruamel.yaml.constructor.RoundTripConstructor):  # type: ignore
+        class ConstructorWrapper(ruamel.yaml.constructor.RoundTripConstructor):
             """
             New class to avoid global state: https://stackoverflow.com/questions/67041211
             """

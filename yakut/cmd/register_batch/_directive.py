@@ -104,7 +104,7 @@ def _unittest_directive() -> None:
     from pytest import raises
     from pycyphal.application.register import Value, String, Integer32, Bit
 
-    class CV(Value):  # type: ignore
+    class CV(Value):
         def __eq__(self, other: object) -> bool:
             if isinstance(other, Value):
                 return repr(self) == repr(other)

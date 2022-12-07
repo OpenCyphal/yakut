@@ -202,15 +202,31 @@ class Subprocess:
             self._inferior.kill()
 
 
+_ENV_COPY_KEYS = {
+    "PATH",
+    "SYSTEMROOT",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "USERPROFILE",
+    "WINDIR",
+    "TEMP",
+    "TMP",
+    "LOCALAPPDATA",
+    "APPDATA",
+    "PROGRAMFILES",
+    "PROGRAMFILES(X86)",
+    "PROGRAMW6432",
+    "PROGRAMDATA",
+    "ALLUSERSPROFILE",
+    "PUBLIC",
+}
+
+
 def _get_env(environment_variables: typing.Optional[typing.Dict[str, str]] = None) -> typing.Dict[str, str]:
     from tests import DEPS_DIR
 
     venv_path = Path(sys.executable).parent
-    copy_keys = {
-        "PATH",
-        "SYSTEMROOT",
-    }
-    env = {k: v for k, v in os.environ.items() if k in copy_keys}
+    env = {k: v for k, v in os.environ.items() if k in _ENV_COPY_KEYS}
     # Buffering must be DISABLED, otherwise we can't read data on Windows after the process is interrupted.
     # For some reason stdout is not flushed at exit there.
     env.update(

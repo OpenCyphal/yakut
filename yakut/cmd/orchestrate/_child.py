@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import signal
-from subprocess import Popen, DEVNULL
+from subprocess import Popen
 from typing import Dict, Optional, Callable, List, Tuple, BinaryIO, Any
 import yakut
 
@@ -62,7 +62,6 @@ class Child:
             shell=True,
             stdout=stdout,
             stderr=stderr,
-            stdin=DEVNULL,
             bufsize=1,
         )
 

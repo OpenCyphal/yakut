@@ -13,6 +13,7 @@
       <w>aega</w>
       <w>afdx</w>
       <w>allocatee</w>
+      <w>allusersprofile</w>
       <w>ancdata</w>
       <w>antipattern</w>
       <w>apidoc</w>
@@ -112,6 +113,8 @@
       <w>hardbass</w>
       <w>hdlc</w>
       <w>hitl</w>
+      <w>homedrive</w>
+      <w>homepath</w>
       <w>hostmask</w>
       <w>htmlcov</w>
       <w>hwgrep</w>
@@ -195,6 +198,8 @@
       <w>pppwm</w>
       <w>prio</w>
       <w>prog</w>
+      <w>programfiles</w>
+      <w>programw</w>
       <w>protip</w>
       <w>pycodestyle</w>
       <w>pycyphal</w>
@@ -331,6 +336,7 @@
       <w>vpaun</w>
       <w>vssc</w>
       <w>weakref</w>
+      <w>windir</w>
       <w>winpcap</w>
       <w>wireshark</w>
       <w>worl</w>

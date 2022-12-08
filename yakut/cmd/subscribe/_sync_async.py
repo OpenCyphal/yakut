@@ -66,7 +66,7 @@ def _unittest_sync_async() -> None:
             syn = make_sync_async([sub_a, sub_b])
             results: list[tuple[tuple[tuple[Any, TransferFrom] | None, Subscriber[Any]], ...]] = []
             # noinspection PyTypeChecker
-            tsk = asyncio.create_task(syn(results.append))
+            tsk = asyncio.create_task(syn(results.append))  # type: ignore
             try:
                 await asyncio.sleep(0.1)
                 assert not results

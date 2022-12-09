@@ -279,6 +279,10 @@ def orchestrate(purser: yakut.Purser, file: str) -> int:
         sig_num = s
         _logger.info("Orchestrator received signal %s %r, stopping...", s, signal.strsignal(s))
 
+    # This is necessary to avoid interference with the children's stdin,
+    # otherwise, the terminal input might be consumed by the orchestrator.
+    sys.stdin.close()
+
     signal.signal(signal.SIGINT, on_signal)
     signal.signal(signal.SIGTERM, on_signal)
     if not sys.platform.startswith("win"):

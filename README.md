@@ -224,7 +224,8 @@ Publishing a message twice (you can use a subscriber as explained earlier to see
 ```bash
 export UAVCAN__UDP__IFACE=127.63.0.0
 export UAVCAN__NODE__ID=42
-yakut pub -N2 33:uavcan.si.unit.angle.scalar 2.31
+yakut pub -N2 33:uavcan.si.unit.angle.scalar -- -2.31
+# The "--" is needed to disambiguate negative numbers.
 ```
 
 Like in the case of subscriber, automatic subject type discovery is also available here.

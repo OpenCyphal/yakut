@@ -54,6 +54,14 @@ There is a dedicated `--help` option for every subcommand.
 
 Yakut may also be invoked via its alias **`y`** as long as this name does not conflict with another installed program.
 
+### Negative arguments
+
+When using Yakut, one often needs to pass negative numbers as arguments. Passing the number as-is does not work because the leading minus character looks like a command-line option. To work around this, add `--` (double minus) somewhere after the last option and before the negative number:
+
+```bash
+yakut some-command --some-options -- -42
+```
+
 ## Compiling DSDL
 
 Suppose we have our custom DSDL namespace that we want to use. First, it needs to be *compiled*:

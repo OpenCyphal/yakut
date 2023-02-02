@@ -40,15 +40,16 @@ Transport layer inspection tools:
 ## Invoking commands
 
 Any option can be supplied either as a command-line argument or as an environment variable named like
-`YAKUT_[subcommand_]option`. If both are provided, command-line options take precedence over environment variables. You can use this feature to configure desired defaults by exporting environment variables from the rc-file of your shell (for bash/zsh this is `~/.bashrc`/`~/.zshrc`, for PowerShell see `$profile`).
+`YAKUT_[subcommand_]option`. If both are provided, command-line options take precedence over environment variables. You can use this feature to configure desired defaults by exporting environment variables from the rc-file of your shell (for bash/zsh this is `~/.bashrc`/`~/.zshrc`, for PowerShell see `$profile`); Windows users can use the Environment Variables dialog.
 
 Options for the main command shall be specified before the subcommand when invoking Yakut:
 
 ```bash
-yakut --path=/the/path compile path/to/my_namespace --output=destination/directory
+yakut --json publish --period=0.1 my.data.Type "{}"
+#       ^^^^-main      ^^^^^^^^^^-subcommand
 ```
 
-In this example, the corresponding environment variables are `YAKUT_PATH` and `YAKUT_COMPILE_OUTPUT`.
+In this example, the corresponding environment variable values are `YAKUT_JSON=1` and `YAKUT_PUBLISH_PERIOD=0.1`.
 
 There is a dedicated `--help` option for every subcommand.
 
@@ -62,52 +63,40 @@ When using Yakut, one often needs to pass negative numbers as arguments. Passing
 yakut some-command --some-options -- -42
 ```
 
-## Compiling DSDL
+## Adding DSDL namespaces
 
-Suppose we have our custom DSDL namespace that we want to use. First, it needs to be *compiled*:
-
-```bash
-yakut compile ~/custom_data_types/sirius_cyber_corp
-```
-
-Most of the commands require the standard namespace to be available, so let's compile it too, along with the regulated namespace:
+Yakut will automatically make use of all DSDL namespaces found in the locations specified in the `CYPHAL_PATH` environment variable, separated either with `:` or `;`. Each path is expected to contain DSDL root namespace directories in it, like `<path>/uavcan`, for example. This behavior is common for all Cyphal tools, so it is possible that you already have this variable configured in your environment. If not, you can set it up like this for bash/shell/zsh; note that `~/.cyphal` is the recommended default that should always be present, possibly with other directories, if desired:
 
 ```bash
-yakut compile  ~/public_regulated_data_types/uavcan  ~/public_regulated_data_types/reg
+export CYPHAL_PATH="$HOME/.cyphal:$CYPHAL_PATH"
 ```
 
-Yakut can directly fetch archives containing DSDL namespace directories at the top level, too:
+Windows users can set this up in the Environment Variables dialog:
+
+<img src="docs/windows_environment_cyphal_path.png" alt="Environment Variables dialog on Windows" width="600">
+
+To actually make use of a DSDL namespace, simply put its root namespace directory inside any of the locations specified in `CYPHAL_PATH`. For example, you can add DSDL namespaces from downloaded zip archives like this (or you can repeat the steps manually):
 
 ```bash
-# Compile all DSDL namespaces found in the archives:
-yakut compile \
-    https://github.com/OpenCyphal/public_regulated_data_types/archive/refs/heads/master.zip \
-    https://github.com/Zubax/zubax_dsdl/archive/refs/heads/master.zip
-```
+mkdir -p ~/.cyphal      # Ensure the directory actually exists.
 
-Compilation outputs will be stored in the current working directory, but it can be overridden if needed via `--output` or `YAKUT_COMPILE_OUTPUT`. Naturally, Yakut needs to know where the outputs are located to use them; by default it looks in the current directory. You can specify additional search locations using `--path` or `YAKUT_PATH`.
+# Add all namespaces from the public regulated data types repository:
+wget https://github.com/OpenCyphal/public_regulated_data_types/archive/refs/heads/master.zip -O dsdl.zip
+unzip dsdl.zip -d ~/.cyphal
+mv -f ~/.cyphal/public_regulated_data_types*/* ~/.cyphal
+# There will be some garbage left in the destination directory, but it's mostly harmless.
+
+# Add vendor-specific namespaces the same way, if you need any:
+wget https://github.com/Zubax/zubax_dsdl/archive/refs/heads/master.zip -O dsdl.zip
+unzip dsdl.zip -d ~/.cyphal
+mv -f ~/.cyphal/zubax_dsdl*/* ~/.cyphal
+```
 
 A question one is likely to ask here is:
-*Why don't you ship precompiled regulated DSDL together with the tool?*
+*Why don't you ship regulated DSDL together with the tool?*
 Indeed, that would be trivial to do, but we avoid that on purpose to emphasize our commitment to supporting vendor-specific and regulated DSDL at the same level. In the past we used to give regulated namespaces special treatment, which caused our users to acquire misconceptions about the purpose of DSDL. Specifically, there have been forks of the standard namespace extended with vendor-specific types, which is harmful to the ecosystem.
 
-Having to manually compile the regulated namespaces is not an issue because it is just a single command to run. You may opt to keeping compiled namespaces that you use often somewhere in a dedicated directory and put
-`YAKUT_PATH=/your/directory` into your shell's rc-file so that you don't have to manually specify the path when invoking Yakut. Similarly, you can configure it to use that directory as the default destination for compiled DSDL:
-
-```bash
-# bash/zsh on GNU/Linux or macOS
-export YAKUT_COMPILE_OUTPUT=~/.yakut
-export YAKUT_PATH="$YAKUT_COMPILE_OUTPUT"
-```
-
-```powershell
-# PowerShell on Windows (double quotes are always required!)
-$env:YAKUT_COMPILE_OUTPUT="$env:APPDATA\Yakut"
-$env:YAKUT_PATH="$env:YAKUT_COMPILE_OUTPUT"
-```
-
-So that you say simply `yakut compile path/to/my_namespace`
-knowing that the outputs will be always stored to and read from a fixed place unless you override it.
+**Implementation note:** Yakut will automatically compile the DSDL namespaces pointed to by `CYPHAL_PATH` into Python packages and store them into the directory specified in the `PYCYPHAL_PATH` environment variable; if there is no such variable (usually there isn't), it defaults to `~/.pycyphal`. In certain exceptional circumstances you may want to drop the compiled cache, in which case simply remove that directory, which will force Yakut to rebuild all namespaces next time they are needed.
 
 ## Communicating
 
@@ -293,7 +282,6 @@ Suppose that there is node 42 that serves `sirius_cyber_corp.PerformLinearLeastS
 ```bash
 $ export UAVCAN__UDP__IFACE=127.63.0.0
 $ export UAVCAN__NODE__ID=42
-$ yakut compile sirius_cyber_corp ~/public_regulated_data_types/uavcan
 $ yakut call 42 123:sirius_cyber_corp.PerformLinearLeastSquaresFit 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
 ---
 123:

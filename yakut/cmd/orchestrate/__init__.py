@@ -3,10 +3,10 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-import os
 import sys
 import signal
 import logging
+from pathlib import Path
 from typing import Any
 import click
 import yakut
@@ -290,7 +290,7 @@ def orchestrate(purser: yakut.Purser, file: str) -> int:
         signal.signal(signal.SIGHUP, on_signal)
 
     ctx = Context(
-        lookup_paths=(os.getcwd(), *purser.paths),  # Current directory takes precedence.
+        lookup_paths=(Path.cwd(), *purser.paths),  # Current directory takes precedence.
     )
     res = exec_file(ctx, file, {}, gate=lambda: sig_num == 0)
 

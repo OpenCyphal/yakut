@@ -109,7 +109,20 @@ def _make_json_formatter(_hints: FormatterHints) -> Formatter:
     #  - simplejson supports Decimal.
     import simplejson as json  # type: ignore
 
-    return lambda data: cast(str, json.dumps(data, ensure_ascii=False, separators=(",", ":"))) + _NEWLINE
+    # Remove ignore_nan=True when this change makes its way into PlotJuggler:
+    # https://github.com/nlohmann/json/issues/3799#issuecomment-1444268644
+    return (
+        lambda data: cast(
+            str,
+            json.dumps(
+                data,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                ignore_nan=True,
+            ),
+        )
+        + _NEWLINE
+    )
 
 
 def _insert_format_specifier(

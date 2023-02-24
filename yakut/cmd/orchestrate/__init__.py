@@ -3,6 +3,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+import os
 import sys
 import signal
 import logging
@@ -288,7 +289,9 @@ def orchestrate(purser: yakut.Purser, file: str) -> int:
     if not sys.platform.startswith("win"):
         signal.signal(signal.SIGHUP, on_signal)
 
-    ctx = Context(lookup_paths=purser.paths)
+    ctx = Context(
+        lookup_paths=(os.getcwd(), *purser.paths),  # Current directory takes precedence.
+    )
     res = exec_file(ctx, file, {}, gate=lambda: sig_num == 0)
 
     return res if res != 0 else -sig_num

@@ -58,9 +58,11 @@ def _validate_request_fields(ctx: click.Context, param: click.Parameter, value: 
 @click.option(
     "--with-metadata/--no-metadata",
     "+M/-M",
-    default=False,
-    show_default=True,
-    help="When enabled, the response object is prepended with an extra field named `_meta_`.",
+    default=not sys.stdout.isatty(),
+    help="""
+When enabled, the response object is prepended with an extra field named `_meta_`.
+Enabled by default unless stdout is a tty.
+""",
 )
 @yakut.pass_purser
 @yakut.asynchronous()

@@ -124,9 +124,11 @@ def _handle_option_synchronizer_transfer_id(ctx: click.Context, _param: click.Pa
 @click.option(
     "--with-metadata/--no-metadata",
     "+M/-M",
-    default=False,
-    show_default=True,
-    help="When enabled, each message object is prepended with an extra field named `_meta_`.",
+    default=not sys.stdout.isatty(),
+    help="""
+When enabled, each message object is prepended with an extra field named `_meta_`.
+Enabled by default unless stdout is a tty.
+""",
 )
 @click.option(
     "--count",

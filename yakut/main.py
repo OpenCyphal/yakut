@@ -3,7 +3,6 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
-import os
 import sys
 import asyncio
 import functools
@@ -199,7 +198,6 @@ _ENV_VAR_PATH = "YAKUT_PATH"
     help=f"""
 In order to use compiled DSDL namespaces,
 the directories that contain compilation outputs need to be specified using this option.
-The current working directory does not need to be specified explicitly.
 
 Examples:
 
@@ -242,7 +240,6 @@ def _click_main(
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
 
-    path = (os.getcwd(), *path)
     _logger.debug("Path: %r", path)
     for p in path:
         sys.path.append(str(p))

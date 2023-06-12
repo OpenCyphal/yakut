@@ -34,7 +34,7 @@ jobs:
             python: 3.9
     runs-on: ${{ matrix.os }}
     steps:
-      # Checkout code from GitHub
+      # Checkout yakut repository
       - name: Check out
         uses: actions/checkout@v3
 
@@ -93,7 +93,6 @@ jobs:
 
       # Upload distribution to pypi.org
       - name: Upload distribution
-        if: false
         run: |
           python -m twine upload dist/*
         env:

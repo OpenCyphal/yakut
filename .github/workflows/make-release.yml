@@ -5,11 +5,10 @@ name: 'Yakut application builder'
 on:
   push:
     branches:
-      - master
-      - cicd
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 # Ensures that only one workflow is running at a time
 concurrency:
@@ -72,7 +71,7 @@ jobs:
   #
   yakut-release:
     name: Release Yakut
-    if: github.event_name == 'push'
+    if: (github.event_name == 'push') && (github.ref == 'refs/heads/main')
     needs: yakut-test
     runs-on: ubuntu-latest
     steps:
@@ -97,8 +96,7 @@ jobs:
           python -m twine upload dist/*
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TESTPYPI_API_TOKEN_GLOBAL }}
-          TWINE_REPOSITORY: testpypi
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN_YAKUT }}
 
       # Tag release
       - name: Push version tag
@@ -107,4 +105,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ env.yakut_version }}
           tag_prefix: ''
-          dry_run: true

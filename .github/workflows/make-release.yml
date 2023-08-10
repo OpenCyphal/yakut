@@ -1,14 +1,8 @@
-name: 'Yakut application builder'
-
-# Builds Yakut release
-
+name: 'Release Yakut Workflow'
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: [ main ]
+    tags: [ '#release' ]
 
 # Ensures that only one workflow is running at a time
 concurrency:
@@ -16,81 +10,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  #
-  # Yakut test
-  #
-  yakut-test:
-    name: Test Yakut
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-20.04, windows-2019-npcap]
-        python: ['3.8', '3.9', '3.10']
-        exclude:
-          - os: windows-2019-npcap
-            python: 3.8
-          - os: windows-2019-npcap
-            python: 3.9
-    runs-on: ${{ matrix.os }}
-    steps:
-      # Checkout yakut repository
-      - name: Check out
-        uses: actions/checkout@v3
-
-      # Install Python version needed for test
-      - name: Install Python3
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-
-      # Log Python version
-      - name: Log Python version
-        run: python --version
-
-      # Install test dependencies
-      - name: Install dependencies
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt-get --ignore-missing update || true
-            sudo apt-get install -y linux-*-extra-$(uname -r) ncat
-            sudo apt-get install -y libsdl2-2.0-0   # For PySDL2. On Windows/macOS the binaries are pulled from PyPI.
-            sudo apt-get install -y libasound2-dev  # For RtMidi.
-          fi
-          git submodule update --init --recursive
-          python -m pip install --upgrade pip setuptools nox
-        shell: bash
-
-      # Run build and test suite
-      - name: Run build and test
-        run: |
-          nox --non-interactive --session test --python ${{ matrix.python }}
-          nox --non-interactive --session lint
-
-  #
-  # Create release
-  #
   yakut-release:
     name: Release Yakut
-    if: (github.event_name == 'push') && (github.ref == 'refs/heads/main')
-    needs: yakut-test
     runs-on: ubuntu-latest
     steps:
-      # Checkout code from GitHub
       - name: Check out
         uses: actions/checkout@v3
 
-      # Build distribution from source
-      - name: Install dependencies
+      - name: Wait for test job to complete
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+          running-workflow-name: 'Release Yakut'
+          allowed-conclusions: success,skipped,cancelled
+
+      - name: Create distribution wheel
         run: |
           git submodule update --init --recursive
           python -m pip install --upgrade pip setuptools wheel twine
           python setup.py sdist bdist_wheel
 
-      # Obtain release version number
       - name: Get release version
         run: echo "yakut_version=$(cat yakut/VERSION)" >> $GITHUB_ENV
 
-      # Upload distribution to pypi.org
       - name: Upload distribution
         run: |
           python -m twine upload dist/*
@@ -98,7 +42,6 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN_YAKUT }}
 
-      # Tag release
       - name: Push version tag
         uses: mathieudutour/github-tag-action@v6.1
         with:

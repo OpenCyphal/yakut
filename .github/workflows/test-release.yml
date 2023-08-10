@@ -1,0 +1,56 @@
+name: 'Test Yakut Workflow'
+on: [ push, pull_request ]
+
+# Ensures that only one workflow is running at a time - required for duplicate pushes and repushing a PR
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  yakut-test:
+    name: Test Yakut
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2019-npcap]
+        python: ['3.8', '3.9', '3.10']
+        exclude:
+          - os: windows-2019-npcap
+            python: 3.8
+          - os: windows-2019-npcap
+            python: 3.9
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Checkout yakut repository
+      - name: Check out
+        uses: actions/checkout@v3
+
+      # Install Python version needed for test
+      - name: Install Python3
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      # Log Python version
+      - name: Log Python version
+        run: python --version
+
+      # Install test dependencies
+      - name: Install dependencies
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get --ignore-missing update || true
+            sudo apt-get install -y linux-*-extra-$(uname -r) ncat
+            sudo apt-get install -y libsdl2-2.0-0   # For PySDL2. On Windows/macOS the binaries are pulled from PyPI.
+            sudo apt-get install -y libasound2-dev  # For RtMidi.
+          fi
+          git submodule update --init --recursive
+          python -m pip install --upgrade pip setuptools nox
+        shell: bash
+
+      # Run build and test suite
+      - name: Run build and test
+        run: |
+          nox --non-interactive --session test --python ${{ matrix.python }}
+          nox --non-interactive --session lint
+

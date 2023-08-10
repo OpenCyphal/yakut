@@ -1,4 +1,4 @@
-name: 'Test Yakut Workflow'
+name: 'Test and Release Yakut'
 on: [ push, pull_request ]
 
 # Ensures that only one workflow is running at a time - required for duplicate pushes and repushing a PR
@@ -21,21 +21,17 @@ jobs:
             python: 3.9
     runs-on: ${{ matrix.os }}
     steps:
-      # Checkout yakut repository
       - name: Check out
         uses: actions/checkout@v3
 
-      # Install Python version needed for test
       - name: Install Python3
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
 
-      # Log Python version
       - name: Log Python version
         run: python --version
 
-      # Install test dependencies
       - name: Install dependencies
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
@@ -48,9 +44,39 @@ jobs:
           python -m pip install --upgrade pip setuptools nox
         shell: bash
 
-      # Run build and test suite
       - name: Run build and test
         run: |
           nox --non-interactive --session test --python ${{ matrix.python }}
           nox --non-interactive --session lint
 
+  yakut-release:
+    name: Release Yakut
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '#release') || contains(github.ref, '/main')
+    needs: yakut-test
+    steps:
+      - name: Check out
+        uses: actions/checkout@v3
+
+      - name: Create distribution wheel
+        run: |
+          git submodule update --init --recursive
+          python -m pip install --upgrade pip setuptools wheel twine
+          python setup.py sdist bdist_wheel
+
+      - name: Get release version
+        run: echo "yakut_version=$(cat yakut/VERSION)" >> $GITHUB_ENV
+
+      - name: Upload distribution
+        run: |
+          python -m twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN_YAKUT }}
+
+      - name: Push version tag
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ env.yakut_version }}
+          tag_prefix: ''

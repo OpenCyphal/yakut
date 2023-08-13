@@ -1,9 +1,9 @@
 name: 'Test and Release Yakut'
-on: [ push, pull_request ]
+on: push
 
-# Ensures that only one workflow is running at a time - required for duplicate pushes and repushing a PR
+# Ensures that only one workflow is running at a time
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow_sha }}
   cancel-in-progress: true
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2019-npcap]
+        os: [ubuntu-20.04, windows-2019-npcap]
         python: ['3.8', '3.9', '3.10']
         exclude:
           - os: windows-2019-npcap

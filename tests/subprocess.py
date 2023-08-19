@@ -8,9 +8,10 @@ import sys
 import shutil
 import typing
 import logging
+from tempfile import NamedTemporaryFile
 import subprocess
 from pathlib import Path
-from subprocess import CalledProcessError as CalledProcessError  # pylint: disable=unused-import
+from subprocess import CalledProcessError as CalledProcessError
 
 
 _logger = logging.getLogger(__name__)
@@ -45,21 +46,29 @@ def execute(
     _logger.debug("Environment: %s", env)
     if environment_variables:
         env.update(environment_variables)
-    # Can't use shell=True with timeout; see https://stackoverflow.com/questions/36952245/subprocess-timeout-failure
-    out = subprocess.run(  # pylint: disable=subprocess-run-check
-        cmd,
-        timeout=timeout,
-        encoding="utf8",
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    stdout, stderr = out.stdout, out.stderr
+    # Can't use PIPE because it is too small on Windows, causing the process to block on stdout/stderr writes.
+    # Instead we redirect stdout/stderr to temporary files whose size is unlimited, and read them later.
+    with (
+        NamedTemporaryFile(suffix="stdout.", buffering=0) as stdout_file,
+        NamedTemporaryFile(suffix="stderr.", buffering=0) as stderr_file,
+    ):
+        # Can't use shell=True with timeout; see https://stackoverflow.com/questions/36952245/subprocess-timeout-failure
+        out = subprocess.run(  # pylint: disable=subprocess-run-check
+            cmd,
+            timeout=timeout,
+            encoding="utf8",
+            env=env,
+            stdout=stdout_file,
+            stderr=stderr_file,
+        )
+        # Obtain the data from the stdout/stderr redirection files. We have to re-open them again.
+        stdout = Path(stdout_file.name).read_text()
+        stderr = Path(stderr_file.name).read_text()
     if log:
         _logger.debug("%s stdout:\n%s", cmd, stdout)
         _logger.debug("%s stderr:\n%s", cmd, stderr)
     if out.returncode != 0 and ensure_success:
-        raise subprocess.CalledProcessError(out.returncode, cmd, stdout, stderr)
+        raise CalledProcessError(out.returncode, cmd, stdout, stderr)
     assert isinstance(stdout, str) and isinstance(stderr, str)
     return out.returncode, stdout, stderr
 
@@ -130,13 +139,16 @@ class Subprocess:
 
         env = _get_env(environment_variables)
         _logger.debug("Environment: %s", env)
-
+        # Can't use PIPE because it is too small on Windows, causing the process to block on stdout/stderr writes.
+        # Instead we redirect stdout/stderr to temporary files whose size is unlimited, and read them later.
+        self._stdout = stdout or NamedTemporaryFile(suffix="out.", buffering=0)  # pylint: disable=consider-using-with
+        self._stderr = stderr or NamedTemporaryFile(suffix="err.", buffering=0)  # pylint: disable=consider-using-with
         # Buffering must be DISABLED, otherwise we can't read data on Windows after the process is interrupted.
         # For some reason stdout is not flushed at exit there.
         self._inferior = subprocess.Popen(  # pylint: disable=consider-using-with
             cmd,
-            stdout=stdout or subprocess.PIPE,
-            stderr=stderr or subprocess.PIPE,
+            stdout=self._stdout,
+            stderr=self._stderr,
             encoding="utf8",
             env=env,
             creationflags=creationflags,
@@ -168,12 +180,15 @@ class Subprocess:
     ) -> typing.Tuple[int, str, str]:
         if interrupt and self._inferior.poll() is None:
             self.interrupt()
-
-        stdout, stderr = self._inferior.communicate(timeout=timeout)
+        # stdout/stderr values returned by communicate() are not usable here because we don't use PIPE.
+        # Frankly I think the subprocess module API is not very well designed.
+        self._inferior.communicate(timeout=timeout)
+        # Obtain the data from the stdout/stderr redirection files. We have to re-open them again.
+        stdout = Path(self._stdout.name).read_text()
+        stderr = Path(self._stderr.name).read_text()
         if log:
             _logger.debug("PID %d stdout:\n%s", self.pid, stdout)
             _logger.debug("PID %d stderr:\n%s", self.pid, stderr)
-
         exit_code = int(self._inferior.returncode)
         return exit_code, stdout, stderr
 

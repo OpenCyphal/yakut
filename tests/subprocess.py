@@ -48,22 +48,20 @@ def execute(
         env.update(environment_variables)
     # Can't use PIPE because it is too small on Windows, causing the process to block on stdout/stderr writes.
     # Instead we redirect stdout/stderr to temporary files whose size is unlimited, and read them later.
-    with (
-        NamedTemporaryFile(suffix="stdout.", buffering=0) as stdout_file,
-        NamedTemporaryFile(suffix="stderr.", buffering=0) as stderr_file,
-    ):
-        # Can't use shell=True with timeout; see https://stackoverflow.com/questions/36952245/subprocess-timeout-failure
-        out = subprocess.run(  # pylint: disable=subprocess-run-check
-            cmd,
-            timeout=timeout,
-            encoding="utf8",
-            env=env,
-            stdout=stdout_file,
-            stderr=stderr_file,
-        )
-        # Obtain the data from the stdout/stderr redirection files. We have to re-open them again.
-        stdout = Path(stdout_file.name).read_text()
-        stderr = Path(stderr_file.name).read_text()
+    with NamedTemporaryFile(suffix="stdout.", buffering=0) as stdout_file:
+        with NamedTemporaryFile(suffix="stderr.", buffering=0) as stderr_file:
+            # Can't use shell=True with timeout; see https://stackoverflow.com/questions/36952245
+            out = subprocess.run(  # pylint: disable=subprocess-run-check
+                cmd,
+                timeout=timeout,
+                encoding="utf8",
+                env=env,
+                stdout=stdout_file,
+                stderr=stderr_file,
+            )
+            # Obtain the data from the stdout/stderr redirection files. We have to re-open them again.
+            stdout = Path(stdout_file.name).read_text()
+            stderr = Path(stderr_file.name).read_text()
     if log:
         _logger.debug("%s stdout:\n%s", cmd, stdout)
         _logger.debug("%s stderr:\n%s", cmd, stderr)

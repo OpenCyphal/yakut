@@ -128,11 +128,11 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
     def udp_loopback() -> typing.Iterator[TransportFactory]:
         yield lambda nid: (
             TransportConfig(
-                expression=f"UDP('127.0.0.0',{nid})",
+                expression=f"UDP('127.0.0.1',{nid})",
                 can_transmit=True,
                 environment=mk_env(
                     nid,
-                    UAVCAN__UDP__IFACE="127.0.0.0",
+                    UAVCAN__UDP__IFACE="127.0.0.1",
                 ),
             )
             if nid is not None

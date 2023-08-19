@@ -118,13 +118,7 @@ class Subprocess:
     False
     """
 
-    def __init__(
-        self,
-        *args: str,
-        environment_variables: typing.Optional[typing.Dict[str, str]] = None,
-        stdout: typing.Optional[typing.BinaryIO] = None,
-        stderr: typing.Optional[typing.BinaryIO] = None,
-    ):
+    def __init__(self, *args: str, environment_variables: typing.Optional[typing.Dict[str, str]] = None):
         cmd = _make_process_args(*args)
         _logger.info("Starting subprocess: %s", cmd)
 
@@ -138,8 +132,8 @@ class Subprocess:
         _logger.debug("Environment: %s", env)
         # Can't use PIPE because it is too small on Windows, causing the process to block on stdout/stderr writes.
         # Instead we redirect stdout/stderr to temporary files whose size is unlimited, and read them later.
-        self._stdout = stdout or NamedTemporaryFile(suffix=".out", buffering=0)  # pylint: disable=consider-using-with
-        self._stderr = stderr or NamedTemporaryFile(suffix=".err", buffering=0)  # pylint: disable=consider-using-with
+        self._stdout = NamedTemporaryFile(suffix=".out", buffering=0)  # pylint: disable=consider-using-with
+        self._stderr = NamedTemporaryFile(suffix=".err", buffering=0)  # pylint: disable=consider-using-with
         # Buffering must be DISABLED, otherwise we can't read data on Windows after the process is interrupted.
         # For some reason stdout is not flushed at exit there.
         self._inferior = subprocess.Popen(  # pylint: disable=consider-using-with
@@ -153,24 +147,11 @@ class Subprocess:
         )
 
     @staticmethod
-    def cli(
-        *args: str,
-        environment_variables: typing.Optional[typing.Dict[str, str]] = None,
-        stdout: typing.Optional[typing.BinaryIO] = None,
-        stderr: typing.Optional[typing.BinaryIO] = None,
-    ) -> Subprocess:
+    def cli(*args: str, environment_variables: typing.Optional[typing.Dict[str, str]] = None) -> Subprocess:
         """
         A convenience factory for running the CLI tool.
         """
-        return Subprocess(
-            "python",
-            "-m",
-            "yakut",
-            *args,
-            environment_variables=environment_variables,
-            stdout=stdout,
-            stderr=stderr,
-        )
+        return Subprocess("python", "-m", "yakut", *args, environment_variables=environment_variables)
 
     def wait(
         self, timeout: float, interrupt: typing.Optional[bool] = False, log: bool = True

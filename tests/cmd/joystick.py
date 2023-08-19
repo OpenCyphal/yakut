@@ -17,12 +17,10 @@ async def _unittest_joystick() -> None:
     # We can't test it end-to-end in a virtualized environment without being able to emulate the connected hardware.
     # For now, we just check if it runs at all, which is not very helpful but is better than nothing.
     # Eventually we should find a way to emulate connected joysticks and MIDI controllers.
-    proc = Subprocess.cli("joy", stdout=open("stdout", "wb"), stderr=open("stderr", "wb"))
+    proc = Subprocess.cli("joy")
     assert proc.alive
     await asyncio.sleep(5)
-    assert proc.alive, open("stderr", "r").read()
-    proc.wait(10.0, interrupt=True)
-
-    # The null controller shall always be available.
-    with open("stdout", "r") as f:
-        assert "null" in f.read()
+    assert proc.alive
+    _, stdout, stderr = proc.wait(10.0, interrupt=True)
+    assert stderr
+    assert "null" in stdout, "The null controller shall always be available."

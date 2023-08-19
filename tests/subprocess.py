@@ -197,7 +197,9 @@ class Subprocess:
 def _read_stream(io: typing.Any) -> str:
     io.flush()
     io.seek(0)
-    return str(io.read().decode("utf8"))
+    out = io.read().decode("utf8")
+    assert isinstance(out, str)
+    return out
 
 
 _ENV_COPY_KEYS = {

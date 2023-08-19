@@ -194,10 +194,10 @@ class Subprocess:
             self._inferior.kill()
 
 
-def _read_stream(io: typing.BinaryIO) -> str:
+def _read_stream(io: typing.Any) -> str:
     io.flush()
     io.seek(0)
-    return io.read().decode("utf8")
+    return str(io.read().decode("utf8"))
 
 
 _ENV_COPY_KEYS = {

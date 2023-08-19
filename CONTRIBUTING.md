@@ -5,7 +5,7 @@ This document is intended for developers only.
 ## Testing
 
 Install dependencies into your current Python environment: `pip install .`
-Aside from that, you will need to install other dependencies listed in `.appveyor.yml`
+Aside from that, you will need to install other dependencies listed in the CI/CD workflow files
 (e.g., [Ncat](https://nmap.org/ncat/); for Debian-based distros try `apt install ncat`).
 
 Write unit tests as functions without arguments prefixed with ``_unittest_``;

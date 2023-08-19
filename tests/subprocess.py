@@ -48,8 +48,8 @@ def execute(
         env.update(environment_variables)
     # Can't use PIPE because it is too small on Windows, causing the process to block on stdout/stderr writes.
     # Instead we redirect stdout/stderr to temporary files whose size is unlimited, and read them later.
-    with NamedTemporaryFile(suffix="stdout.", buffering=0) as stdout_file:
-        with NamedTemporaryFile(suffix="stderr.", buffering=0) as stderr_file:
+    with NamedTemporaryFile(suffix=".out", buffering=0) as stdout_file:
+        with NamedTemporaryFile(suffix=".err", buffering=0) as stderr_file:
             # Can't use shell=True with timeout; see https://stackoverflow.com/questions/36952245
             out = subprocess.run(  # pylint: disable=subprocess-run-check
                 cmd,
@@ -59,9 +59,8 @@ def execute(
                 stdout=stdout_file,
                 stderr=stderr_file,
             )
-            # Obtain the data from the stdout/stderr redirection files. We have to re-open them again.
-            stdout = Path(stdout_file.name).read_text()
-            stderr = Path(stderr_file.name).read_text()
+            stdout = _read_stream(stdout_file)
+            stderr = _read_stream(stderr_file)
     if log:
         _logger.debug("%s stdout:\n%s", cmd, stdout)
         _logger.debug("%s stderr:\n%s", cmd, stderr)
@@ -139,8 +138,8 @@ class Subprocess:
         _logger.debug("Environment: %s", env)
         # Can't use PIPE because it is too small on Windows, causing the process to block on stdout/stderr writes.
         # Instead we redirect stdout/stderr to temporary files whose size is unlimited, and read them later.
-        self._stdout = stdout or NamedTemporaryFile(suffix="out.", buffering=0)  # pylint: disable=consider-using-with
-        self._stderr = stderr or NamedTemporaryFile(suffix="err.", buffering=0)  # pylint: disable=consider-using-with
+        self._stdout = stdout or NamedTemporaryFile(suffix=".out", buffering=0)  # pylint: disable=consider-using-with
+        self._stderr = stderr or NamedTemporaryFile(suffix=".err", buffering=0)  # pylint: disable=consider-using-with
         # Buffering must be DISABLED, otherwise we can't read data on Windows after the process is interrupted.
         # For some reason stdout is not flushed at exit there.
         self._inferior = subprocess.Popen(  # pylint: disable=consider-using-with
@@ -181,9 +180,8 @@ class Subprocess:
         # stdout/stderr values returned by communicate() are not usable here because we don't use PIPE.
         # Frankly I think the subprocess module API is not very well designed.
         self._inferior.communicate(timeout=timeout)
-        # Obtain the data from the stdout/stderr redirection files. We have to re-open them again.
-        stdout = Path(self._stdout.name).read_text()
-        stderr = Path(self._stderr.name).read_text()
+        stdout = _read_stream(self._stdout)
+        stderr = _read_stream(self._stderr)
         if log:
             _logger.debug("PID %d stdout:\n%s", self.pid, stdout)
             _logger.debug("PID %d stderr:\n%s", self.pid, stderr)
@@ -213,6 +211,12 @@ class Subprocess:
     def __del__(self) -> None:
         if self._inferior.poll() is None:
             self._inferior.kill()
+
+
+def _read_stream(io: typing.BinaryIO) -> str:
+    io.flush()
+    io.seek(0)
+    return io.read().decode("utf8")
 
 
 _ENV_COPY_KEYS = {

@@ -48,6 +48,7 @@ jobs:
         run: |
           nox --non-interactive --session test --python ${{ matrix.python }}
           nox --non-interactive --session lint
+        shell: bash
 
   yakut-release:
     name: Release Yakut

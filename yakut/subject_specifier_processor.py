@@ -77,7 +77,7 @@ async def process_subject_specifier(
             f"Automatic network discovery did not return suitable dtypes for subject {subject_id}. "
             f"Either the subject-ID is incorrect, or the nodes that utilize it are currently offline, "
             f"or they do not support the introspection services required for automatic discovery. "
-            f"Consider specifying the data type manually? The syntax is like {subject_id}:namespace.DataType"
+            f"Consider specifying the data type manually? The syntax is like {subject_id}:namespace.DataType.1.0"
         ) from None
     _logger.debug("Network discovery for subject %s done with dtype %s", subject_id, dtype)
     assert isinstance(dtype, type)

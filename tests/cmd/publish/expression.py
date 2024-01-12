@@ -25,6 +25,7 @@ def _unittest_publish_expression_a(compiled_dsdl: typing.Any) -> None:
         "7654:uavcan.primitive.array.Real64.1.0",
         environment_variables=env,
     )
+    time.sleep(3.0)  # Let the subscriber start.
 
     wall_time_when_started = time.time()
     execute_cli(
@@ -76,6 +77,7 @@ def _unittest_publish_expression_b(compiled_dsdl: typing.Any) -> None:
         "7654:uavcan.primitive.String.1.0",
         environment_variables=env,
     )
+    time.sleep(3.0)  # Let the subscriber start.
 
     execute_cli(
         "pub",

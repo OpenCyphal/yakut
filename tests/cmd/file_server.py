@@ -12,13 +12,13 @@ from pathlib import Path
 from typing import Tuple, Optional
 import pytest
 import pycyphal
-from pycyphal.transport.serial import SerialTransport
+from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
 from tests.dsdl import OUTPUT_DIR
 
 
 @pytest.mark.asyncio
-async def _unittest_file_server_pnp(compiled_dsdl: typing.Any, serial_broker: str) -> None:
+async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
     from pycyphal.application import make_node, NodeInfo, make_registry
     from pycyphal.application.file import FileClient
     from pycyphal.application.plug_and_play import Allocatee
@@ -33,7 +33,7 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any, serial_broker: st
         root,
         f"--plug-and-play={root}/allocation_table.db",
         environment_variables={
-            "UAVCAN__SERIAL__IFACE": serial_broker,
+            "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": "42",
             "YAKUT_PATH": str(OUTPUT_DIR),
         },
@@ -43,7 +43,7 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any, serial_broker: st
         make_registry(
             None,
             {
-                "UAVCAN__SERIAL__IFACE": serial_broker,
+                "UAVCAN__UDP__IFACE": "127.0.0.1",
                 "UAVCAN__NODE__ID": "43",
                 "YAKUT_PATH": str(OUTPUT_DIR),
             },
@@ -71,7 +71,7 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any, serial_broker: st
         assert ["allocation_table.db"] == await ls("/")
 
         # Check the allocator.
-        alloc_transport = SerialTransport(serial_broker, None)
+        alloc_transport = UDPTransport("127.0.0.1", None)
         try:
             alloc_client = Allocatee(alloc_transport, b"badc0ffee0ddf00d")
             assert alloc_client.get_result() is None
@@ -91,10 +91,10 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any, serial_broker: st
 
 
 @pytest.mark.asyncio
-async def _unittest_file_server_update(compiled_dsdl: typing.Any, serial_broker: str) -> None:
+async def _unittest_file_server_update(compiled_dsdl: typing.Any) -> None:
     from pycyphal.application import make_node, NodeInfo, make_registry, make_transport, Node
     from pycyphal.application.plug_and_play import Allocatee
-    from uavcan.node import ExecuteCommand_1_1 as ExecuteCommand
+    from uavcan.node import ExecuteCommand_1 as ExecuteCommand
 
     _ = compiled_dsdl
     asyncio.get_running_loop().slow_callback_duration = 10.0
@@ -143,7 +143,7 @@ async def _unittest_file_server_update(compiled_dsdl: typing.Any, serial_broker:
             if sw_crc is not None:
                 info.software_image_crc = [sw_crc]
 
-            reg = make_registry(None, {"UAVCAN__SERIAL__IFACE": serial_broker, "YAKUT_PATH": str(OUTPUT_DIR)})
+            reg = make_registry(None, {"UAVCAN__UDP__IFACE": "127.0.0.1", "YAKUT_PATH": str(OUTPUT_DIR)})
             trans = make_transport(reg)
             if trans.local_node_id is None:
                 print("Starting a node-ID allocator for", info.unique_id.tobytes())
@@ -172,7 +172,7 @@ async def _unittest_file_server_update(compiled_dsdl: typing.Any, serial_broker:
         f"--plug-and-play={root}/allocation_table.db",
         f"-u",
         environment_variables={
-            "UAVCAN__SERIAL__IFACE": serial_broker,
+            "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": "42",
             "YAKUT_PATH": str(OUTPUT_DIR),
         },

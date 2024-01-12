@@ -11,11 +11,11 @@ from tests.dsdl import OUTPUT_DIR
 from tests.subprocess import execute_cli, Subprocess
 
 
-def _unittest_publish_expression_a(compiled_dsdl: typing.Any, serial_broker: str) -> None:
+def _unittest_publish_expression_a(compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
         "YAKUT_PATH": str(OUTPUT_DIR),
-        "UAVCAN__SERIAL__IFACE": serial_broker,
+        "UAVCAN__UDP__IFACE": "127.0.0.1",
         "UAVCAN__NODE__ID": "1234",
     }
 
@@ -62,11 +62,11 @@ def _unittest_publish_expression_a(compiled_dsdl: typing.Any, serial_broker: str
     ]
 
 
-def _unittest_publish_expression_b(compiled_dsdl: typing.Any, serial_broker: str) -> None:
+def _unittest_publish_expression_b(compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
     env = {
         "YAKUT_PATH": str(OUTPUT_DIR),
-        "UAVCAN__SERIAL__IFACE": serial_broker,
+        "UAVCAN__UDP__IFACE": "127.0.0.1",
         "UAVCAN__NODE__ID": "1234",
     }
 

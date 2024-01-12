@@ -188,7 +188,7 @@ def _unittest_app_descriptor_from_node_info() -> None:
     ensure_compiled_dsdl()
 
     from pycyphal.application import NodeInfo
-    from uavcan.node import Version_1_0 as Version
+    from uavcan.node import Version_1 as Version
 
     ad = AppDescriptor.from_node_info(
         NodeInfo(

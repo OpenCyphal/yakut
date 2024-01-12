@@ -468,7 +468,7 @@ def get_matrix_cell_style(tx: Optional[bool], rx: Optional[bool], recently_activ
 
 
 # noinspection SpellCheckingInspection
-def render_mode(val: uavcan.node.Mode_1_0) -> tuple[str, Optional[Style]]:
+def render_mode(val: uavcan.node.Mode_1) -> tuple[str, Optional[Style]]:
     if val.value == val.OPERATIONAL:
         return "oper", None
     if val.value == val.INITIALIZATION:
@@ -481,7 +481,7 @@ def render_mode(val: uavcan.node.Mode_1_0) -> tuple[str, Optional[Style]]:
 
 
 # noinspection SpellCheckingInspection
-def render_health(val: uavcan.node.Health_1_0) -> tuple[str, Optional[Style]]:
+def render_health(val: uavcan.node.Health_1) -> tuple[str, Optional[Style]]:
     if val.value == val.NOMINAL:
         return "nomina", None
     if val.value == val.ADVISORY:
@@ -497,11 +497,11 @@ def render_uptime(val: int) -> str:
     return f"{val // (3600 * 24):5d}d{(val // 3600) % 24:02d}:{(val // 60) % 60:02d}:{val % 60:02d}"
 
 
-def render_version(val: uavcan.node.Version_1_0) -> str:
+def render_version(val: uavcan.node.Version_1) -> str:
     return "% 3d.%-3d" % (val.major, val.minor)  # pylint: disable=consider-using-f-string
 
 
-def render_full_software_version(version: uavcan.node.Version_1_0, vcs_revision_id: int, crc: Optional[int]) -> str:
+def render_full_software_version(version: uavcan.node.Version_1, vcs_revision_id: int, crc: Optional[int]) -> str:
     out = f"{version.major:3d}.{version.minor}"
     if vcs_revision_id != 0 or crc is not None:
         out += f".{vcs_revision_id:016x}"

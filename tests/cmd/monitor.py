@@ -9,7 +9,7 @@ import asyncio
 import itertools
 import pytest
 import pycyphal
-from pycyphal.transport.serial import SerialTransport
+from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
 from tests.dsdl import OUTPUT_DIR
 import yakut
@@ -20,12 +20,12 @@ if sys.platform.startswith("win"):  # pragma: no cover
 
 # noinspection SpellCheckingInspection
 @pytest.mark.asyncio
-async def _unittest_monitor_nodes(compiled_dsdl: Any, serial_broker: str) -> None:
+async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
     _ = compiled_dsdl
     asyncio.get_running_loop().slow_callback_duration = 10.0
 
-    task = asyncio.create_task(_run_nodes(serial_broker))
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(serial_broker, 10.0, 42)).splitlines()]
+    task = asyncio.create_task(_run_nodes())
+    cells = [x.split() for x in (await _monitor_and_get_last_screen(10.0, 42)).splitlines()]
     task.cancel()
     await asyncio.sleep(3.0)
 
@@ -66,10 +66,10 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any, serial_broker: str) -> Non
 
     # Same but the nodes go offline plus there is an anonymous node.
     tasks = [
-        asyncio.create_task(_delay(_run_nodes(serial_broker), 1.0, duration=5.0)),
-        asyncio.create_task(_delay(_run_anonymous(serial_broker), 1.0, duration=5.0)),
+        asyncio.create_task(_delay(_run_nodes(), 1.0, duration=5.0)),
+        asyncio.create_task(_delay(_run_anonymous(), 1.0, duration=5.0)),
     ]
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(serial_broker, 15.0, 42)).splitlines()]
+    cells = [x.split() for x in (await _monitor_and_get_last_screen(15.0, 42)).splitlines()]
     await asyncio.gather(*tasks)
     await asyncio.sleep(3.0)
 
@@ -105,18 +105,18 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any, serial_broker: str) -> Non
 
 # noinspection SpellCheckingInspection
 @pytest.mark.asyncio
-async def _unittest_monitor_errors(compiled_dsdl: Any, serial_broker: str) -> None:
+async def _unittest_monitor_errors(compiled_dsdl: Any) -> None:
     _ = compiled_dsdl
     asyncio.get_running_loop().slow_callback_duration = 10.0
     asyncio.get_running_loop().set_exception_handler(lambda *_: None)
 
     # This time the monitor node is anonymous.
     task = asyncio.gather(
-        _run_nodes(serial_broker),
-        _run_zombie(serial_broker),
-        _delay(_inject_error(serial_broker), 7.0),
+        _run_nodes(),
+        _run_zombie(),
+        _delay(_inject_error(), 7.0),
     )
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(serial_broker, 12.0, None)).splitlines()]
+    cells = [x.split() for x in (await _monitor_and_get_last_screen(12.0, None)).splitlines()]
     task.cancel()
     await asyncio.sleep(3.0)
 
@@ -138,7 +138,7 @@ async def _unittest_monitor_errors(compiled_dsdl: Any, serial_broker: str) -> No
     await asyncio.sleep(3.0)
 
 
-async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_id: Optional[int]) -> str:
+async def _monitor_and_get_last_screen(duration: float, node_id: Optional[int]) -> str:
     args = ["monitor"]
     if node_id is not None:
         args.append("--plug-and-play=allocation_table.db")
@@ -146,7 +146,7 @@ async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_
         *args,
         environment_variables={
             "YAKUT_PATH": str(OUTPUT_DIR),
-            "UAVCAN__SERIAL__IFACE": serial_iface,
+            "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": str(node_id if node_id is not None else 0xFFFF),
         },
     )
@@ -173,10 +173,10 @@ async def _monitor_and_get_last_screen(serial_iface: str, duration: float, node_
         raise
 
 
-async def _run_nodes(serial_iface: str) -> None:
+async def _run_nodes() -> None:
     from pycyphal.application import make_registry, make_node, NodeInfo, Node
-    from uavcan.node import Mode_1_0 as Mode, Health_1_0 as Health, Version_1_0 as Version
-    from uavcan.primitive import String_1_0
+    from uavcan.node import Mode_1 as Mode, Health_1 as Health, Version_1 as Version
+    from uavcan.primitive import String_1
     import uavcan.register
 
     async def subscription_sink(_msg: Any, _meta: pycyphal.transport.TransferFrom) -> None:
@@ -185,7 +185,7 @@ async def _run_nodes(serial_iface: str) -> None:
     def instantiate(info: NodeInfo, node_id: int, mode: int, health: int, vssc: int) -> Node:
         reg = make_registry(
             environment_variables={
-                "UAVCAN__SERIAL__IFACE": serial_iface,
+                "UAVCAN__UDP__IFACE": "127.0.0.1",
                 "UAVCAN__NODE__ID": str(node_id),
                 "UAVCAN__PUB__SPAM__ID": "2222",
                 "UAVCAN__SUB__SPAM__ID": "2222",
@@ -248,21 +248,21 @@ async def _run_nodes(serial_iface: str) -> None:
             vssc=4,
         ),
     ]
-    pub = nodes[0].make_publisher(String_1_0, "spam")
-    nodes[1].make_subscriber(String_1_0, "spam").receive_in_background(subscription_sink)
-    nodes[2].make_subscriber(String_1_0, "spam").receive_in_background(subscription_sink)
-    nodes[3].make_subscriber(String_1_0, "null").receive_in_background(subscription_sink)  # No publishers.
-    reg_client_a = nodes[1].make_client(uavcan.register.List_1_0, 1111)
-    reg_client_b = nodes[1].make_client(uavcan.register.List_1_0, 3210)
+    pub = nodes[0].make_publisher(String_1, "spam")
+    nodes[1].make_subscriber(String_1, "spam").receive_in_background(subscription_sink)
+    nodes[2].make_subscriber(String_1, "spam").receive_in_background(subscription_sink)
+    nodes[3].make_subscriber(String_1, "null").receive_in_background(subscription_sink)  # No publishers.
+    reg_client_a = nodes[1].make_client(uavcan.register.List_1, 1111)
+    reg_client_b = nodes[1].make_client(uavcan.register.List_1, 3210)
     print("NODES STARTED")
     try:
         for i in itertools.count():
-            assert await pub.publish(String_1_0(f"Hello world! This is message number #{i+1}."))
+            assert await pub.publish(String_1(f"Hello world! This is message number #{i+1}."))
             if (i % 2000) > 1000:
                 if i % 2 == 0:
-                    await reg_client_a.call(uavcan.register.List_1_0.Request(i % 11))
+                    await reg_client_a.call(uavcan.register.List_1.Request(i % 11))
                 if i % 5 == 0:
-                    await reg_client_b.call(uavcan.register.List_1_0.Request(i % 11))
+                    await reg_client_b.call(uavcan.register.List_1.Request(i % 11))
             await asyncio.sleep(0.01)
     except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
         pass
@@ -273,15 +273,15 @@ async def _run_nodes(serial_iface: str) -> None:
         print("NODES STOPPED")
 
 
-async def _run_zombie(serial_iface: str) -> None:
-    from uavcan.primitive import Empty_1_0
+async def _run_zombie() -> None:
+    from uavcan.primitive import Empty_1
 
-    tr = SerialTransport(serial_iface, 2571)
+    tr = UDPTransport("127.0.0.1", 2571)
     pres = pycyphal.presentation.Presentation(tr)
     try:
-        pub = pres.make_publisher(Empty_1_0, 99)
+        pub = pres.make_publisher(Empty_1, 99)
         while True:
-            await pub.publish(Empty_1_0())
+            await pub.publish(Empty_1())
             await asyncio.sleep(0.5)
     except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
         pass
@@ -289,35 +289,31 @@ async def _run_zombie(serial_iface: str) -> None:
         pres.close()
 
 
-async def _run_anonymous(serial_iface: str) -> None:
+async def _run_anonymous() -> None:
     from pycyphal.application import make_registry, make_node, NodeInfo
-    from uavcan.primitive import String_1_0
+    from uavcan.primitive import String_1
 
     reg = make_registry(
         environment_variables={
-            "UAVCAN__SERIAL__IFACE": serial_iface,
+            "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__PUB__SPAM__ID": "2222",
         }
     )
     node = make_node(NodeInfo(), reg)
     try:
         node.start()
-        pub = node.make_publisher(String_1_0, "spam")
+        pub = node.make_publisher(String_1, "spam")
         while True:
             await asyncio.sleep(1.0)
-            await pub.publish(String_1_0("I am here incognito."))
+            await pub.publish(String_1("I am here incognito."))
     except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
         pass
     finally:
         node.close()
 
 
-async def _inject_error(serial_iface: str) -> None:
-    from serial import serial_for_url  # type: ignore
-
-    p = serial_for_url(serial_iface)
-    p.write(b"\x00 this is not a valid frame \x00")
-    p.close()
+async def _inject_error() -> None:
+    pass  # TODO: send a malformed UDP datagram to the heartbeat endpoint.
 
 
 async def _delay(target: Awaitable[None], delay: float, duration: Optional[float] = None) -> None:
@@ -336,7 +332,7 @@ async def _delay(target: Awaitable[None], delay: float, duration: Optional[float
 async def _main() -> None:  # pragma: no cover
     """
     This is intended to aid in manual testing of the UI.
-    Run this file having launched the serial broker beforehand and visually validate the behavior of the tool.
+    Run this file and visually validate the behavior of the tool.
 
     This is how you can record the screen if you want a gif or something:
 
@@ -345,12 +341,11 @@ async def _main() -> None:  # pragma: no cover
 
     Docs on ffmpeg: https://trac.ffmpeg.org/wiki/Capture/Desktop
     """
-    serial_iface = "socket://127.0.0.1:50905"
     await asyncio.gather(
-        _delay(_run_nodes(serial_iface), 0.0, 30.0),
-        _delay(_run_zombie(serial_iface), 6.0, 10.0),
-        _delay(_run_anonymous(serial_iface), 3.0, 10.0),
-        _delay(_inject_error(serial_iface), 3.0),
+        _delay(_run_nodes(), 0.0, 30.0),
+        _delay(_run_zombie(), 6.0, 10.0),
+        _delay(_run_anonymous(), 3.0, 10.0),
+        _delay(_inject_error(), 3.0),
     )
 
 

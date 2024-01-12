@@ -159,17 +159,3 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
 @pytest.fixture(params=_generate())
 def transport_factory(request: typing.Any) -> typing.Iterable[TransportFactory]:
     yield from request.param()
-
-
-@pytest.fixture()
-def serial_broker() -> typing.Iterable[str]:
-    """
-    Ensures that the serial broker is available for the test.
-    The value is the endpoint where the broker is reachable; e.g., ``socket://127.0.0.1:50905``.
-    """
-    proc = Subprocess("ncat", "--broker", "--listen", "--verbose", f"--source-port={SERIAL_BROKER_PORT}")
-    # The sleep is needed to let the broker initialize before starting the tests to avoid connection error.
-    # This is only relevant for Windows. See details: https://github.com/OpenCyphal/yakut/issues/26
-    time.sleep(2)
-    yield f"socket://127.0.0.1:{SERIAL_BROKER_PORT}"
-    proc.wait(5.0, interrupt=True)

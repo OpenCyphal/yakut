@@ -16,8 +16,8 @@ jobs:
         # We chose to do it this way because NPcap driver installation requires a reboot, which is difficult to
         # automate. The NPcap driver is required for the Cyphal/UDP transport tests to work.
         os: [ubuntu-22.04, windows-2019-npcap]
-        python: ['3.8', '3.9', '3.10']
-        exclude:
+        python: ['3.8', '3.9', '3.10', '3.11']
+        exclude:  # We don't test Windows with old Python versions because it takes too much effort.
           - os: windows-2019-npcap
             python: 3.8
           - os: windows-2019-npcap

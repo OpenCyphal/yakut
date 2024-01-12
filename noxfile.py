@@ -51,7 +51,7 @@ def test(session):
     # Now we can install dependencies for the full integration test suite.
     session.install(
         "pytest         ~= 7.4",
-        "pytest-asyncio == 0.23.*",
+        "pytest-asyncio ~= 0.21.0",
         "coverage       ~= 7.4",
     )
 

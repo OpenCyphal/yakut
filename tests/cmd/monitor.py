@@ -15,9 +15,6 @@ from tests.subprocess import Subprocess
 from tests.dsdl import OUTPUT_DIR
 import yakut
 
-if sys.platform.startswith("win"):  # pragma: no cover
-    pytest.skip("These tests do not work reliably on Windows", allow_module_level=True)
-
 
 # noinspection SpellCheckingInspection
 @pytest.mark.asyncio

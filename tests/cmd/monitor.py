@@ -5,6 +5,7 @@
 
 from typing import Any, Optional, Awaitable
 import sys
+import socket
 import asyncio
 import itertools
 import pytest
@@ -313,7 +314,17 @@ async def _run_anonymous() -> None:
 
 
 async def _inject_error() -> None:
-    pass  # TODO: send a malformed UDP datagram to the heartbeat endpoint.
+    # To test, open Yakut monitor as shown below and run this script; the error count will increase:
+    #   UAVCAN__UDP__IFACE="127.0.0.1" y mon
+    bad_heartbeat = bytes.fromhex(
+        "01046400ffff551d09000000000000000000008000001d7e00000000000032"
+        "00000000"  # Correct CRC: 2b53e66a
+    )
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        if sys.platform.lower().startswith("linux"):
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("127.0.0.1", 0))
+        sock.sendto(bad_heartbeat, ("239.0.29.85", 9382))
 
 
 async def _delay(target: Awaitable[None], delay: float, duration: Optional[float] = None) -> None:

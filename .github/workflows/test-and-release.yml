@@ -52,6 +52,8 @@ jobs:
           nox --non-interactive --session test --python ${{ matrix.python }}
           nox --non-interactive --session lint
         shell: bash
+        env:
+          FORCE_COLOR: 1
 
   yakut-release:
     name: Release Yakut

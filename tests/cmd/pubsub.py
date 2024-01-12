@@ -3,6 +3,8 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from __future__ import annotations
+
+import sys
 import time
 import json
 import typing
@@ -181,7 +183,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "--period=2",
         environment_variables=env,
     )
-    proc.wait(timeout=8)
+    proc.wait(timeout=30 if sys.platform.startswith("win") else 8)  # On Windows Python takes a long time to start.
 
     time.sleep(2.0)  # Time to sync up
 

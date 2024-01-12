@@ -4,6 +4,7 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 from typing import Any, Optional, Awaitable
+import sys
 import asyncio
 import itertools
 import pytest
@@ -12,6 +13,9 @@ from pycyphal.transport.serial import SerialTransport
 from tests.subprocess import Subprocess
 from tests.dsdl import OUTPUT_DIR
 import yakut
+
+if sys.platform.startswith("win"):  # pragma: no cover
+    pytest.skip("These tests do not work reliably on Windows", allow_module_level=True)
 
 
 # noinspection SpellCheckingInspection

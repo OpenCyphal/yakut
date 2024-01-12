@@ -53,7 +53,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     )
     time.sleep(1.0)  # Time to let the background processes finish initialization
 
-    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc_pub = Subprocess.cli(
         "--heartbeat-vssc=54",
         "--heartbeat-priority=high",
         "--node-info",
@@ -149,21 +149,21 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         "YAKUT_TRANSPORT": transport_factory(None).expression,
         "YAKUT_PATH": str(OUTPUT_DIR),
     }
-    proc_sub_heartbeat = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc_sub_heartbeat = Subprocess.cli(
         "-j",
         "sub",
         "uavcan.node.heartbeat",
         "--with-metadata",
         environment_variables=env,
     )
-    proc_sub_diagnostic_with_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc_sub_diagnostic_with_meta = Subprocess.cli(
         "-j",
         "sub",
         "uavcan.diagnostic.record",
         "--with-metadata",
         environment_variables=env,
     )
-    proc_sub_diagnostic_no_meta = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc_sub_diagnostic_no_meta = Subprocess.cli(
         "-j",
         "sub",
         "uavcan.diagnostic.record",
@@ -173,53 +173,38 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
 
     time.sleep(3.0)  # Time to let the background processes finish initialization
 
-    if transport_factory(None).can_transmit:
-        proc = Subprocess.cli(
-            "pub",
-            "uavcan.diagnostic.record",
-            "{}",
-            "--count=2",
-            "--period=2",
-            environment_variables=env,
-        )
-        proc.wait(timeout=8)
+    proc = Subprocess.cli(
+        "pub",
+        "uavcan.diagnostic.record",
+        "{}",
+        "--count=2",
+        "--period=2",
+        environment_variables=env,
+    )
+    proc.wait(timeout=8)
 
-        time.sleep(2.0)  # Time to sync up
+    time.sleep(2.0)  # Time to sync up
 
-        assert (
-            proc_sub_heartbeat.wait(1.0, interrupt=True)[1].strip() == ""
-        ), "Anonymous nodes must not broadcast heartbeat"
+    assert proc_sub_heartbeat.wait(1.0, interrupt=True)[1].strip() == "", "Anonymous nodes must not broadcast heartbeat"
 
-        diagnostics = list(
-            json.loads(s) for s in proc_sub_diagnostic_with_meta.wait(1.0, interrupt=True)[1].splitlines()
-        )
-        print("diagnostics:", diagnostics)
-        # Remember that anonymous transfers over redundant transports are NOT deduplicated.
-        # Hence, to support the case of redundant transports, we use 'greater or equal' here.
-        assert len(diagnostics) >= 2
-        for m in diagnostics:
-            assert "nominal" in m["8184"]["_meta_"]["priority"].lower()
-            assert m["8184"]["_meta_"]["transfer_id"] >= 0
-            assert m["8184"]["_meta_"]["source_node_id"] is None
-            assert m["8184"]["timestamp"]["microsecond"] == 0
-            assert m["8184"]["text"] == ""
+    diagnostics = list(json.loads(s) for s in proc_sub_diagnostic_with_meta.wait(1.0, interrupt=True)[1].splitlines())
+    print("diagnostics:", diagnostics)
+    # Remember that anonymous transfers over redundant transports are NOT deduplicated.
+    # Hence, to support the case of redundant transports, we use 'greater or equal' here.
+    assert len(diagnostics) >= 2
+    for m in diagnostics:
+        assert "nominal" in m["8184"]["_meta_"]["priority"].lower()
+        assert m["8184"]["_meta_"]["transfer_id"] >= 0
+        assert m["8184"]["_meta_"]["source_node_id"] is None
+        assert m["8184"]["timestamp"]["microsecond"] == 0
+        assert m["8184"]["text"] == ""
 
-        diagnostics = list(json.loads(s) for s in proc_sub_diagnostic_no_meta.wait(1.0, interrupt=True)[1].splitlines())
-        print("diagnostics:", diagnostics)
-        assert len(diagnostics) >= 2  # >= because see above
-        for m in diagnostics:
-            assert m["8184"]["timestamp"]["microsecond"] == 0
-            assert m["8184"]["text"] == ""
-    else:
-        proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
-            "pub",
-            "uavcan.diagnostic.Record",
-            "{}",
-            "--count=2",
-            "--period=2",
-            environment_variables=env,
-        )
-        proc.wait(timeout=8, log=False)
+    diagnostics = list(json.loads(s) for s in proc_sub_diagnostic_no_meta.wait(1.0, interrupt=True)[1].splitlines())
+    print("diagnostics:", diagnostics)
+    assert len(diagnostics) >= 2  # >= because see above
+    for m in diagnostics:
+        assert m["8184"]["timestamp"]["microsecond"] == 0
+        assert m["8184"]["text"] == ""
 
 
 def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
@@ -238,7 +223,7 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
         },
     )
     time.sleep(3.0)  # Let the subscriber boot up.
-    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc_pub = Subprocess.cli(
         "pub",
         "1000",  # Use discovery.
         "hello",
@@ -260,7 +245,7 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
 
 def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
-    proc_pub = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc_pub = Subprocess.cli(
         "pub",
         "1000:uavcan.primitive.string",
         "hello",

@@ -20,11 +20,6 @@ class TransportConfig:
     """
 
     expression: str
-    """
-    Please do not use this in new tests,
-    consider using the environment variables instead as they are the recommended form now.
-    """
-    can_transmit: bool
     environment: dict[str, str]
 
 
@@ -69,7 +64,6 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
         def vcan() -> typing.Iterator[TransportFactory]:
             yield lambda nid: TransportConfig(
                 expression=f"CAN(can.media.socketcan.SocketCANMedia('vcan0',64),local_node_id={nid})",
-                can_transmit=True,
                 environment=mk_env(
                     nid,
                     UAVCAN__CAN__IFACE="socketcan:vcan0",
@@ -86,7 +80,6 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
                         for idx, mtu in enumerate([8, 32, 64])
                     )
                 ),
-                can_transmit=True,
                 environment=mk_env(
                     nid,
                     UAVCAN__CAN__IFACE="socketcan:vcan0 socketcan:vcan1 socketcan:vcan2",
@@ -114,7 +107,6 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
         assert broker.alive
         yield lambda nid: TransportConfig(
             expression=f"Serial('{serial_endpoint}',local_node_id={nid})",
-            can_transmit=True,
             environment=mk_env(
                 nid,
                 UAVCAN__SERIAL__IFACE=serial_endpoint,
@@ -129,16 +121,6 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
         yield lambda nid: (
             TransportConfig(
                 expression=f"UDP('127.0.0.1',{nid})",
-                can_transmit=True,
-                environment=mk_env(
-                    nid,
-                    UAVCAN__UDP__IFACE="127.0.0.1",
-                ),
-            )
-            if nid is not None
-            else TransportConfig(
-                expression="UDP('127.0.0.1',None)",
-                can_transmit=False,
                 environment=mk_env(
                     nid,
                     UAVCAN__UDP__IFACE="127.0.0.1",
@@ -158,7 +140,6 @@ def _generate() -> typing.Iterator[typing.Callable[[], typing.Iterator[Transport
                     ]
                 )
             ),
-            can_transmit=nid is not None,
             environment=mk_env(
                 nid,
                 UAVCAN__SERIAL__IFACE=serial_endpoint,

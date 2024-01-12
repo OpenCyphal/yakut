@@ -288,7 +288,7 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
     sys.exit(status)
 
 
-subcommand: Callable[..., Callable[..., Any]] = _click_main.command
+subcommand: Callable[..., Callable[..., Any]] = _click_main.command  # type: ignore
 
 
 def asynchronous(*, interrupted_ok: bool = False) -> Callable[[Callable[..., Awaitable[Any]]], Callable[..., Any]]:

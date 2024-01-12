@@ -3,6 +3,10 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
+# Disable unused ignore warning for this file only because there appears to be no other way to make MyPy
+# accept this file both on Windows and GNU/Linux.
+# mypy: warn_unused_ignores=False
+
 from typing import Any, Optional, Awaitable
 import sys
 import socket
@@ -319,7 +323,7 @@ async def _inject_error() -> None:
     )
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         if sys.platform.lower().startswith("linux"):
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # type: ignore
         sock.bind(("127.0.0.1", 0))
         sock.sendto(bad_heartbeat, ("239.0.29.85", 9382))
 

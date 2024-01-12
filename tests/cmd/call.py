@@ -52,10 +52,10 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
         last_metadata = metadata
         print("REQUEST OBJECT  :", request)
         print("REQUEST METADATA:", metadata)
-        sum_x = sum(map(lambda p: p.x, request.points))  # type: ignore
-        sum_y = sum(map(lambda p: p.y, request.points))  # type: ignore
-        a = sum_x * sum_y - len(request.points) * sum(map(lambda p: p.x * p.y, request.points))  # type: ignore
-        b = sum_x * sum_x - len(request.points) * sum(map(lambda p: p.x**2, request.points))  # type: ignore
+        sum_x = sum(map(lambda p: p.x, request.points))
+        sum_y = sum(map(lambda p: p.y, request.points))
+        a = sum_x * sum_y - len(request.points) * sum(map(lambda p: p.x * p.y, request.points))
+        b = sum_x * sum_x - len(request.points) * sum(map(lambda p: p.x**2, request.points))
         slope = a / b
         y_intercept = (sum_y - slope * sum_x) / len(request.points)
         response = PerformLinearLeastSquaresFit_1.Response(slope=slope, y_intercept=y_intercept)

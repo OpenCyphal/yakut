@@ -36,6 +36,7 @@ jobs:
         run: python --version
 
       - name: Install dependencies
+        # language=bash
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
             sudo apt-get --ignore-missing update || true
@@ -48,6 +49,7 @@ jobs:
         shell: bash
 
       - name: Run build and test
+        # language=bash
         run: |
           nox --non-interactive --session test --python ${{ matrix.python }}
           nox --non-interactive --session lint
@@ -55,12 +57,19 @@ jobs:
         env:
           FORCE_COLOR: 1
 
+      - name: Prepare the snapshot archive
+        if: always()
+        # language=bash
+        run: |
+          sudo apt-get install lrzip
+          tar -c * | lrzip -q -z -o snapshot.lrz  # To decompress locally, use "lrzuntar snapshot.lrz"
+
       - name: Upload diagnostic snapshot
         uses: actions/upload-artifact@v3
         if: always()
         with:
           name: ${{github.job}}
-          path: ${{github.workspace}}/
+          path: snapshot.lrz
           retention-days: 3
 
   yakut-release:
@@ -73,6 +82,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Create distribution wheel
+        # language=bash
         run: |
           git submodule update --init --recursive
           python -m pip install --upgrade pip setuptools wheel twine

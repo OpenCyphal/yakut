@@ -64,6 +64,12 @@ def test(session):
     if not (tmp_dir / fn).exists():
         (tmp_dir / fn).symlink_to(ROOT_DIR / fn)
 
+    if sys.platform.startswith("linux"):
+        # Enable packet capture for the Python executable. This is necessary for commands that rely on low-level
+        # network packet capture, such as the Monitor when used with Cyphal/UDP.
+        # We do it here because the sudo may ask the user for the password; doing that from the suite is inconvenient.
+        session.run("sudo", "setcap", "cap_net_raw+eip", str(Path(session.bin, "python").resolve()), external=True)
+
     # The directories to test may be overridden if needed when invoking Nox.
     src_dirs = [(ROOT_DIR / t) for t in (session.posargs or ["yakut", "tests"])]
 

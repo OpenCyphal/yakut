@@ -3,9 +3,9 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 import typing
-from importlib.resources import read_text as _read_text
+from importlib.resources import files as _files
 
-__version__: str = _read_text(__name__, "VERSION", encoding="utf8").strip()
+__version__: str = (_files(__name__) / "VERSION").read_text(encoding="utf8").strip()
 __version_info__: typing.Tuple[int, ...] = tuple(map(int, __version__.split(".")[:3]))
 __author__ = "OpenCyphal"
 __email__ = "consortium@opencyphal.org"

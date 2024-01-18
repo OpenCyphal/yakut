@@ -55,6 +55,14 @@ jobs:
         env:
           FORCE_COLOR: 1
 
+      - name: Upload diagnostic snapshot
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ${{github.job}}
+          path: ${{github.workspace}}/
+          retention-days: 3
+
   yakut-release:
     name: Release Yakut
     runs-on: ubuntu-latest

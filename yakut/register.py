@@ -70,7 +70,7 @@ async def fetch_registers(
 
 def unexplode_value(xpl: Any, prototype: Optional["Value"] = None) -> Optional["Value"]:
     """
-    Reverse the effect of :func:`explode`.
+    Reverse the effect of :func:`explode_value`.
     Returns None if the exploded form is invalid or not applicable to the prototype.
     Some simplified exploded forms can be unexploded only if the prototype
     is given because simplification erases type information.

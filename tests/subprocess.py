@@ -163,10 +163,11 @@ class Subprocess:
         self._inferior.communicate(timeout=timeout)
         stdout = _read_stream(self._stdout)
         stderr = _read_stream(self._stderr)
+        exit_code = int(self._inferior.returncode)
         if log:
+            _logger.debug("PID %d exit code: %d", self.pid, exit_code)
             _logger.debug("PID %d stdout:\n%s", self.pid, stdout)
             _logger.debug("PID %d stderr:\n%s", self.pid, stderr)
-        exit_code = int(self._inferior.returncode)
         return exit_code, stdout, stderr
 
     def kill(self) -> None:

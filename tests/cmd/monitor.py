@@ -12,6 +12,7 @@ import sys
 import socket
 import asyncio
 import itertools
+import logging
 import pytest
 import pycyphal
 from pycyphal.transport.udp import UDPTransport
@@ -173,8 +174,7 @@ async def _monitor_and_get_last_screen(duration: float, node_id: Optional[int]) 
         assert len(screens) > 1
         assert len(screens) < (duration * 0.5 + 10)
         last_screen = screens[-1]
-        print("=== LAST SCREEN ===")
-        print(last_screen)
+        _logger.info("=== LAST SCREEN ===\n" + last_screen)
         return last_screen
     except Exception:  # pragma: no cover
         proc.kill()
@@ -262,7 +262,7 @@ async def _run_nodes() -> None:
     nodes[3].make_subscriber(String_1, "null").receive_in_background(subscription_sink)  # No publishers.
     reg_client_a = nodes[1].make_client(uavcan.register.List_1, 1111)
     reg_client_b = nodes[1].make_client(uavcan.register.List_1, 3210)
-    print("NODES STARTED")
+    _logger.info("NODES STARTED")
     try:
         for i in itertools.count():
             assert await pub.publish(String_1(f"Hello world! This is message number #{i+1}."))
@@ -275,10 +275,10 @@ async def _run_nodes() -> None:
     except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
         pass
     finally:
-        print("STOPPING THE NODES...")
+        _logger.info("STOPPING THE NODES...")
         for n in nodes:
             n.close()
-        print("NODES STOPPED")
+        _logger.info("NODES STOPPED")
 
 
 async def _run_zombie() -> None:
@@ -336,7 +336,7 @@ async def _inject_error() -> None:
 
 async def _delay(target: Awaitable[None], delay: float, duration: Optional[float] = None) -> None:
     await asyncio.sleep(delay)
-    print("LAUNCHING", target)
+    _logger.info("LAUNCHING", target)
     try:
         if duration is None:
             await target
@@ -344,7 +344,7 @@ async def _delay(target: Awaitable[None], delay: float, duration: Optional[float
             await asyncio.wait_for(target, duration)
     except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
         pass
-    print("FINISHED", target)
+    _logger.info("FINISHED", target)
 
 
 async def _main() -> None:  # pragma: no cover
@@ -366,6 +366,8 @@ async def _main() -> None:  # pragma: no cover
         _delay(_inject_error(), 3.0),
     )
 
+
+_logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":  # pragma: no cover
     asyncio.run(_main())

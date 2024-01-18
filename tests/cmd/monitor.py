@@ -336,7 +336,7 @@ async def _inject_error() -> None:
 
 async def _delay(target: Awaitable[None], delay: float, duration: Optional[float] = None) -> None:
     await asyncio.sleep(delay)
-    _logger.info("LAUNCHING", target)
+    _logger.info("LAUNCHING %s", target)
     try:
         if duration is None:
             await target
@@ -344,7 +344,7 @@ async def _delay(target: Awaitable[None], delay: float, duration: Optional[float
             await asyncio.wait_for(target, duration)
     except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
         pass
-    _logger.info("FINISHED", target)
+    _logger.info("FINISHED %s", target)
 
 
 async def _main() -> None:  # pragma: no cover

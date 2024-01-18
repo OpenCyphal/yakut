@@ -3,9 +3,20 @@
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
 import typing
-from importlib.resources import files as _files
 
-__version__: str = (_files(__name__) / "VERSION").read_text(encoding="utf8").strip()
+
+def _read_package_file(name: str) -> str:
+    try:
+        from importlib.resources import files
+
+        return (files(__name__) / name).read_text(encoding="utf8")
+    except ImportError:  # This is for the old Pythons; read_text is deprecated in 3.11
+        from importlib.resources import read_text
+
+        return read_text(__name__, name, encoding="utf8")
+
+
+__version__: str = _read_package_file("VERSION").strip()
 __version_info__: typing.Tuple[int, ...] = tuple(map(int, __version__.split(".")[:3]))
 __author__ = "OpenCyphal"
 __email__ = "consortium@opencyphal.org"

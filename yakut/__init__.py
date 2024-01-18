@@ -2,7 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-# Disabling unused ignores because we need to support differnt versions of importlib.resources.
+# Disabling unused ignores because we need to support different versions of importlib.resources.
 # mypy: warn_unused_ignores=False
 # pylint: disable=wrong-import-position
 

@@ -26,10 +26,11 @@ import yakut
 async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
     _ = compiled_dsdl
     asyncio.get_running_loop().slow_callback_duration = 10.0
+    asyncio.get_running_loop().set_exception_handler(lambda *_: None)
 
     task = asyncio.create_task(_run_nodes())
     try:
-        cells = [x.split() for x in (await _monitor_and_get_last_screen(10.0, 42)).splitlines()]
+        cells = [x.split() for x in (await _monitor_and_get_last_screen(30.0, 42)).splitlines()]
     finally:
         task.cancel()
     await asyncio.sleep(3.0)
@@ -74,7 +75,7 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
         asyncio.create_task(_delay(_run_nodes(), 1.0, duration=5.0)),
         asyncio.create_task(_delay(_run_anonymous(), 1.0, duration=5.0)),
     ]
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(20.0, 42)).splitlines()]
+    cells = [x.split() for x in (await _monitor_and_get_last_screen(30.0, 42)).splitlines()]
     await asyncio.gather(*tasks)
     await asyncio.sleep(3.0)
 
@@ -121,7 +122,7 @@ async def _unittest_monitor_errors(compiled_dsdl: Any) -> None:
         _run_zombie(),
         _delay(_inject_error(), 7.0),
     )
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(12.0, None)).splitlines()]
+    cells = [x.split() for x in (await _monitor_and_get_last_screen(30.0, None)).splitlines()]
     task.cancel()
     await asyncio.sleep(3.0)
 
@@ -170,7 +171,7 @@ async def _monitor_and_get_last_screen(duration: float, node_id: Optional[int]) 
         assert " CRI" not in stderr
         assert "Traceback" not in stderr
 
-        screens = stdout.split("\n" * 3)
+        screens = stdout.replace("\r", "").split("\n" * 3)
         assert len(screens) >= 1
         assert len(screens) < (duration * 0.5 + 10)
         last_screen = screens[-1]

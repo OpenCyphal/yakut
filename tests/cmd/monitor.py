@@ -27,8 +27,10 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
     asyncio.get_running_loop().slow_callback_duration = 10.0
 
     task = asyncio.create_task(_run_nodes())
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(10.0, 42)).splitlines()]
-    task.cancel()
+    try:
+        cells = [x.split() for x in (await _monitor_and_get_last_screen(10.0, 42)).splitlines()]
+    finally:
+        task.cancel()
     await asyncio.sleep(3.0)
 
     # Own node
@@ -154,9 +156,13 @@ async def _monitor_and_get_last_screen(duration: float, node_id: Optional[int]) 
     )
     try:
         await asyncio.sleep(1.0)
-        assert proc.alive
+        if not proc.alive:
+            exit_code, _, _ = proc.wait(1.0)
+            assert False, exit_code
         await asyncio.sleep(duration)
-        assert proc.alive
+        if not proc.alive:
+            exit_code, _, _ = proc.wait(1.0)
+            assert False, exit_code
 
         _, stdout, stderr = proc.wait(10.0, interrupt=True)
         assert " ERR" not in stderr

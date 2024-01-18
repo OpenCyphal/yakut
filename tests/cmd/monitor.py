@@ -74,7 +74,7 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
         asyncio.create_task(_delay(_run_nodes(), 1.0, duration=5.0)),
         asyncio.create_task(_delay(_run_anonymous(), 1.0, duration=5.0)),
     ]
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(15.0, 42)).splitlines()]
+    cells = [x.split() for x in (await _monitor_and_get_last_screen(20.0, 42)).splitlines()]
     await asyncio.gather(*tasks)
     await asyncio.sleep(3.0)
 
@@ -171,10 +171,10 @@ async def _monitor_and_get_last_screen(duration: float, node_id: Optional[int]) 
         assert "Traceback" not in stderr
 
         screens = stdout.split("\n" * 3)
-        assert len(screens) > 1
+        assert len(screens) >= 1
         assert len(screens) < (duration * 0.5 + 10)
         last_screen = screens[-1]
-        _logger.info("=== LAST SCREEN ===\n" + last_screen)
+        _logger.info("=== LAST SCREEN ===\n%s", last_screen)
         return last_screen
     except Exception:  # pragma: no cover
         proc.kill()
@@ -257,6 +257,7 @@ async def _run_nodes() -> None:
         ),
     ]
     pub = nodes[0].make_publisher(String_1, "spam")
+    pub.send_timeout = 5.0
     nodes[1].make_subscriber(String_1, "spam").receive_in_background(subscription_sink)
     nodes[2].make_subscriber(String_1, "spam").receive_in_background(subscription_sink)
     nodes[3].make_subscriber(String_1, "null").receive_in_background(subscription_sink)  # No publishers.

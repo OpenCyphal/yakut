@@ -120,7 +120,7 @@ class Subprocess:
 
     def __init__(self, *args: str, environment_variables: typing.Optional[typing.Dict[str, str]] = None):
         cmd = _make_process_args(*args)
-        _logger.info("Starting subprocess: %s", cmd)
+        _logger.debug("Starting subprocess: %s", cmd)
 
         if sys.platform.startswith("win"):  # pragma: no cover
             # If the current process group is used, CTRL_C_EVENT will kill the parent and everyone in the group!
@@ -129,7 +129,6 @@ class Subprocess:
             creationflags = 0
 
         env = _get_env(environment_variables)
-        _logger.debug("Environment: %s", env)
         # Can't use PIPE because it is too small on Windows, causing the process to block on stdout/stderr writes.
         # Instead we redirect stdout/stderr to temporary files whose size is unlimited, and read them later.
         self._stdout = NamedTemporaryFile(suffix=".out", buffering=0)  # pylint: disable=consider-using-with
@@ -145,6 +144,7 @@ class Subprocess:
             creationflags=creationflags,
             bufsize=0,
         )
+        _logger.info("PID %d started: %s\n%s", self.pid, cmd, env)
 
     @staticmethod
     def cli(*args: str, environment_variables: typing.Optional[typing.Dict[str, str]] = None) -> Subprocess:

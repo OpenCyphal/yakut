@@ -273,7 +273,7 @@ async def _run_nodes() -> None:
                     await reg_client_a.call(uavcan.register.List_1.Request(i % 11))
                 if i % 5 == 0:
                     await reg_client_b.call(uavcan.register.List_1.Request(i % 11))
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.1)
     except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
         pass
     finally:

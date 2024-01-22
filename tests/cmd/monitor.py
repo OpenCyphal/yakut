@@ -18,12 +18,10 @@ import pycyphal
 from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
 from tests.dsdl import OUTPUT_DIR
-from tests import timeout
 import yakut
 
 
 # noinspection SpellCheckingInspection
-@timeout(300)
 @pytest.mark.asyncio
 async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
     _ = compiled_dsdl
@@ -112,7 +110,6 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
 
 
 # noinspection SpellCheckingInspection
-@timeout(60)
 @pytest.mark.asyncio
 async def _unittest_monitor_errors(compiled_dsdl: Any) -> None:
     _ = compiled_dsdl

@@ -57,20 +57,16 @@ jobs:
         env:
           FORCE_COLOR: 1
 
-      - name: Prepare the snapshot archive
-        if: (success() || failure()) && (runner.os == 'Linux')
-        # language=bash
-        run: |
-          sudo apt-get install lrzip
-          tar -c * | lrzip -q -z -o snapshot.lrz  # To decompress locally, use "lrzuntar snapshot.lrz"
-
-      - name: Upload diagnostic snapshot
+      - name: Upload diagnostics
         uses: actions/upload-artifact@v3
-        if: (success() || failure()) && (runner.os == 'Linux')
+        if: (success() || failure())
         with:
-          name: ${{github.job}}
-          path: snapshot.lrz
-          retention-days: 3
+          # The matrix is shown for convenience but this is fragile because the values may not be string-convertible.
+          # Shall it break one day, feel free to remove the matrix from here.
+          # The job status is per matrix item, which is super convenient.
+          name: ${{github.job}}-#${{strategy.job-index}}-${{job.status}}-${{join(matrix.*, ',')}}
+          path: "**/*.log"
+          retention-days: 7
 
   yakut-release:
     name: Release Yakut

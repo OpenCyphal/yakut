@@ -191,8 +191,13 @@ class Subprocess:
         return self._inferior.poll() is None
 
     def __del__(self) -> None:
-        if self._inferior.poll() is None:
-            self._inferior.kill()
+        try:
+            inf = self._inferior
+        except AttributeError:
+            pass  # Ignore semi-constructed objects.
+        else:
+            if inf.poll() is None:
+                inf.kill()
 
 
 def _read_stream(io: typing.Any) -> str:

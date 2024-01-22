@@ -70,20 +70,20 @@ def test(session):
         # We do it here because the sudo may ask the user for the password; doing that from the suite is inconvenient.
         session.run("sudo", "setcap", "cap_net_raw+eip", str(Path(session.bin, "python").resolve()), external=True)
 
-    # The directories to test may be overridden if needed when invoking Nox.
-    src_dirs = [(ROOT_DIR / t) for t in (session.posargs or ["yakut", "tests"])]
+    src_dirs = [(ROOT_DIR / t) for t in ["yakut", "tests"]]
 
     # Run PyTest and make a code coverage report.
-    env = {
-        "PYTHONPATH": str(DEPS_DIR),
-        "PATH": os.pathsep.join([session.env["PATH"], str(DEPS_DIR)]),
-    }
+    # Positional arguments passed to Nox after "--" are forwarded to PyTest as-is.
     session.run(
         "pytest",
         *map(str, src_dirs),
         # Log format cannot be specified in setup.cfg https://github.com/pytest-dev/pytest/issues/3062
         r"--log-file-format=%(asctime)s %(levelname)-3.3s %(name)s: %(message)s",
-        env=env,
+        *session.posargs,
+        env={
+            "PYTHONPATH": str(DEPS_DIR),
+            "PATH": os.pathsep.join([session.env["PATH"], str(DEPS_DIR)]),
+        },
     )
 
     # The coverage threshold is intentionally set low for interactive runs because when running locally

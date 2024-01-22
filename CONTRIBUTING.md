@@ -37,6 +37,14 @@ If you want to start from scratch, use `clean`:
 nox -s clean
 ```
 
+Positional arguments given to Nox are passed over to PyTest as-is,
+which can be used to run tests selectively or bail at the first failure:
+
+```bash
+nox -s test -- -x yakut/param/formatter.py -k test_format_param
+#              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ PyTest options
+```
+
 #### Running tests/linters selectively from a virtual environment created by Nox
 
 Running the full test suite using Nox takes too much time for interactive testing during development.

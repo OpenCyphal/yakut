@@ -290,10 +290,13 @@ async def _run_zombie() -> None:
     pres = pycyphal.presentation.Presentation(tr)
     try:
         pub = pres.make_publisher(Empty_1, 99)
+        pub.send_timeout = 5.0
+        sub = pres.make_subscriber(Empty_1, 99)  # Ensure there's an RX socket on Windows.
         while True:
-            await pub.publish(Empty_1())
+            assert await pub.publish(Empty_1())
             await asyncio.sleep(0.5)
-    except (asyncio.TimeoutError, asyncio.CancelledError):  # pragma: no cover
+            _ = await sub.receive_for(0.0)  # Avoid queue overrun.
+    except (asyncio.TimeoutError, asyncio.CancelledError, GeneratorExit):  # pragma: no cover
         pass
     finally:
         pres.close()

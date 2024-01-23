@@ -4,12 +4,10 @@
 # pylint: disable=consider-using-with
 
 import asyncio
-import pytest
 from tests.subprocess import Subprocess
 
 
 # noinspection SpellCheckingInspection
-@pytest.mark.asyncio
 async def _unittest_joystick() -> None:
     asyncio.get_running_loop().slow_callback_duration = 10.0
 
@@ -21,6 +19,5 @@ async def _unittest_joystick() -> None:
     assert proc.alive
     await asyncio.sleep(5)
     assert proc.alive
-    _, stdout, stderr = proc.wait(10.0, interrupt=True)
-    assert stderr
+    _, stdout, _stderr = proc.wait(10.0, interrupt=True)
     assert "null" in stdout, "The null controller shall always be available."

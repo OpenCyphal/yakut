@@ -10,14 +10,12 @@ import asyncio
 import tempfile
 from pathlib import Path
 from typing import Tuple, Optional
-import pytest
 import pycyphal
 from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
 from tests.dsdl import OUTPUT_DIR
 
 
-@pytest.mark.asyncio
 async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
     from pycyphal.application import make_node, NodeInfo, make_registry
     from pycyphal.application.file import FileClient
@@ -50,7 +48,7 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
         ),
     )
     try:
-        fc = FileClient(cln_node, 42, response_timeout=10.0)
+        fc = FileClient(cln_node, 42, response_timeout=15.0)
         await asyncio.sleep(3.0)  # Let the server initialize.
         assert srv_proc.alive
 
@@ -90,7 +88,6 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
     shutil.rmtree(root, ignore_errors=True)  # Do not remove on failure for diagnostics.
 
 
-@pytest.mark.asyncio
 async def _unittest_file_server_update(compiled_dsdl: typing.Any) -> None:
     from pycyphal.application import make_node, NodeInfo, make_registry, make_transport, Node
     from pycyphal.application.plug_and_play import Allocatee

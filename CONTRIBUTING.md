@@ -5,7 +5,7 @@ This document is intended for developers only.
 ## Testing
 
 Install dependencies into your current Python environment: `pip install .`
-Aside from that, you will need to install other dependencies listed in `.appveyor.yml`
+Aside from that, you will need to install other dependencies listed in the CI/CD workflow files
 (e.g., [Ncat](https://nmap.org/ncat/); for Debian-based distros try `apt install ncat`).
 
 Write unit tests as functions without arguments prefixed with ``_unittest_``;
@@ -35,6 +35,14 @@ If you want to start from scratch, use `clean`:
 
 ```bash
 nox -s clean
+```
+
+Positional arguments given to Nox are passed over to PyTest as-is,
+which can be used to run tests selectively or bail at the first failure:
+
+```bash
+nox -s test -- -x yakut/param/formatter.py -k test_format_param
+#              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ PyTest options
 ```
 
 #### Running tests/linters selectively from a virtual environment created by Nox

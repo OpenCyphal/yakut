@@ -30,7 +30,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
 
     import pycyphal.application
     import uavcan.node
-    from sirius_cyber_corp import PerformLinearLeastSquaresFit_1_0
+    from sirius_cyber_corp import PerformLinearLeastSquaresFit_1
 
     # Set up the server that we will be testing the client against.
     server_node = pycyphal.application.make_node(
@@ -41,29 +41,29 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
     server_node.registry["uavcan.srv.least_squares.id"] = pycyphal.application.register.ValueProxy(
         pycyphal.application.register.Natural16([222])
     )
-    server = server_node.get_server(PerformLinearLeastSquaresFit_1_0, "least_squares")
+    server = server_node.get_server(PerformLinearLeastSquaresFit_1, "least_squares")
     last_metadata: typing.Optional[pycyphal.presentation.ServiceRequestMetadata] = None
 
     async def handle_request(
-        request: PerformLinearLeastSquaresFit_1_0.Request,
+        request: PerformLinearLeastSquaresFit_1.Request,
         metadata: pycyphal.presentation.ServiceRequestMetadata,
-    ) -> PerformLinearLeastSquaresFit_1_0.Response:
+    ) -> PerformLinearLeastSquaresFit_1.Response:
         nonlocal last_metadata
         last_metadata = metadata
         print("REQUEST OBJECT  :", request)
         print("REQUEST METADATA:", metadata)
-        sum_x = sum(map(lambda p: p.x, request.points))  # type: ignore
-        sum_y = sum(map(lambda p: p.y, request.points))  # type: ignore
-        a = sum_x * sum_y - len(request.points) * sum(map(lambda p: p.x * p.y, request.points))  # type: ignore
-        b = sum_x * sum_x - len(request.points) * sum(map(lambda p: p.x**2, request.points))  # type: ignore
+        sum_x = sum(map(lambda p: p.x, request.points))
+        sum_y = sum(map(lambda p: p.y, request.points))
+        a = sum_x * sum_y - len(request.points) * sum(map(lambda p: p.x * p.y, request.points))
+        b = sum_x * sum_x - len(request.points) * sum(map(lambda p: p.x**2, request.points))
         slope = a / b
         y_intercept = (sum_y - slope * sum_x) / len(request.points)
-        response = PerformLinearLeastSquaresFit_1_0.Response(slope=slope, y_intercept=y_intercept)
+        response = PerformLinearLeastSquaresFit_1.Response(slope=slope, y_intercept=y_intercept)
         print("RESPONSE OBJECT:", response)
         return response
 
     # Invoke the service without discovery and then run the server for a few seconds to let it process the request.
-    proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc = Subprocess.cli(
         "-j",
         "call",
         "22",
@@ -92,7 +92,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
 
     # Invoke the service with ID discovery and static type.
     last_metadata = None
-    proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc = Subprocess.cli(
         "-j",
         "call",
         "22",
@@ -122,7 +122,7 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
 
     # Invoke the service with full discovery.
     last_metadata = None
-    proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc = Subprocess.cli(
         "-j",
         "call",
         "22",
@@ -204,7 +204,7 @@ async def _unittest_call_fixed(transport_factory: TransportFactory, compiled_dsd
     server_node.start()
 
     # Invoke a fixed port-ID service.
-    proc = Subprocess.cli(  # Windows compat: -v blocks stderr pipe on Windows.
+    proc = Subprocess.cli(
         "-j",
         "call",
         "22",

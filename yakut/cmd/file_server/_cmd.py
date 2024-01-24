@@ -155,8 +155,8 @@ async def file_server(
         from pycyphal.application import NodeInfo
         from pycyphal.application.file import FileServer
         from pycyphal.application.node_tracker import NodeTracker, Entry
-        from uavcan.node import ExecuteCommand_1_1 as ExecuteCommand
-        from uavcan.node import Heartbeat_1_0 as Heartbeat
+        from uavcan.node import ExecuteCommand_1 as ExecuteCommand
+        from uavcan.node import Heartbeat_1 as Heartbeat
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
 

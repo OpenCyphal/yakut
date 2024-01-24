@@ -2,10 +2,25 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-import typing
-from importlib.resources import read_text as _read_text
+# Disabling unused ignores because we need to support different versions of importlib.resources.
+# mypy: warn_unused_ignores=False
+# pylint: disable=wrong-import-position
 
-__version__: str = _read_text(__name__, "VERSION", encoding="utf8").strip()
+import typing
+
+
+def _read_package_file(name: str) -> str:
+    try:
+        from importlib.resources import files  # type: ignore
+
+        return (files(__name__) / name).read_text(encoding="utf8")  # type: ignore
+    except ImportError:  # This is for the old Pythons; read_text is deprecated in 3.11
+        from importlib.resources import read_text  # type: ignore
+
+        return read_text(__name__, name, encoding="utf8")  # type: ignore
+
+
+__version__: str = _read_package_file("VERSION").strip()
 __version_info__: typing.Tuple[int, ...] = tuple(map(int, __version__.split(".")[:3]))
 __author__ = "OpenCyphal"
 __email__ = "consortium@opencyphal.org"

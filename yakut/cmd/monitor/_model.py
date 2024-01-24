@@ -33,12 +33,12 @@ class NodeState:
     Online means that the node is emitting any transfers whatsoever.
     """
 
-    heartbeat: Optional[uavcan.node.Heartbeat_1_0]
+    heartbeat: Optional[uavcan.node.Heartbeat_1]
     """
     An online node without a heartbeat is a zombie, which is an error condition because heartbeats are required
     for all nodes unconditionally.
     """
-    info: Optional[uavcan.node.GetInfo_1_0.Response]
+    info: Optional[uavcan.node.GetInfo_1.Response]
 
     ports: Optional[PortSet]
     """
@@ -51,14 +51,13 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         self,
         iface: Iface,
         node_id: Optional[int],
-        info: Optional[uavcan.node.GetInfo_1_0.Response] = None,
+        info: Optional[uavcan.node.GetInfo_1.Response] = None,
     ) -> None:
-        import uavcan.node
         import uavcan.node.port
 
         self._node_id = node_id
 
-        self._heartbeat: Optional[uavcan.node.Heartbeat_1_0] = None
+        self._heartbeat: Optional[uavcan.node.Heartbeat_1] = None
         self._iface = iface
         self._info = info
         self._num_info_requests = 0
@@ -70,14 +69,17 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
 
         self._ports = PortSet()
 
-        self._dispatch: dict[Any | tuple[Any, ServiceDataSpecifier.Role], Callable[[float, Any], None],] = {
-            (uavcan.node.GetInfo_1_0, ServiceDataSpecifier.Role.RESPONSE): self._on_info_response,
-            uavcan.node.port.List_0_1: self._on_port_list,
-            uavcan.node.Heartbeat_1_0: self._on_heartbeat,
+        self._dispatch: dict[
+            Any | tuple[Any, ServiceDataSpecifier.Role],
+            Callable[[float, Any], None],
+        ] = {
+            (uavcan.node.GetInfo_1, ServiceDataSpecifier.Role.RESPONSE): self._on_info_response,
+            uavcan.node.port.List_1: self._on_port_list,
+            uavcan.node.Heartbeat_1: self._on_heartbeat,
         }
 
-        self._iface.add_standard_subscription(uavcan.node.Heartbeat_1_0)
-        self._iface.add_standard_subscription(uavcan.node.port.List_0_1)
+        self._iface.add_standard_subscription(uavcan.node.Heartbeat_1)
+        self._iface.add_standard_subscription(uavcan.node.port.List_1)
         self._iface.add_trace_handler(self._on_trace)
 
     def _restart(self) -> None:
@@ -89,14 +91,14 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         import uavcan.node
 
         _logger.info("%r: Received node info", self)
-        assert isinstance(obj, uavcan.node.GetInfo_1_0.Response)
+        assert isinstance(obj, uavcan.node.GetInfo_1.Response)
         _ = ts
         self._info = obj
 
     def _on_port_list(self, ts: float, obj: Any) -> None:
         import uavcan.node.port
 
-        assert isinstance(obj, uavcan.node.port.List_0_1)
+        assert isinstance(obj, uavcan.node.port.List_1)
         self._ports.pub = expand_subjects(obj.publishers)
         self._ports.sub = expand_subjects(obj.subscribers)
         self._ports.cln = expand_mask(obj.clients.mask)
@@ -104,7 +106,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         self._ts_port_list = ts
 
     def _on_heartbeat(self, ts: float, obj: Any) -> None:
-        from uavcan.node import Heartbeat_1_0 as Heartbeat, GetInfo_1_0 as GetInfo
+        from uavcan.node import Heartbeat_1 as Heartbeat, GetInfo_1 as GetInfo
 
         assert isinstance(obj, Heartbeat)
 
@@ -165,8 +167,8 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
                 assert False
 
     def update(self, ts: float) -> NodeState:
-        from uavcan.node import Heartbeat_1_0 as Heartbeat
-        from uavcan.node.port import List_0_1 as PortList
+        from uavcan.node import Heartbeat_1 as Heartbeat
+        from uavcan.node.port import List_1 as PortList
 
         if self._heartbeat and self._ts_activity - self._ts_heartbeat > Heartbeat.OFFLINE_TIMEOUT:
             _logger.info("%r: Much more recent activity than the last heartbeat, we've gone zombie", self)
@@ -186,7 +188,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
         return str(pycyphal.util.repr_attributes(self, node_id=self._node_id))
 
 
-def expand_subjects(m: uavcan.node.port.SubjectIDList_0_1) -> AbstractSet[int]:
+def expand_subjects(m: uavcan.node.port.SubjectIDList_1) -> AbstractSet[int]:
     if m.sparse_list is not None:
         return frozenset(int(x.value) for x in m.sparse_list)
     if m.mask:

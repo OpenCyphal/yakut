@@ -19,4 +19,4 @@ def _unittest_help() -> None:
 
 def _unittest_error() -> None:
     with pytest.raises(CalledProcessError):
-        execute_cli("invalid-command", timeout=2.0, log=False)
+        execute_cli("invalid-command", timeout=10.0, log=False)

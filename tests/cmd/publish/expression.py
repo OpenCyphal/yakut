@@ -11,20 +11,20 @@ from tests.dsdl import OUTPUT_DIR
 from tests.subprocess import execute_cli, Subprocess
 
 
-def _unittest_publish_expression_a(compiled_dsdl: typing.Any, serial_broker: str) -> None:
+def _unittest_publish_expression_a(compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
-    env = {
-        "YAKUT_PATH": str(OUTPUT_DIR),
-        "UAVCAN__SERIAL__IFACE": serial_broker,
-        "UAVCAN__NODE__ID": "1234",
-    }
 
     proc_sub = Subprocess.cli(
         "-j",
         "sub",
         "7654:uavcan.primitive.array.Real64.1.0",
-        environment_variables=env,
+        environment_variables={
+            "YAKUT_PATH": str(OUTPUT_DIR),
+            "UAVCAN__UDP__IFACE": "127.0.0.1",
+            "UAVCAN__NODE__ID": "1234",
+        },
     )
+    time.sleep(3.0)  # Let the subscriber start.
 
     wall_time_when_started = time.time()
     execute_cli(
@@ -35,7 +35,11 @@ def _unittest_publish_expression_a(compiled_dsdl: typing.Any, serial_broker: str
         #           {1.0, 2.1}           1.0                 0              0          123456     123456     (time)
         "--count=2",
         timeout=10.0,
-        environment_variables=env,
+        environment_variables={
+            "YAKUT_PATH": str(OUTPUT_DIR),
+            "UAVCAN__UDP__IFACE": "127.0.0.1",
+            "UAVCAN__NODE__ID": "1235",
+        },
     )
 
     _, stdout, _ = proc_sub.wait(10.0, interrupt=True)
@@ -62,20 +66,19 @@ def _unittest_publish_expression_a(compiled_dsdl: typing.Any, serial_broker: str
     ]
 
 
-def _unittest_publish_expression_b(compiled_dsdl: typing.Any, serial_broker: str) -> None:
+def _unittest_publish_expression_b(compiled_dsdl: typing.Any) -> None:
     _ = compiled_dsdl
-    env = {
-        "YAKUT_PATH": str(OUTPUT_DIR),
-        "UAVCAN__SERIAL__IFACE": serial_broker,
-        "UAVCAN__NODE__ID": "1234",
-    }
-
     proc_sub = Subprocess.cli(
         "-j",
         "sub",
         "7654:uavcan.primitive.String.1.0",
-        environment_variables=env,
+        environment_variables={
+            "YAKUT_PATH": str(OUTPUT_DIR),
+            "UAVCAN__UDP__IFACE": "127.0.0.1",
+            "UAVCAN__NODE__ID": "1234",
+        },
     )
+    time.sleep(3.0)  # Let the subscriber start.
 
     execute_cli(
         "pub",
@@ -83,7 +86,11 @@ def _unittest_publish_expression_b(compiled_dsdl: typing.Any, serial_broker: str
         "value: !$ str(pycyphal.dsdl.get_model(dtype))",
         "--count=1",
         timeout=10.0,
-        environment_variables=env,
+        environment_variables={
+            "YAKUT_PATH": str(OUTPUT_DIR),
+            "UAVCAN__UDP__IFACE": "127.0.0.1",
+            "UAVCAN__NODE__ID": "1235",
+        },
     )
 
     _, stdout, _ = proc_sub.wait(10.0, interrupt=True)

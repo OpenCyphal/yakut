@@ -78,7 +78,7 @@ async def _unittest_with_subject_resolver(compiled_dsdl: Any) -> None:
     async def once(specifier: str) -> tuple[int, Any]:
         return await process_subject_specifier(specifier, lambda: subject_resolver)
 
-    assert (500, uavcan.primitive.scalar.Bit_1_0) == await once("500")
+    assert (500, uavcan.primitive.scalar.Bit_1) == await once("500")
     assert (600, uavcan.primitive.scalar.Integer8_1) == await once("600")  # minor version ignored
 
     with pytest.raises(NetworkDiscoveryError):

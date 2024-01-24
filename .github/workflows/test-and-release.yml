@@ -1,0 +1,102 @@
+name: 'Test and Release Yakut'
+on: push
+
+# Ensures that only one workflow is running at a time
+concurrency:
+  group: ${{ github.workflow_sha }}
+  cancel-in-progress: true
+
+jobs:
+  yakut-test:
+    name: Test Yakut
+    strategy:
+      fail-fast: false
+      matrix:
+        # The Windows NPcap runner is an ordinary Windows machine with the NPcap driver installed manually.
+        # We chose to do it this way because NPcap driver installation requires a reboot, which is difficult to
+        # automate. The NPcap driver is required for the Cyphal/UDP transport tests to work.
+        os: [ubuntu-22.04, windows-2019-npcap]
+        python: ['3.8', '3.9', '3.10', '3.11']
+        exclude:  # We don't test Windows with old Python versions because it takes too much effort.
+          - os: windows-2019-npcap
+            python: 3.8
+          - os: windows-2019-npcap
+            python: 3.9
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v3
+
+      - name: Install Python3
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Log Python version
+        run: python --version
+
+      - name: Install dependencies
+        # language=bash
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get --ignore-missing update || true
+            sudo apt-get install -y linux-*-extra-$(uname -r) ncat
+            sudo apt-get install -y libsdl2-2.0-0   # For PySDL2. On Windows/macOS the binaries are pulled from PyPI.
+            sudo apt-get install -y libasound2-dev  # For RtMidi.
+          fi
+          git submodule update --init --recursive
+          python -m pip install --upgrade pip setuptools nox
+        shell: bash
+
+      - name: Run build and test
+        # language=bash
+        run: |
+          nox --non-interactive --session test --python ${{ matrix.python }}
+          nox --non-interactive --session lint
+        shell: bash
+        env:
+          FORCE_COLOR: 1
+
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v3
+        if: (success() || failure())
+        with:
+          # The matrix is shown for convenience but this is fragile because the values may not be string-convertible.
+          # Shall it break one day, feel free to remove the matrix from here.
+          # The job status is per matrix item, which is super convenient.
+          name: ${{github.job}}-#${{strategy.job-index}}-${{job.status}}-${{join(matrix.*, ',')}}
+          path: "**/*.log"
+          retention-days: 7
+
+  yakut-release:
+    name: Release Yakut
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '#release') || contains(github.ref, '/main')
+    needs: yakut-test
+    steps:
+      - name: Check out
+        uses: actions/checkout@v3
+
+      - name: Create distribution wheel
+        # language=bash
+        run: |
+          git submodule update --init --recursive
+          python -m pip install --upgrade pip setuptools wheel twine
+          python setup.py sdist bdist_wheel
+
+      - name: Get release version
+        run: echo "yakut_version=$(cat yakut/VERSION)" >> $GITHUB_ENV
+
+      - name: Upload distribution
+        run: |
+          python -m twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN_YAKUT }}
+
+      - name: Push version tag
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ env.yakut_version }}
+          tag_prefix: ''

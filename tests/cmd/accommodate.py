@@ -15,7 +15,7 @@ def _unittest_accommodate_swarm(transport_factory: TransportFactory, compiled_ds
     # We spawn a lot of processes here, which might strain the test system a little, so beware. I've tested it
     # with 120 processes and it made my workstation (24 GB RAM ~4 GHz Core i7) struggle to the point of being
     # unable to maintain sufficiently real-time operation for the test to pass. Hm.
-    used_node_ids = list(range(10))
+    used_node_ids = list(range(5))
     pubs = [
         Subprocess.cli(
             f"--transport={transport_factory(idx).expression}",

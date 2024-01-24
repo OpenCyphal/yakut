@@ -9,7 +9,7 @@ from typing import Iterator
 from pathlib import Path
 import pytest
 from .dsdl import compiled_dsdl as compiled_dsdl
-from .transport import transport_factory as transport_factory, serial_broker as serial_broker
+from .transport import transport_factory as transport_factory
 
 
 @pytest.fixture()
@@ -22,7 +22,7 @@ def stdout_file() -> Iterator[Path]:
     """
     s = sys.stdout
     p = Path(tempfile.mktemp("stdout")).resolve()
-    sys.stdout = p.open("a+")
+    sys.stdout = p.open("a+")  # pylint: disable=consider-using-with
     yield p
     sys.stdout = s
 
@@ -34,6 +34,6 @@ def stderr_file() -> Iterator[Path]:
     """
     s = sys.stderr
     p = Path(tempfile.mktemp("stderr")).resolve()
-    sys.stderr = p.open("a+")
+    sys.stderr = p.open("a+")  # pylint: disable=consider-using-with
     yield p
     sys.stderr = s

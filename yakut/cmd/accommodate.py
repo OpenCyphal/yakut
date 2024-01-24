@@ -67,8 +67,8 @@ async def accommodate(purser: yakut.Purser) -> None:
 
     pres = pycyphal.presentation.Presentation(transport)
     with contextlib.closing(pres):
-        deadline = asyncio.get_event_loop().time() + uavcan.node.Heartbeat_1_0.MAX_PUBLICATION_PERIOD * 2.0
-        sub = pres.make_subscriber_with_fixed_subject_id(uavcan.node.Heartbeat_1_0)
+        deadline = asyncio.get_event_loop().time() + uavcan.node.Heartbeat_1.MAX_PUBLICATION_PERIOD * 2.0
+        sub = pres.make_subscriber_with_fixed_subject_id(uavcan.node.Heartbeat_1)
         while asyncio.get_event_loop().time() <= deadline:
             result = await sub.receive(deadline)
             if result is None:
@@ -92,8 +92,8 @@ async def accommodate(purser: yakut.Purser) -> None:
                 else:
                     # If at least one node is in the Initialization state, the network might be starting,
                     # so we need to listen longer to minimize the chance of collision.
-                    multiplier = 3.0 if msg.mode.value == uavcan.node.Mode_1_0.INITIALIZATION else 1.0
-                    advancement = uavcan.node.Heartbeat_1_0.MAX_PUBLICATION_PERIOD * multiplier
+                    multiplier = 3.0 if msg.mode.value == uavcan.node.Mode_1.INITIALIZATION else 1.0
+                    advancement = uavcan.node.Heartbeat_1.MAX_PUBLICATION_PERIOD * multiplier
                     _logger.debug(
                         "Deadline advanced by %.1f s; %d candidates left of %d possible",
                         advancement,

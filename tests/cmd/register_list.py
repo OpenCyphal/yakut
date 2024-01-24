@@ -93,6 +93,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "-j",
             "register-list",
+            "--timeout=10",
             "10",
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
@@ -109,6 +110,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "-j",
             "register-list",
+            "--timeout=10",
             "10,",  # Mind the comma!
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
@@ -125,6 +127,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "-j",
             "register-list",
+            "--timeout=3",  # Shorter timeout because some nodes are expected to not respond.
             "10..13",
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
@@ -144,6 +147,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "-j",
             "register-list",
+            "--timeout=3",  # Shorter timeout because some nodes are expected to not respond.
             "10..13",
             "--optional-service",
             environment_variables={

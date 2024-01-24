@@ -155,6 +155,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "-j",
             "register-access",
+            "--timeout=10",
             "10,",
             expect_register,
             environment_variables={
@@ -172,6 +173,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "-j",
             "register-access",
+            "--timeout=10",
             "10",
             expect_register,
             environment_variables={
@@ -188,6 +190,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "-j",
             "register-access",
+            "--timeout=10",
             "10,",
             expect_register,
             "Reference value",

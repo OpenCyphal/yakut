@@ -91,6 +91,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=10",
             environment_variables={
                 **transport_factory(100).environment,
                 "YAKUT_PATH": str(OUTPUT_DIR),
@@ -109,6 +110,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=10",
             environment_variables={
                 **transport_factory(100).environment,
                 "YAKUT_PATH": str(OUTPUT_DIR),
@@ -126,6 +128,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=10",
             "10",
             environment_variables={
                 **transport_factory(100).environment,
@@ -144,6 +147,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=10",
             "10,11",
             environment_variables={
                 **transport_factory(100).environment,
@@ -162,6 +166,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=3",  # Shorter timeout here because we know one is going to time out.
             "10-13",
             environment_variables={
                 **transport_factory(100).environment,
@@ -182,6 +187,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=10",
             "10,11",
             environment_variables={
                 **transport_factory(100).environment,
@@ -201,6 +207,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=10",
             "10,11",
             "--optional-register",
             environment_variables={
@@ -220,6 +227,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=10",
             "10",
             "--detailed",
             environment_variables={
@@ -238,6 +246,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
         status, stdout, _ = execute_cli(
             "register-batch",
             f"--file={file}",
+            "--timeout=10",
             "10",
             "--only=iv",  # The requested register is not immutable-volatile so it will be skipped.
             environment_variables={

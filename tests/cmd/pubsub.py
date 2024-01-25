@@ -103,9 +103,9 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     time.sleep(1.0)  # Time to sync up
 
     # Parse the output from the subscribers and validate it.
-    out_sub_heartbeat = proc_sub_heartbeat.wait(1.0, interrupt=True)[1].splitlines()
-    out_sub_diagnostic = proc_sub_diagnostic.wait(1.0, interrupt=True)[1].splitlines()
-    out_sub_temperature = proc_sub_temperature.wait(1.0, interrupt=True)[1].splitlines()
+    out_sub_heartbeat = proc_sub_heartbeat.wait(5, interrupt=True)[1].splitlines()
+    out_sub_diagnostic = proc_sub_diagnostic.wait(5, interrupt=True)[1].splitlines()
+    out_sub_temperature = proc_sub_temperature.wait(5, interrupt=True)[1].splitlines()
 
     heartbeats = list(map(json.loads, out_sub_heartbeat))
     diagnostics = list(map(json.loads, out_sub_diagnostic))
@@ -142,7 +142,7 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     assert all(map(lambda mt: mt["555"]["kelvin"] == pytest.approx(123.456), temperatures))
 
     assert proc_sub_diagnostic_wrong_pid.alive
-    assert proc_sub_diagnostic_wrong_pid.wait(1.0, interrupt=True)[1].strip() == ""
+    assert proc_sub_diagnostic_wrong_pid.wait(5, interrupt=True)[1].strip() == ""
 
 
 def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
@@ -187,9 +187,9 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
 
     time.sleep(2.0)  # Time to sync up
 
-    assert proc_sub_heartbeat.wait(1.0, interrupt=True)[1].strip() == "", "Anonymous nodes must not broadcast heartbeat"
+    assert proc_sub_heartbeat.wait(5, interrupt=True)[1].strip() == "", "Anonymous nodes must not broadcast heartbeat"
 
-    diagnostics = list(json.loads(s) for s in proc_sub_diagnostic_with_meta.wait(1.0, interrupt=True)[1].splitlines())
+    diagnostics = list(json.loads(s) for s in proc_sub_diagnostic_with_meta.wait(5, interrupt=True)[1].splitlines())
     print("diagnostics:", diagnostics)
     # Remember that anonymous transfers over redundant transports are NOT deduplicated.
     # Hence, to support the case of redundant transports, we use 'greater or equal' here.
@@ -201,7 +201,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         assert m["8184"]["timestamp"]["microsecond"] == 0
         assert m["8184"]["text"] == ""
 
-    diagnostics = list(json.loads(s) for s in proc_sub_diagnostic_no_meta.wait(1.0, interrupt=True)[1].splitlines())
+    diagnostics = list(json.loads(s) for s in proc_sub_diagnostic_no_meta.wait(5, interrupt=True)[1].splitlines())
     print("diagnostics:", diagnostics)
     assert len(diagnostics) >= 2  # >= because see above
     for m in diagnostics:

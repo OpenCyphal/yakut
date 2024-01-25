@@ -48,7 +48,7 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
         ),
     )
     try:
-        fc = FileClient(cln_node, 42, response_timeout=15.0)
+        fc = FileClient(cln_node, 42, response_timeout=30.0)  # Large timeout is needed for Windows CI.
         await asyncio.sleep(3.0)  # Let the server initialize.
         assert srv_proc.alive
 

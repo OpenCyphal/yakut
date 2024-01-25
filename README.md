@@ -23,8 +23,6 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
-Installation & configuration screencasts are available for [Windows](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197/2?u=pavel.kirienko), [GNU/Linux](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197/1?u=pavel.kirienko), and [macOS](https://www.youtube.com/watch?v=dQw4w9WgXcQ).
-
 ### Additional third-party tools
 
 Since Yakut heavily relies on YAML/JSON documents exchanged via stdin/stdout, [**`jq`**](https://stedolan.github.io/jq/) is often needed for any non-trivial usage of the tool, so consider installing it as well. Users of GNU/Linux will likely find it in the default software repositories (`pacman -S jq`, `apt install jq`, etc.).

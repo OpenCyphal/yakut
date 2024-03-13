@@ -309,7 +309,7 @@ If your service call requires multiple arguments, specify them as follows:
 
 ```bash
 yakut call 125 435:uavcan.node.ExecuteCommand '{command: 65533, parameter: "firmware.bin"}'
-```
+yakut call 125 435:uavcan.node.ExecuteCommand '[65533, "firmware.bin"]'  # Shorter but position-sensitive
 
 ## Monitoring the network
 

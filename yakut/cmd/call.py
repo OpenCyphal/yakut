@@ -111,6 +111,7 @@ async def call(
         yakut call 42 uavcan.node.getinfo +M -T3 -Pe
         yakut call 42 least_squares 'points: [{x: 10, y: 1}, {x: 20, y: 2}]'
         yakut call 42 least_squares:sirius_cyber_corp.PerformLinearLeastSquaresFit '[[10, 1], [20, 2]]'
+        yakut call 125 435:uavcan.node.ExecuteCommand '{command: 65533, parameter: "firmware.bin"}'
     """
     try:
         from pycyphal.application import Node

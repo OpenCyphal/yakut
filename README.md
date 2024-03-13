@@ -110,7 +110,7 @@ There are certain registers that are looked at by Cyphal nodes to determine how 
 If the available registers define more than one transport configuration, a redundant transport will be initialized. It is not necessary to assign all of these registers to use a particular transport because all of them except `uavcan.*.iface` come with defaults.
 
 | Transport | Register name         | Register type  | Environment variable name | Semantics                                                  | Example environment variable value  |
-|-----------|-----------------------|----------------|---------------------------|------------------------------------------------------------|-------------------------------------|
+| --------- | --------------------- | -------------- | ------------------------- | ---------------------------------------------------------- | ----------------------------------- |
 | (any)     | `uavcan.node.id`      | `natural16[1]` | `UAVCAN__NODE__ID`        | The local node-ID; anonymous if not set                    | `42`                                |
 | UDP       | `uavcan.udp.iface`    | `string`       | `UAVCAN__UDP__IFACE`      | Space-separated local IPs (16 LSB overridden with node-ID) | `127.9.0.0 192.168.0.0`             |
 | Serial    | `uavcan.serial.iface` | `string`       | `UAVCAN__SERIAL__IFACE`   | Space-separated serial port names                          | `COM9 socket://127.0.0.1:50905`     |
@@ -305,6 +305,12 @@ You can still override the type if you want to use a different one (e.g., if the
 y q 42 least_squares:my_namespace.MySpecialType '[[10, 1], [20, 2]]'
 ```
 
+If your service call requires multiple arguments, specify them as follows:
+
+```bash
+yakut call 125 435:uavcan.node.ExecuteCommand '{command: 65533, parameter: "firmware.bin"}'
+```
+
 ## Monitoring the network
 
 The command `yakut monitor` can be used to display *all* activity on the network in a compact representation. It tracks online nodes and maintains real-time statistics on all transfers exchanged between each node on the network. It may also be able to detect some common network configuration issues like zombie nodes (nodes that do not publish `uavcan.node.Heartbeat`).
@@ -448,7 +454,7 @@ $ y r 125, m.inductance_dq --detailed --detailed
   real32:
     value: [1.2999999853491317e-05, 1.2000000424450263e-05]
   _meta_: {mutable: true, persistent: true}
- 
+
 # If there is no such register, we get a null (empty):
 $ y r 125 no.such.register
 null

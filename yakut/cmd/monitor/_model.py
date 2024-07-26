@@ -191,8 +191,7 @@ class Avatar:  # pylint: disable=too-many-instance-attributes
 def expand_subjects(m: uavcan.node.port.SubjectIDList_1) -> AbstractSet[int]:
     if m.sparse_list is not None:
         return frozenset(int(x.value) for x in m.sparse_list)
-    if m.mask is not None:
-        if m.mask.any():
+    if m.mask is not None and m.mask.any():
             return expand_mask(m.mask)
     if m.total:
         return _COMPLETE_SUBJECT_SET

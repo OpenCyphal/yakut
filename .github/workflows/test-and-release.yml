@@ -1,5 +1,5 @@
-name: 'Test and Release Yakut'
-on: push
+name: 'Test and release Yakut'
+on: [ push, pull_request ]
 
 # Ensures that only one workflow is running at a time
 concurrency:
@@ -9,6 +9,8 @@ concurrency:
 jobs:
   yakut-test:
     name: Test Yakut
+    # https://docs.github.com/en/webhooks/webhook-events-and-payloads?actionType=edited#pull_request
+    if: (github.event_name == 'push') || github.event.pull_request.head.repo.fork
     strategy:
       fail-fast: false
       matrix:
@@ -71,7 +73,9 @@ jobs:
   yakut-release:
     name: Release Yakut
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '#release') || contains(github.ref, '/main')
+    if: >
+      (github.event_name == 'push') &&
+      (contains(github.event.head_commit.message, '#release') || contains(github.ref, '/main'))
     needs: yakut-test
     steps:
       - name: Check out

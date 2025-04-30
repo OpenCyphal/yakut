@@ -17,8 +17,12 @@ from ._list_files import list_files
 from ._file_error import FileError
 
 if TYPE_CHECKING:
-    import pycyphal.application  # pylint: disable=ungrouped-imports
-    import pycyphal.application.file  # pylint: disable=ungrouped-imports
+    from uavcan.file import Path_2_0
+    from uavcan.file import Error_1_0
+    from uavcan.file import Modify_1_1
+    from uavcan.file import Read_1_1
+    from uavcan.file import Write_1_1
+    from uavcan.primitive import Unstructured_1_0
 
 _logger = yakut.get_logger(__name__)
 
@@ -26,7 +30,7 @@ _logger = yakut.get_logger(__name__)
 @click.pass_context
 @yakut.pass_purser
 def file_client(purser: yakut.Purser, cmd: str):
-    """Main CLI group."""
+    """File client commands."""
     pass
 
 @file_client.command()
@@ -60,7 +64,7 @@ will be always treated as an error.
 )
 @yakut.pass_purser
 @yakut.asynchronous(interrupted_ok=True)
-async def file_list(
+async def ls(
     purser: yakut.Purser,
     node_ids: set[int] | int,
     path: Path,
@@ -72,7 +76,7 @@ async def file_list(
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
     assert isinstance(node_ids_list, list) and all(isinstance(x, int) for x in node_ids_list)
     formatter = purser.make_formatter(FormatterHints(single_document=True))
-    with purser.get_node("file_client_list", allow_anonymous=False) as node:
+    with purser.get_node("file_client_ls", allow_anonymous=False) as node:
         with ProgressReporter() as prog:
             result = await list_files(
                 node,
@@ -108,7 +112,7 @@ async def file_list(
 )
 @yakut.pass_purser
 @yakut.asynchronous(interrupted_ok=True)
-async def file_remove(
+async def rm(
     purser: yakut.Purser,
     node_ids: set[int] | int,
     path: Path,
@@ -128,7 +132,7 @@ async def file_remove(
     assert isinstance(node_ids_list, list) and all(isinstance(x, int) for x in node_ids_list)
 
     error = False
-    with purser.get_node("file_client_remove", allow_anonymous=False) as node:
+    with purser.get_node("file_client_rm", allow_anonymous=False) as node:
         for nid in node_ids_list:
             cln = node.make_client(Modify_1_1, nid)
             try:
@@ -170,7 +174,7 @@ UNSTRUCTURED_MAX_SIZE = 256
 )
 @yakut.pass_purser
 @yakut.asynchronous(interrupted_ok=True)
-async def file_read(
+async def read(
     purser: yakut.Purser,
     node_id: int,
     src: str,
@@ -242,7 +246,7 @@ async def file_read(
 )
 @yakut.pass_purser
 @yakut.asynchronous(interrupted_ok=True)
-async def file_write(
+async def write(
     purser: yakut.Purser,
     node_id: int,
     src: str,

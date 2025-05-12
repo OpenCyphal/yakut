@@ -89,7 +89,7 @@ def test(session):
             "PYTHONPATH": str(DEPS_DIR),
             "PATH": os.pathsep.join([os.environ["PATH"], str(DEPS_DIR)]),
             "CYPHAL_PATH": os.pathsep.join(map(str, CYPHAL_PATH)),
-            "PYCYPHAL_PATH": tmp_dir / ".compiled",
+            "PYCYPHAL_PATH": str(tmp_dir / ".compiled"),
             "PYCYPHAL_LOGLEVEL": "ERROR",
         },
     )

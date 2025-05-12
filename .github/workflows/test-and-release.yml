@@ -1,9 +1,11 @@
 name: 'Test & Release'
-on: push
+on: [ push, pull_request ]
 
 jobs:
   test:
     name: Test
+    # https://docs.github.com/en/webhooks/webhook-events-and-payloads?actionType=edited#pull_request
+    if: (github.event_name == 'push') || github.event.pull_request.head.repo.fork
     strategy:
       fail-fast: false
       matrix:
@@ -53,7 +55,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '#release') || contains(github.ref, '/main')
+    if: >
+      (github.event_name == 'push') &&
+      (contains(github.event.head_commit.message, '#release') || contains(github.ref, '/main'))
     needs: test
     steps:
       - name: Check out

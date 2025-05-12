@@ -127,7 +127,7 @@ def list_controllers() -> Iterable[Tuple[str, Callable[[], Controller]]]:
     base = Controller
     # Order controller kinds by class name, but ensure that NullController always comes first.
     for ty in sorted(
-        pycyphal.util.iter_descendants(base),
+        pycyphal.util.iter_descendants(base),  # type: ignore
         key=lambda x: (x is not NullController, x.__name__),
     ):
         try:

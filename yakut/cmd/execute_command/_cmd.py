@@ -62,7 +62,8 @@ def _parse_status_set(inp: str) -> set[int] | None:
     return set(ins) if not isinstance(ins, (int, float)) else {ins}
 
 
-@yakut.subcommand(aliases="cmd", help=_HELP)
+# Click has this inexplicable "feature" where it removes the "_command" suffix from the command name. Oh my god.
+@yakut.subcommand(aliases=["execute-command", "cmd"], help=_HELP)
 @click.argument("node_ids", type=parse_int_set)
 @click.argument("command")
 @click.argument("parameter", default="")
@@ -112,12 +113,7 @@ async def execute_command(
     command_parsed = _parse_command(command)
     del command
     formatter = purser.make_formatter(FormatterHints(single_document=True))
-    try:
-        from uavcan.node import ExecuteCommand_1
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name)) from None
+    from uavcan.node import ExecuteCommand_1
 
     request = ExecuteCommand_1.Request(command=command_parsed, parameter=parameter)
     # Ensure the parameters are valid before constructing the node.
@@ -180,7 +176,7 @@ async def _run(
         cln = local_node.make_client(ExecuteCommand_1, nid)
         try:
             cln.response_timeout = timeout
-            result[nid] = await cln(request)
+            result[nid] = await cln(request)  # type: ignore
         finally:
             cln.close()
 

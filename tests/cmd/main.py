@@ -13,7 +13,7 @@ def _unittest_help() -> None:
     """
     execute_cli("--help", timeout=10.0, log=False)
     for cmd in dir(yakut.cmd):
-        if not cmd.startswith("_") and cmd not in ("pycyphal", "sys"):
+        if not cmd.startswith("_") and not cmd.startswith("@") and cmd not in ("pycyphal", "sys"):
             execute_cli(cmd.replace("_", "-"), "--help", timeout=3.0, log=False)
 
 

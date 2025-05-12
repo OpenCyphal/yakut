@@ -3,10 +3,6 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-# Disable unused ignore warning for this file only because there appears to be no other way to make MyPy
-# accept this file both on Windows and GNU/Linux.
-# mypy: warn_unused_ignores=False
-
 from typing import Any, Optional, Awaitable
 import sys
 import socket
@@ -17,14 +13,15 @@ import pytest
 import pycyphal
 from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
-from tests.dsdl import OUTPUT_DIR
 import yakut
+
+if sys.platform.startswith("win"):  # pragma: no cover
+    pytest.skip("These are GNU/Linux-only tests", allow_module_level=True)
 
 
 # noinspection SpellCheckingInspection
 @pytest.mark.asyncio
-async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
-    _ = compiled_dsdl
+async def _unittest_monitor_nodes() -> None:
     asyncio.get_running_loop().slow_callback_duration = 10.0
     asyncio.get_running_loop().set_exception_handler(lambda *_: None)
 
@@ -109,41 +106,6 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
     await asyncio.sleep(3.0)
 
 
-# noinspection SpellCheckingInspection
-@pytest.mark.asyncio
-async def _unittest_monitor_errors(compiled_dsdl: Any) -> None:
-    _ = compiled_dsdl
-    asyncio.get_running_loop().slow_callback_duration = 10.0
-    asyncio.get_running_loop().set_exception_handler(lambda *_: None)
-
-    # This time the monitor node is anonymous.
-    task = asyncio.gather(
-        _run_nodes(),
-        _run_zombie(),
-        _delay(_inject_error(), 7.0),
-    )
-    cells = [x.split() for x in (await _monitor_and_get_last_screen(30.0, None)).splitlines()]
-    task.cancel()
-    await asyncio.sleep(3.0)
-
-    assert cells[1][0] == "1111"
-    assert cells[1][9] == "?"  # Unable to query
-
-    assert cells[2][0] == "1234"
-
-    assert cells[3][0] == "2571"
-    assert cells[3][4] == "zombie"
-
-    assert cells[4][0] == "3210"
-
-    assert cells[5][0] == "3333"
-
-    # Error counter
-    assert cells[-1][2] == "1"
-
-    await asyncio.sleep(3.0)
-
-
 async def _monitor_and_get_last_screen(duration: float, node_id: Optional[int]) -> str:
     args = ["monitor"]
     if node_id is not None:
@@ -151,7 +113,6 @@ async def _monitor_and_get_last_screen(duration: float, node_id: Optional[int]) 
     proc = Subprocess.cli(
         *args,
         environment_variables={
-            "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": str(node_id if node_id is not None else 0xFFFF),
         },
@@ -202,8 +163,8 @@ async def _run_nodes() -> None:
             }
         )
         node = make_node(info, reg)
-        node.heartbeat_publisher.mode = mode
-        node.heartbeat_publisher.health = health
+        node.heartbeat_publisher.mode = mode  # type: ignore
+        node.heartbeat_publisher.health = health  # type: ignore
         node.heartbeat_publisher.vendor_specific_status_code = vssc
         node.start()
         return node

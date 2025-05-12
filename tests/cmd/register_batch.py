@@ -5,26 +5,22 @@
 from __future__ import annotations
 import asyncio
 import time
-from typing import Any
 import json
 import tempfile
 from pathlib import Path
 from pprint import pprint
 import pytest
-from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 from tests.subprocess import execute_cli, Subprocess
 
 
 @pytest.mark.asyncio
-async def _unittest_caller(compiled_dsdl: Any) -> None:
+async def _unittest_caller() -> None:
     from pycyphal.transport.loopback import LoopbackTransport
     import pycyphal.application
     from pycyphal.application.register import ValueProxy, Natural64, Value, String
     from yakut.cmd.register_batch._directive import Directive
     from yakut.cmd.register_batch._caller import Skipped, Timeout, TypeCoercionFailure, do_calls
-
-    _ = compiled_dsdl
 
     node = pycyphal.application.make_node(pycyphal.application.NodeInfo(), transport=LoopbackTransport(10))
     try:
@@ -69,18 +65,14 @@ async def _unittest_caller(compiled_dsdl: Any) -> None:
         await asyncio.sleep(1)
 
 
-def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> None:
-    _ = compiled_dsdl
+def _unittest_cmd(transport_factory: TransportFactory) -> None:
     file = Path(tempfile.mktemp("yakut_register_batch_test.yaml"))
     # Run dummy nodes which we can query.
     bg_nodes = [
         Subprocess.cli(
             "sub",
             "1000:uavcan.primitive.empty",
-            environment_variables={
-                **transport_factory(10 + idx).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(10 + idx).environment,
         )
         for idx in range(2)
     ]
@@ -92,10 +84,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "register-batch",
             f"--file={file}",
             "--timeout=10",
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
         )
         assert status == 0
         data = json.loads(stdout.strip())
@@ -111,10 +100,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "register-batch",
             f"--file={file}",
             "--timeout=10",
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
         )
         assert status == 0
         data = json.loads(stdout.strip())
@@ -130,10 +116,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             f"--file={file}",
             "--timeout=10",
             "10",
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
         )
         assert status == 0
         data = json.loads(stdout.strip())
@@ -149,10 +132,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             f"--file={file}",
             "--timeout=10",
             "10,11",
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
         )
         assert status == 0
         data = json.loads(stdout.strip())
@@ -168,10 +148,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             f"--file={file}",
             "--timeout=3",  # Shorter timeout here because we know one is going to time out.
             "10-13",
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
             ensure_success=False,
         )
         assert status != 0
@@ -189,10 +166,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             f"--file={file}",
             "--timeout=10",
             "10,11",
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
             ensure_success=False,
         )
         assert status != 0
@@ -210,10 +184,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "--timeout=10",
             "10,11",
             "--optional-register",
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
         )
         assert status == 0
         data = json.loads(stdout.strip())
@@ -230,10 +201,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "--timeout=10",
             "10",
             "--detailed",
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
         )
         assert status == 0
         data = json.loads(stdout.strip())
@@ -249,10 +217,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "--timeout=10",
             "10",
             "--only=iv",  # The requested register is not immutable-volatile so it will be skipped.
-            environment_variables={
-                **transport_factory(100).environment,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables=transport_factory(100).environment,
         )
         assert status == 0
         data = json.loads(stdout.strip())

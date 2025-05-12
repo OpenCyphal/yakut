@@ -1,4 +1,4 @@
-# Yakut
+# Yakut – Cyphal CLI tool
 
 <!--suppress CheckImageSize, HtmlDeprecatedAttribute -->
 <img src="/docs/opencyphal-favicon-512.png" alt="OpenCyphal logo" width=128 align=right>
@@ -23,8 +23,6 @@ Afterward do endeavor to read the docs: **`yakut --help`**
 
 Check for new versions every now and then: **`pip install --upgrade yakut`**
 
-Installation & configuration screencasts are available for [Windows](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197/2?u=pavel.kirienko), [GNU/Linux](https://forum.opencyphal.org/t/screencast-of-installing-configuring-yakut/1197/1?u=pavel.kirienko), and [macOS](https://www.youtube.com/watch?v=dQw4w9WgXcQ).
-
 ### Additional third-party tools
 
 Since Yakut heavily relies on YAML/JSON documents exchanged via stdin/stdout, [**`jq`**](https://stedolan.github.io/jq/) is often needed for any non-trivial usage of the tool, so consider installing it as well. Users of GNU/Linux will likely find it in the default software repositories (`pacman -S jq`, `apt install jq`, etc.).
@@ -33,9 +31,9 @@ Since Yakut heavily relies on YAML/JSON documents exchanged via stdin/stdout, [*
 
 Transport layer inspection tools:
 
+- [Wireshark](https://www.wireshark.org/) with [Cyphal plugins](https://github.com/OpenCyphal/wireshark_plugins)
+  (n.b.: some versions of Wireshark may label Cyphal/CAN captures as UAVCAN/CAN due to rebranding).
 - Cyphal/CAN on GNU/Linux (candump, canbusload, etc.): [`can-utils`](https://github.com/linux-can/can-utils)
-- Cyphal/UDP or Cyphal/CAN: [Wireshark](https://www.wireshark.org/)
-  (n.b.: Wireshark might label Cyphal captures as UAVCAN due to rebranding)
 
 ## Invoking commands
 

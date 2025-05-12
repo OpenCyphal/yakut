@@ -151,16 +151,11 @@ async def file_server(
     \b
         yakut file-server --plug-and-play=allocation_table.db --update-software
     """
-    try:
-        from pycyphal.application import NodeInfo
-        from pycyphal.application.file import FileServer
-        from pycyphal.application.node_tracker import NodeTracker, Entry
-        from uavcan.node import ExecuteCommand_1 as ExecuteCommand
-        from uavcan.node import Heartbeat_1 as Heartbeat
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
+    from pycyphal.application import NodeInfo
+    from pycyphal.application.file import FileServer
+    from pycyphal.application.node_tracker import NodeTracker, Entry
+    from uavcan.node import ExecuteCommand_1 as ExecuteCommand
+    from uavcan.node import Heartbeat_1 as Heartbeat
 
     update_all_nodes = any(x < 0 for x in update_software)
     explicit_nodes = set(filter(lambda x: x >= 0, update_software))

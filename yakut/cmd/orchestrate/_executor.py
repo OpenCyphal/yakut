@@ -192,9 +192,11 @@ def exec_shell(
         stack.log_info(
             *itertools.chain(
                 (f"{prefix}EXECUTING WITH ENVIRONMENT VARIABLES:",),
-                ((k.ljust(longest_env) + " = " + repr(v.decode("raw_unicode_escape"))) for k, v in env.items())
-                if env
-                else ["<no variables>"],
+                (
+                    ((k.ljust(longest_env) + " = " + repr(v.decode("raw_unicode_escape"))) for k, v in env.items())
+                    if env
+                    else ["<no variables>"]
+                ),
                 cmd.splitlines(),
             ),
         )

@@ -61,19 +61,14 @@ class NodeFactory:
         if not re.match(r"[a-z][a-z0-9_]*[a-z0-9]", name_suffix):  # pragma: no cover
             raise ValueError(f"Internal error: Poorly chosen node name suffix: {name_suffix!r}")
 
-        try:
-            from pycyphal import application
-        except ImportError as ex:
-            from yakut.cmd.compile import make_usage_suggestion
-
-            raise click.ClickException(make_usage_suggestion(ex.name))
+        from pycyphal import application
 
         try:
             node_info = pycyphal.dsdl.update_from_builtin(application.NodeInfo(), self.node_info)
         except (ValueError, TypeError) as ex:
             raise click.UsageError(f"Node info fields are not valid: {ex}") from ex
         if len(node_info.name) == 0:
-            node_info.name = f"org.opencyphal.yakut.{name_suffix}"
+            node_info.name = f"org.opencyphal.yakut.{name_suffix}"  # type: ignore
         _logger.debug("Node info: %r", node_info)
 
         ctx = click.get_current_context()

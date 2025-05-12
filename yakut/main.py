@@ -7,9 +7,8 @@ from __future__ import annotations
 import sys
 import asyncio
 import functools
-from typing import TYPE_CHECKING, Iterable, Optional, Any, Callable, Awaitable
+from typing import TYPE_CHECKING, Optional, Any, Callable, Awaitable
 import logging
-from pathlib import Path
 from shutil import get_terminal_size
 import click
 import yakut
@@ -41,12 +40,10 @@ logging.basicConfig(format=_LOG_FORMAT)  # Using the default log level; it will 
 class Purser:
     def __init__(
         self,
-        paths: Iterable[str | Path],
         formatter_factory: FormatterFactory,
         transport_factory: TransportFactory,
         node_factory: NodeFactory,
     ) -> None:
-        self._paths = list(Path(x) for x in paths)
         self._f_formatter = formatter_factory
         self._f_transport = transport_factory
         self._f_node = node_factory
@@ -54,10 +51,6 @@ class Purser:
         self._registry: Optional[pycyphal.application.register.Registry] = None
         self._transport: Optional[Transport] = None
         self._node: Optional["pycyphal.application.Node"] = None
-
-    @property
-    def paths(self) -> list[Path]:
-        return list(self._paths)
 
     def make_formatter(self, hints: FormatterHints = FormatterHints()) -> Formatter:
         return self._f_formatter(hints)
@@ -82,7 +75,7 @@ class Purser:
             self._transport = self._f_transport()
         if self._transport is not None:
             return self._transport
-        click.get_current_context().fail("Transport not configured, or the standard DSDL namespace is not compiled")
+        click.get_current_context().fail("Transport not configured, or the standard DSDL namespace not found")
 
     def get_node(self, name_suffix: str, allow_anonymous: bool) -> "pycyphal.application.Node":
         if self._node is None:  # pragma: no branch
@@ -149,8 +142,8 @@ class AliasedGroup(click.Group):
         This is a workaround for this bug in v7 and v8: https://github.com/pallets/click/issues/1422.
         If this is not overridden, then abbreviated commands cause the automatic envvar prefix to be constructed
         incorrectly, such that instead of the full command name the abbreviated name is used.
-        For example, if the user invokes `yakut co` meaning `yakut compile`,
-        the auto-constructed envvar prefix would be `YAKUT_CO_` instead of `YAKUT_COMPILE_`.
+        For example, if the user invokes `yakut pub` meaning `yakut publish`,
+        the auto-constructed envvar prefix would be `YAKUT_PUB_` instead of `YAKUT_PUBLISH_`.
         """
         _, cmd, out_args = super().resolve_command(ctx, args)
         return (cmd.name if cmd else None), cmd, out_args
@@ -191,25 +184,6 @@ _ENV_VAR_PATH = "YAKUT_PATH"
 )
 @click.version_option(version=yakut.__version__)
 @click.option("--verbose", "-v", count=True, help="Emit verbose log messages. Specify twice for extra verbosity.")
-@click.option(
-    "--path",
-    "-P",
-    multiple=True,
-    type=click.Path(resolve_path=True),
-    help=f"""
-In order to use compiled DSDL namespaces,
-the directories that contain compilation outputs need to be specified using this option.
-
-Examples:
-
-\b
-    yakut  --path ../public_regulated_data_types  --path ~/my_namespaces  pub ...
-
-\b
-    export {_ENV_VAR_PATH}="../public_regulated_data_types:~/my_namespaces"
-    yakut pub ...
-""",
-)
 @formatter_factory_option
 @transport_factory_option
 @node_factory_option
@@ -217,7 +191,6 @@ Examples:
 def _click_main(
     ctx: click.Context,
     verbose: int,
-    path: tuple[str, ...],
     formatter_factory: FormatterFactory,
     transport_factory: TransportFactory,
     node_factory: NodeFactory,
@@ -240,13 +213,7 @@ def _click_main(
     will be read from `YAKUT_BAZ_FOO_BAR`.
     """
     _configure_logging(verbose)  # This should be done in the first order to ensure that we log things correctly.
-
-    _logger.debug("Path: %r", path)
-    for p in path:
-        sys.path.append(str(p))
-
     ctx.obj = Purser(
-        paths=path,
         formatter_factory=formatter_factory,
         transport_factory=transport_factory,
         node_factory=node_factory,

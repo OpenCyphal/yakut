@@ -115,7 +115,7 @@ async def _process_one(
     # Send the write request with the updated coerced value.
     req = Access_1.Request(name=Name_1(register_name), value=coerced)
     assert isinstance(req.value, Value)
-    return await client(req) or Timeout()
+    return await client(req) or Timeout()  # type: ignore
 
 
 _logger = yakut.get_logger(__name__)

@@ -4,14 +4,11 @@
 
 from __future__ import annotations
 import time
-import typing
 from tests.subprocess import Subprocess, execute_cli
-from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 
 
-def _unittest_accommodate_swarm(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
-    _ = compiled_dsdl
+def _unittest_accommodate_swarm(transport_factory: TransportFactory) -> None:
     # We spawn a lot of processes here, which might strain the test system a little, so beware. I've tested it
     # with 120 processes and it made my workstation (24 GB RAM ~4 GHz Core i7) struggle to the point of being
     # unable to maintain sufficiently real-time operation for the test to pass. Hm.
@@ -19,7 +16,6 @@ def _unittest_accommodate_swarm(transport_factory: TransportFactory, compiled_ds
     pubs = [
         Subprocess.cli(
             f"--transport={transport_factory(idx).expression}",
-            f"--path={OUTPUT_DIR}",
             "pub",
             "--period=0.4",
             "--count=60",
@@ -29,7 +25,6 @@ def _unittest_accommodate_swarm(transport_factory: TransportFactory, compiled_ds
     time.sleep(5)  # Some time is required for the nodes to start.
     _, stdout, _ = execute_cli(
         "-v",
-        f"--path={OUTPUT_DIR}",
         f"--transport={transport_factory(None).expression}",
         "accommodate",
         timeout=100.0,
@@ -42,7 +37,6 @@ def _unittest_accommodate_swarm(transport_factory: TransportFactory, compiled_ds
 def _unittest_accommodate_loopback() -> None:
     _, stdout, _ = execute_cli(
         "-v",
-        f"--path={OUTPUT_DIR}",
         "accommodate",
         timeout=30.0,
         environment_variables={"YAKUT_TRANSPORT": "Loopback(None),Loopback(None)"},
@@ -53,7 +47,6 @@ def _unittest_accommodate_loopback() -> None:
 def _unittest_accommodate_udp_localhost() -> None:
     _, stdout, _ = execute_cli(
         "-v",
-        f"--path={OUTPUT_DIR}",
         "accommodate",
         timeout=30.0,
         environment_variables={"YAKUT_TRANSPORT": 'UDP("127.0.0.1",None)'},

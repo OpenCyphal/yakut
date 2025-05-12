@@ -8,20 +8,18 @@ import time
 import json
 from typing import Any
 import pytest
-from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 from tests.subprocess import execute_cli, Subprocess
 
 
 @pytest.mark.asyncio
-async def _unittest_logic(compiled_dsdl: Any) -> None:
+async def _unittest_logic() -> None:
     from pycyphal.transport.loopback import LoopbackTransport
     import pycyphal.application
     from pycyphal.application.register import ValueProxy, Natural64
     from yakut.cmd.register_access._logic import access, Result
     from yakut.cmd.register_access._cmd import _make_representer
 
-    _ = compiled_dsdl
     repr_simple = _make_representer(simplify=True, metadata=False)
     repr_full = _make_representer(simplify=False, metadata=True)
 
@@ -137,16 +135,12 @@ async def _unittest_logic(compiled_dsdl: Any) -> None:
         await asyncio.sleep(1)
 
 
-def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> None:
-    _ = compiled_dsdl
+def _unittest_cmd(transport_factory: TransportFactory) -> None:
     # Run a dummy node which we can query.
     bg_node = Subprocess.cli(
         "sub",
         "1000:uavcan.primitive.empty",
-        environment_variables={
-            **transport_factory(10).environment,
-            "YAKUT_PATH": str(OUTPUT_DIR),
-        },
+        environment_variables=transport_factory(10).environment,
     )
     time.sleep(2)
     expect_register = "uavcan.node.description"
@@ -160,7 +154,6 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             expect_register,
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
-                "YAKUT_PATH": str(OUTPUT_DIR),
             },
         )
         assert status == 0
@@ -178,7 +171,6 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             expect_register,
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
-                "YAKUT_PATH": str(OUTPUT_DIR),
             },
         )
         assert status == 0
@@ -196,7 +188,6 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "Reference value",
             environment_variables={
                 "YAKUT_TRANSPORT": transport_factory(100).expression,
-                "YAKUT_PATH": str(OUTPUT_DIR),
             },
         )
         assert status == 0

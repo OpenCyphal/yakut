@@ -76,8 +76,6 @@ def unexplode_value(xpl: Any, prototype: Optional["Value"] = None) -> Optional["
     is given because simplification erases type information.
     Some unambiguous simplified forms may be unexploded autonomously.
 
-    >>> from tests.dsdl import ensure_compiled_dsdl
-    >>> ensure_compiled_dsdl()
     >>> from pycyphal.application.register import Value, Natural16
     >>> ux = unexplode_value
 
@@ -150,8 +148,6 @@ def _simplify_value(msg: "Value") -> Any:
     Designed for use with commands that output compact register values in YAML/JSON/TSV/whatever,
     discarding the detailed type information.
 
-    >>> from tests.dsdl import ensure_compiled_dsdl
-    >>> ensure_compiled_dsdl()
     >>> from pycyphal.application.register import Value, Empty
     >>> from pycyphal.application.register import Integer8, Natural8, Integer32, String, Unstructured
 

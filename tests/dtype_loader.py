@@ -2,21 +2,12 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-import sys
-from typing import Any
 import pytest
 import pycyphal
 from yakut.dtype_loader import load_dtype, FormatError, NotFoundError
-from .dsdl import OUTPUT_DIR
 
 
-def _unittest_dtype_loader(compiled_dsdl: Any) -> None:
-    _ = compiled_dsdl
-    sys.path.append(str(OUTPUT_DIR))
-
-    with pytest.raises(NotFoundError, match=r".*yakut compile.*unknown_root_namespace.*"):
-        _ = load_dtype("unknown_root_namespace.Type.1.0")
-
+def _unittest_dtype_loader() -> None:
     with pytest.raises(FormatError):
         _ = load_dtype("unknown_root_namespace.Type.1.0.0")
 

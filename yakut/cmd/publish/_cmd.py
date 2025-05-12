@@ -231,12 +231,7 @@ async def publish(
     if count <= 0:
         _logger.warning("Nothing to do because count=%s", count)
         return
-    try:
-        from pycyphal.application import Node
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
+    from pycyphal.application import Node
 
     finalizers: list[Callable[[], None]] = []
     try:

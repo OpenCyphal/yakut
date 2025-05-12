@@ -6,21 +6,17 @@ from __future__ import annotations
 import asyncio
 import time
 import json
-from typing import Any
 import pytest
-from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 from tests.subprocess import execute_cli, Subprocess
 
 
 @pytest.mark.asyncio
-async def _unittest_logic(compiled_dsdl: Any) -> None:
+async def _unittest_logic() -> None:
     from pycyphal.transport.loopback import LoopbackTransport
     import pycyphal.application
     from pycyphal.application.register import ValueProxy
     from yakut.cmd.register_list._logic import list_names
-
-    _ = compiled_dsdl
 
     node = pycyphal.application.make_node(pycyphal.application.NodeInfo(), transport=LoopbackTransport(10))
     try:
@@ -75,16 +71,12 @@ async def _unittest_logic(compiled_dsdl: Any) -> None:
         await asyncio.sleep(1)
 
 
-def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> None:
-    _ = compiled_dsdl
+def _unittest_cmd(transport_factory: TransportFactory) -> None:
     # Run a dummy node which we can query.
     bg_node = Subprocess.cli(
         "sub",
         "1000:uavcan.primitive.empty",
-        environment_variables={
-            **transport_factory(10).environment,
-            "YAKUT_PATH": str(OUTPUT_DIR),
-        },
+        environment_variables=transport_factory(10).environment,
     )
     time.sleep(2)
     expect_register = "uavcan.node.description"
@@ -95,10 +87,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "register-list",
             "--timeout=10",
             "10",
-            environment_variables={
-                "YAKUT_TRANSPORT": transport_factory(100).expression,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables={"YAKUT_TRANSPORT": transport_factory(100).expression},
         )
         assert status == 0
         data = json.loads(stdout.strip())
@@ -112,10 +101,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "register-list",
             "--timeout=10",
             "10,",  # Mind the comma!
-            environment_variables={
-                "YAKUT_TRANSPORT": transport_factory(100).expression,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables={"YAKUT_TRANSPORT": transport_factory(100).expression},
         )
         assert status == 0
         data = json.loads(stdout.strip())
@@ -129,10 +115,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "register-list",
             "--timeout=3",  # Shorter timeout because some nodes are expected to not respond.
             "10..13",
-            environment_variables={
-                "YAKUT_TRANSPORT": transport_factory(100).expression,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables={"YAKUT_TRANSPORT": transport_factory(100).expression},
             ensure_success=False,
         )
         assert status != 0  # Because timed out
@@ -150,10 +133,7 @@ def _unittest_cmd(compiled_dsdl: Any, transport_factory: TransportFactory) -> No
             "--timeout=3",  # Shorter timeout because some nodes are expected to not respond.
             "10..13",
             "--optional-service",
-            environment_variables={
-                "YAKUT_TRANSPORT": transport_factory(100).expression,
-                "YAKUT_PATH": str(OUTPUT_DIR),
-            },
+            environment_variables={"YAKUT_TRANSPORT": transport_factory(100).expression},
         )
         assert status == 0
         data = json.loads(stdout.strip())

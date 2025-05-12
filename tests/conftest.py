@@ -8,7 +8,6 @@ import tempfile
 from typing import Iterator
 from pathlib import Path
 import pytest
-from .dsdl import compiled_dsdl as compiled_dsdl
 from .transport import transport_factory as transport_factory
 
 

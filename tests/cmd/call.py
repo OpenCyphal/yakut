@@ -9,7 +9,6 @@ import asyncio
 import typing
 import pytest
 from tests.subprocess import Subprocess, execute_cli
-from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 from yakut.param.transport import construct_transport
 
@@ -18,19 +17,16 @@ _logger = logging.getLogger(__name__)
 
 
 @pytest.mark.asyncio
-async def _unittest_call_custom(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+async def _unittest_call_custom(transport_factory: TransportFactory) -> None:
     asyncio.get_running_loop().slow_callback_duration = 5.0
-
-    _ = compiled_dsdl
     env = {
         "YAKUT_TRANSPORT": transport_factory(88).expression,
-        "YAKUT_PATH": str(OUTPUT_DIR),
         "PYCYPHAL_LOGLEVEL": "INFO",  # We don't want too much output in the logs.
     }
 
     import pycyphal.application
     import uavcan.node
-    from sirius_cyber_corp import PerformLinearLeastSquaresFit_1
+    from sirius_cyber_corp import PerformLinearLeastSquaresFit_1  # type: ignore
 
     # Set up the server that we will be testing the client against.
     server_node = pycyphal.application.make_node(
@@ -184,13 +180,10 @@ async def _unittest_call_custom(transport_factory: TransportFactory, compiled_ds
 
 
 @pytest.mark.asyncio
-async def _unittest_call_fixed(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
+async def _unittest_call_fixed(transport_factory: TransportFactory) -> None:
     asyncio.get_running_loop().slow_callback_duration = 5.0
-
-    _ = compiled_dsdl
     env = {
         "YAKUT_TRANSPORT": transport_factory(88).expression,
-        "YAKUT_PATH": str(OUTPUT_DIR),
         "PYCYPHAL_LOGLEVEL": "INFO",  # We don't want too much output in the logs.
     }
 
@@ -224,18 +217,12 @@ async def _unittest_call_fixed(transport_factory: TransportFactory, compiled_dsd
     await asyncio.sleep(1.0)
 
 
-def _unittest_call_errors(compiled_dsdl: typing.Any) -> None:
-    _ = compiled_dsdl
-    env = {
-        "YAKUT_PATH": str(OUTPUT_DIR),
-    }
-
+def _unittest_call_errors() -> None:
     # Non-service data type.
     result, stdout, stderr = execute_cli(
         "call",
         "22",
         "222:sirius_cyber_corp.PointXY",
-        environment_variables=env,
         ensure_success=False,
         log=False,
     )
@@ -253,11 +240,9 @@ def _unittest_call_errors(compiled_dsdl: typing.Any) -> None:
     )
     assert result != 0
     assert stdout == ""
-    assert "yakut compile" in stderr
 
     # Invalid YAML.
     result, stdout, stderr = execute_cli(
-        f"--path={OUTPUT_DIR}",
         "call",
         "22",
         "222:sirius_cyber_corp.PerformLinearLeastSquaresFit.1",

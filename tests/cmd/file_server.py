@@ -13,15 +13,13 @@ from typing import Tuple, Optional
 import pycyphal
 from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
-from tests.dsdl import OUTPUT_DIR
 
 
-async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
+async def _unittest_file_server_pnp() -> None:
     from pycyphal.application import make_node, NodeInfo, make_registry
     from pycyphal.application.file import FileClient
     from pycyphal.application.plug_and_play import Allocatee
 
-    _ = compiled_dsdl
     asyncio.get_running_loop().slow_callback_duration = 10.0
     root = tempfile.mkdtemp(".file_server", "root.")
     print("ROOT:", root)
@@ -33,7 +31,6 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
         environment_variables={
             "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": "42",
-            "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
     cln_node = make_node(
@@ -43,7 +40,6 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
             {
                 "UAVCAN__UDP__IFACE": "127.0.0.1",
                 "UAVCAN__NODE__ID": "43",
-                "YAKUT_PATH": str(OUTPUT_DIR),
             },
         ),
     )
@@ -88,12 +84,11 @@ async def _unittest_file_server_pnp(compiled_dsdl: typing.Any) -> None:
     shutil.rmtree(root, ignore_errors=True)  # Do not remove on failure for diagnostics.
 
 
-async def _unittest_file_server_update(compiled_dsdl: typing.Any) -> None:
+async def _unittest_file_server_update() -> None:
     from pycyphal.application import make_node, NodeInfo, make_registry, make_transport, Node
     from pycyphal.application.plug_and_play import Allocatee
     from uavcan.node import ExecuteCommand_1 as ExecuteCommand
 
-    _ = compiled_dsdl
     asyncio.get_running_loop().slow_callback_duration = 10.0
     root = tempfile.mkdtemp(".file_server", "root.")
     print("ROOT:", root)
@@ -138,10 +133,11 @@ async def _unittest_file_server_update(compiled_dsdl: typing.Any) -> None:
             if sw_vcs is not None:
                 info.software_vcs_revision_id = sw_vcs
             if sw_crc is not None:
-                info.software_image_crc = [sw_crc]
+                info.software_image_crc = [sw_crc]  # type: ignore
 
-            reg = make_registry(None, {"UAVCAN__UDP__IFACE": "127.0.0.1", "YAKUT_PATH": str(OUTPUT_DIR)})
+            reg = make_registry(None, {"UAVCAN__UDP__IFACE": "127.0.0.1"})
             trans = make_transport(reg)
+            assert trans
             if trans.local_node_id is None:
                 print("Starting a node-ID allocator for", info.unique_id.tobytes())
                 alloc = Allocatee(trans, info.unique_id.tobytes())
@@ -156,6 +152,7 @@ async def _unittest_file_server_update(compiled_dsdl: typing.Any) -> None:
                 reg["uavcan.node.id"] = allocated
                 trans.close()
                 trans = make_transport(reg)
+            assert trans
             assert trans.local_node_id is not None
 
             return RemoteNode(make_node(info, reg, transport=trans), execute_command_response)
@@ -171,7 +168,6 @@ async def _unittest_file_server_update(compiled_dsdl: typing.Any) -> None:
         environment_variables={
             "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": "42",
-            "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
     try:

@@ -78,13 +78,7 @@ async def monitor(purser: yakut.Purser, plug_and_play: Optional[str]) -> None:
     # pylint: disable=too-many-locals
     import numpy as np
     from scipy.sparse import dok_matrix, spmatrix
-
-    try:
-        import uavcan.node.port  # pylint: disable=unused-import
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
+    import uavcan.node.port  # pylint: disable=unused-import
 
     allow_anonymous = not plug_and_play
 

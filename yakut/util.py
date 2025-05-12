@@ -35,7 +35,7 @@ def convert_transfer_metadata_to_builtin(
     transfer: pycyphal.transport.TransferFrom,
     *,
     dtype: Any,
-    **extra_fields: dict[str, Any],
+    **extra_fields: Any,
 ) -> dict[str, dict[str, Any]]:
     return {
         METADATA_KEY: {

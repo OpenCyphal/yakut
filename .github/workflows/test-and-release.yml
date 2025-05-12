@@ -45,10 +45,10 @@ jobs:
         with:
           # The matrix is shown for convenience but this is fragile because the values may not be string-convertible.
           # Shall it break one day, feel free to remove the matrix from here.
-          # The job status is per matrix item, which is super convenient.
           name: ${{github.job}}-#${{strategy.job-index}}-${{job.status}}-${{join(matrix.*, ',')}}
           path: "**/*.log"
           retention-days: 90
+          include-hidden-files: true
 
   release:
     name: Release

@@ -5,21 +5,16 @@
 from __future__ import annotations
 import time
 import json
-import typing
 from pytest import approx
-from tests.dsdl import OUTPUT_DIR
 from tests.subprocess import execute_cli, Subprocess
 
 
-def _unittest_publish_expression_a(compiled_dsdl: typing.Any) -> None:
-    _ = compiled_dsdl
-
+def _unittest_publish_expression_a() -> None:
     proc_sub = Subprocess.cli(
         "-j",
         "sub",
         "7654:uavcan.primitive.array.Real64.1.0",
         environment_variables={
-            "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": "1234",
         },
@@ -36,7 +31,6 @@ def _unittest_publish_expression_a(compiled_dsdl: typing.Any) -> None:
         "--count=2",
         timeout=10.0,
         environment_variables={
-            "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": "1235",
         },
@@ -66,14 +60,12 @@ def _unittest_publish_expression_a(compiled_dsdl: typing.Any) -> None:
     ]
 
 
-def _unittest_publish_expression_b(compiled_dsdl: typing.Any) -> None:
-    _ = compiled_dsdl
+def _unittest_publish_expression_b() -> None:
     proc_sub = Subprocess.cli(
         "-j",
         "sub",
         "7654:uavcan.primitive.String.1.0",
         environment_variables={
-            "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": "1234",
         },
@@ -87,7 +79,6 @@ def _unittest_publish_expression_b(compiled_dsdl: typing.Any) -> None:
         "--count=1",
         timeout=10.0,
         environment_variables={
-            "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": "1235",
         },

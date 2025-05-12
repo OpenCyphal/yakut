@@ -112,12 +112,7 @@ async def execute_command(
     command_parsed = _parse_command(command)
     del command
     formatter = purser.make_formatter(FormatterHints(single_document=True))
-    try:
-        from uavcan.node import ExecuteCommand_1
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name)) from None
+    from uavcan.node import ExecuteCommand_1
 
     request = ExecuteCommand_1.Request(command=command_parsed, parameter=parameter)
     # Ensure the parameters are valid before constructing the node.
@@ -180,7 +175,7 @@ async def _run(
         cln = local_node.make_client(ExecuteCommand_1, nid)
         try:
             cln.response_timeout = timeout
-            result[nid] = await cln(request)
+            result[nid] = await cln(request)  # type: ignore
         finally:
             cln.close()
 

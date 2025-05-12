@@ -48,10 +48,6 @@ def make_sync_async(subscribers: Iterable[Subscriber[Any]]) -> Synchronizer:
 
 
 def _unittest_sync_async() -> None:
-    from tests.dsdl import ensure_compiled_dsdl
-
-    ensure_compiled_dsdl()
-
     from pycyphal.transport.loopback import LoopbackTransport
     from pycyphal.presentation import Presentation
     from uavcan.primitive.scalar import Integer8_1

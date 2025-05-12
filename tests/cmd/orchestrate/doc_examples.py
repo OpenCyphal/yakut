@@ -54,16 +54,10 @@ def _unittest_example_external() -> None:
 
 
 def _unittest_example_pub_sub() -> None:
-    from yakut.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
     from yakut.cmd.orchestrate import EXAMPLE_PUB_SUB, EXAMPLE_PUB_SUB_STDOUT
 
     Path("pub_sub.orc.yaml").write_text(EXAMPLE_PUB_SUB)
 
-    _, stdout, _ = execute_cli(
-        "orc",
-        "pub_sub.orc.yaml",
-        environment_variables={"DSDL_SRC": DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI},
-        timeout=300.0,
-    )
+    _, stdout, _ = execute_cli("orc", "pub_sub.orc.yaml", timeout=300.0)
     # APPLY SORTING TO BATTLE TEMPORAL JITTER AS THE MESSAGE AND THE FIRST HEARTBEAT MAY COME SWAPPED.
     assert sorted(stdout.splitlines()) == sorted(EXAMPLE_PUB_SUB_STDOUT.splitlines())

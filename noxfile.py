@@ -14,6 +14,11 @@ ROOT_DIR = Path(__file__).resolve().parent
 DEPS_DIR = ROOT_DIR / "tests" / "deps"
 assert DEPS_DIR.is_dir(), "Invalid configuration"
 
+CYPHAL_PATH = [
+    DEPS_DIR / "public_regulated_data_types",
+    ROOT_DIR / "tests" / "custom_data_types",
+]
+
 
 PYTHONS = ["3.10", "3.11", "3.12", "3.13"]
 
@@ -83,12 +88,11 @@ def test(session):
         env={
             "PYTHONPATH": str(DEPS_DIR),
             "PATH": os.pathsep.join([os.environ["PATH"], str(DEPS_DIR)]),
+            "CYPHAL_PATH": os.pathsep.join(map(str, CYPHAL_PATH)),
+            "PYCYPHAL_PATH": tmp_dir / ".compiled",
+            "PYCYPHAL_LOGLEVEL": "ERROR",
         },
     )
-
-    # The coverage threshold is intentionally set low for interactive runs because when running locally
-    # in a reused virtualenv the DSDL compiler run may be skipped to save time, resulting in a reduced coverage.
-    # Some features are not available on Windows so the coverage threshold is set low for it.
     if session.posargs or session.interactive or sys.platform.startswith("win"):
         fail_under = 1
     else:

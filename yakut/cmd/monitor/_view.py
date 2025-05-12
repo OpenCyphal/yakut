@@ -337,8 +337,8 @@ class View:
         xfer_rates: spmatrix,
         byte_rates: spmatrix,
         xfer_delta_by_port: NDArray[np.int_],
-        xfer_rates_by_port: NDArray[np.float_],
-        byte_rates_by_port: NDArray[np.float_],
+        xfer_rates_by_port: NDArray[np.float64],
+        byte_rates_by_port: NDArray[np.float64],
     ) -> None:
         recent_by_node: dict[Optional[int], bool] = defaultdict(bool)
         xfer_rate_by_node: dict[Optional[int], float] = defaultdict(float)
@@ -386,8 +386,8 @@ class View:
         xfer_rates: tuple[spmatrix, spmatrix],
         byte_rates: tuple[spmatrix, spmatrix],
         xfer_delta_by_port: tuple[NDArray[np.int_], NDArray[np.int_]],
-        xfer_rates_by_port: tuple[NDArray[np.float_], NDArray[np.float_]],
-        byte_rates_by_port: tuple[NDArray[np.float_], NDArray[np.float_]],
+        xfer_rates_by_port: tuple[NDArray[np.float64], NDArray[np.float64]],
+        byte_rates_by_port: tuple[NDArray[np.float64], NDArray[np.float64]],
     ) -> None:
         # We used to display two rows per service: separate request and response. It is very informative but a bit
         # expensive in terms of the screen space, which is very limited when large networks are involved.

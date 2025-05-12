@@ -159,7 +159,7 @@ async def register_batch(
     detailed: int,
     only: str | None,
 ) -> int:
-    predicate: Predicate = _PREDICATES[only] if only else lambda _: True
+    predicate: Predicate = _PREDICATES[only] if only else lambda _: True  # type: ignore
     formatter = purser.make_formatter(FormatterHints(single_document=True))
     representer = _make_representer(detail=detailed)
     with file:

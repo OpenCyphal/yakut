@@ -7,21 +7,17 @@ from __future__ import annotations
 import sys
 import time
 import json
-import typing
 import pytest
 import pycyphal
 import yakut
 import yakut.yaml
 from tests.subprocess import execute_cli, Subprocess
-from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 
 
-def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
-    _ = compiled_dsdl
+def _unittest_pub_sub_regular(transport_factory: TransportFactory) -> None:
     env = {
         "YAKUT_TRANSPORT": transport_factory(None).expression,
-        "YAKUT_PATH": str(OUTPUT_DIR),
     }
     proc_sub_heartbeat = Subprocess.cli(
         "-j",
@@ -78,7 +74,6 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     # Request GetInfo from the publisher we just launched.
     _, stdout, _ = execute_cli(
         f"--transport={transport_factory(52).expression}",
-        f"--path={OUTPUT_DIR}",
         "-y",
         "call",
         "51",
@@ -145,11 +140,9 @@ def _unittest_pub_sub_regular(transport_factory: TransportFactory, compiled_dsdl
     assert proc_sub_diagnostic_wrong_pid.wait(5, interrupt=True)[1].strip() == ""
 
 
-def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
-    _ = compiled_dsdl
+def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory) -> None:
     env = {
         "YAKUT_TRANSPORT": transport_factory(None).expression,
-        "YAKUT_PATH": str(OUTPUT_DIR),
     }
     proc_sub_heartbeat = Subprocess.cli(
         "-j",
@@ -209,8 +202,7 @@ def _unittest_slow_cli_pub_sub_anon(transport_factory: TransportFactory, compile
         assert m["8184"]["text"] == ""
 
 
-def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
-    _ = compiled_dsdl
+def _unittest_e2e_discovery_pub(transport_factory: TransportFactory) -> None:
     proc_sub = Subprocess.cli(
         "-j",
         "sub",
@@ -221,7 +213,6 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
         "--count=3",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
-            "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
     time.sleep(3.0)  # Let the subscriber boot up.
@@ -235,7 +226,6 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
         "--period=3",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(11).expression,
-            "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
     proc_pub.wait(30.0)
@@ -245,8 +235,7 @@ def _unittest_e2e_discovery_pub(transport_factory: TransportFactory, compiled_ds
     assert msgs == [{"1000": {"value": "hello"}, "2000": {"value": "world"}}] * 3
 
 
-def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_dsdl: typing.Any) -> None:
-    _ = compiled_dsdl
+def _unittest_e2e_discovery_sub(transport_factory: TransportFactory) -> None:
     proc_pub = Subprocess.cli(
         "pub",
         "1000:uavcan.primitive.string",
@@ -256,7 +245,6 @@ def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_ds
         "--period=3",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(11).expression,
-            "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
     time.sleep(3.0)  # Let the publisher boot up.
@@ -270,7 +258,6 @@ def _unittest_e2e_discovery_sub(transport_factory: TransportFactory, compiled_ds
         "--count=3",
         environment_variables={
             "YAKUT_TRANSPORT": transport_factory(10).expression,
-            "YAKUT_PATH": str(OUTPUT_DIR),
         },
     )
     out_sub = proc_sub.wait(30.0)[1].splitlines()  # discovery takes a while

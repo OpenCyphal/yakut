@@ -236,12 +236,7 @@ async def subscribe(
         y sub uavcan.node.heartbeat +M | jq '.[]|[._meta_.transfer_id, ._meta_.timestamp.system]'
     """
     config = click.get_current_context().ensure_object(Config)
-    try:
-        from pycyphal.application import Node
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
+    from pycyphal.application import Node
 
     finalizers: list[Callable[[], None]] = []
     try:

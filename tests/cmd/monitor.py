@@ -3,10 +3,6 @@
 # This software is distributed under the terms of the MIT License.
 # Author: Pavel Kirienko <pavel@opencyphal.org>
 
-# Disable unused ignore warning for this file only because there appears to be no other way to make MyPy
-# accept this file both on Windows and GNU/Linux.
-# mypy: warn_unused_ignores=False
-
 from typing import Any, Optional, Awaitable
 import sys
 import socket
@@ -17,14 +13,12 @@ import pytest
 import pycyphal
 from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
-from tests.dsdl import OUTPUT_DIR
 import yakut
 
 
 # noinspection SpellCheckingInspection
 @pytest.mark.asyncio
-async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
-    _ = compiled_dsdl
+async def _unittest_monitor_nodes() -> None:
     asyncio.get_running_loop().slow_callback_duration = 10.0
     asyncio.get_running_loop().set_exception_handler(lambda *_: None)
 
@@ -111,8 +105,7 @@ async def _unittest_monitor_nodes(compiled_dsdl: Any) -> None:
 
 # noinspection SpellCheckingInspection
 @pytest.mark.asyncio
-async def _unittest_monitor_errors(compiled_dsdl: Any) -> None:
-    _ = compiled_dsdl
+async def _unittest_monitor_errors() -> None:
     asyncio.get_running_loop().slow_callback_duration = 10.0
     asyncio.get_running_loop().set_exception_handler(lambda *_: None)
 
@@ -151,7 +144,6 @@ async def _monitor_and_get_last_screen(duration: float, node_id: Optional[int]) 
     proc = Subprocess.cli(
         *args,
         environment_variables={
-            "YAKUT_PATH": str(OUTPUT_DIR),
             "UAVCAN__UDP__IFACE": "127.0.0.1",
             "UAVCAN__NODE__ID": str(node_id if node_id is not None else 0xFFFF),
         },
@@ -202,8 +194,8 @@ async def _run_nodes() -> None:
             }
         )
         node = make_node(info, reg)
-        node.heartbeat_publisher.mode = mode
-        node.heartbeat_publisher.health = health
+        node.heartbeat_publisher.mode = mode  # type: ignore
+        node.heartbeat_publisher.health = health  # type: ignore
         node.heartbeat_publisher.vendor_specific_status_code = vssc
         node.start()
         return node

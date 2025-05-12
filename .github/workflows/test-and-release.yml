@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.py }}
 
       - name: Configure GNU/Linux
         if: ${{ runner.os == 'Linux' }}
@@ -37,7 +37,7 @@ jobs:
 
       # Only one statement per step to ensure the error codes are not ignored by PowerShell.
       - run: python -m pip install --upgrade attrs pip setuptools nox
-      - run: nox --non-interactive --session test --python ${{ matrix.python }}
+      - run: nox --non-interactive --session test --python ${{ matrix.py }}
       - run: nox --non-interactive --session lint
 
       - uses: actions/upload-artifact@v4

@@ -82,7 +82,7 @@ def test(session):
         *session.posargs,
         env={
             "PYTHONPATH": str(DEPS_DIR),
-            "PATH": os.pathsep.join([session.env["PATH"], str(DEPS_DIR)]),
+            "PATH": os.pathsep.join([os.environ["PATH"], str(DEPS_DIR)]),
         },
     )
 

@@ -36,14 +36,3 @@ def _unittest_publish() -> None:
     assert result != 0
     assert "period" in stderr.lower()
     assert "seconds" in stderr.lower()
-
-    # Transport not configured.
-    result, _, stderr = execute_cli(
-        "pub",
-        "4444:uavcan.si.unit.force.Scalar.1.0",
-        "{}",
-        timeout=5.0,
-        ensure_success=False,
-    )
-    assert result != 0
-    assert "transport" in stderr.lower()

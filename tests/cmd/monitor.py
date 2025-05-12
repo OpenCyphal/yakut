@@ -15,6 +15,9 @@ from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
 import yakut
 
+if sys.platform.startswith("win"):  # pragma: no cover
+    pytest.skip("These are GNU/Linux-only tests", allow_module_level=True)
+
 
 # noinspection SpellCheckingInspection
 @pytest.mark.asyncio

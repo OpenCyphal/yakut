@@ -10,6 +10,7 @@ import asyncio
 import tempfile
 from pathlib import Path
 from typing import Tuple, Optional
+import pytest
 import pycyphal
 from pycyphal.transport.udp import UDPTransport
 from tests.subprocess import Subprocess
@@ -17,7 +18,7 @@ from tests.subprocess import Subprocess
 
 async def _unittest_file_server_pnp() -> None:
     from pycyphal.application import make_node, NodeInfo, make_registry
-    from pycyphal.application.file import FileClient
+    from pycyphal.application.file import FileClient2
     from pycyphal.application.plug_and_play import Allocatee
 
     asyncio.get_running_loop().slow_callback_duration = 10.0
@@ -28,24 +29,15 @@ async def _unittest_file_server_pnp() -> None:
         "file-server",
         root,
         f"--plug-and-play={root}/allocation_table.db",
-        environment_variables={
-            "UAVCAN__UDP__IFACE": "127.0.0.1",
-            "UAVCAN__NODE__ID": "42",
-        },
+        environment_variables={"UAVCAN__UDP__IFACE": "127.0.0.1", "UAVCAN__NODE__ID": "42"},
     )
     cln_node = make_node(
         NodeInfo(name="org.opencyphal.yakut.test.file.client"),
-        make_registry(
-            None,
-            {
-                "UAVCAN__UDP__IFACE": "127.0.0.1",
-                "UAVCAN__NODE__ID": "43",
-            },
-        ),
+        make_registry(None, {"UAVCAN__UDP__IFACE": "127.0.0.1", "UAVCAN__NODE__ID": "43"}),
     )
     try:
-        fc = FileClient(cln_node, 42, response_timeout=30.0)  # Large timeout is needed for Windows CI.
-        await asyncio.sleep(3.0)  # Let the server initialize.
+        fc = FileClient2(cln_node, 42, response_timeout=30.0)
+        await asyncio.sleep(10.0)  # Let the server initialize.
         assert srv_proc.alive
 
         async def ls(path: str) -> typing.List[str]:
@@ -56,12 +48,13 @@ async def _unittest_file_server_pnp() -> None:
 
         # Check the file server.
         assert ["allocation_table.db"] == await ls("/")
-        assert 0 == await fc.touch("/foo")
+        await fc.touch("/foo")
         assert ["allocation_table.db", "foo"] == await ls("/")
-        assert 0 == await fc.write("/foo", b"Hello world!")
+        await fc.write("/foo", b"Hello world!")
         assert b"Hello world!" == await fc.read("/foo")
-        assert 0 == await fc.remove("/foo")
-        assert 0 != await fc.remove("/foo")
+        await fc.remove("/foo")
+        with pytest.raises(pycyphal.application.file.RemoteFileError):
+            await fc.remove("/foo")
         assert ["allocation_table.db"] == await ls("/")
 
         # Check the allocator.

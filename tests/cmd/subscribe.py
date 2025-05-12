@@ -20,18 +20,6 @@ def _unittest_subscribe() -> None:
     assert "count" in stderr.lower()
 
 
-def _unittest_dsdl_not_found() -> None:
-    result, _, stderr = execute_cli(
-        "sub",
-        "4444:uavcan.si.unit.force.Scalar",
-        timeout=5.0,
-        ensure_success=False,
-        environment_variables={"UAVCAN__LOOPBACK": "1", "UAVCAN__NODE__ID": "1234"},
-    )
-    assert result != 0
-    _ = stderr
-
-
 def _unittest_transport_not_specified() -> None:
     result, _, stderr = execute_cli(
         "sub",

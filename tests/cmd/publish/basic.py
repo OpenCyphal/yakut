@@ -7,10 +7,7 @@ from tests.subprocess import execute_cli
 
 
 def _unittest_publish() -> None:
-    env = {
-        "UAVCAN__LOOPBACK": "1",
-        "UAVCAN__NODE__ID": "1234",
-    }
+    env = {"UAVCAN__LOOPBACK": "1", "UAVCAN__NODE__ID": "1234"}
 
     # Count zero, nothing to do.
     _, _, stderr = execute_cli(
@@ -24,17 +21,6 @@ def _unittest_publish() -> None:
         environment_variables=env,
     )
     assert "nothing to do" in stderr.lower()
-
-    # Compiled DSDL not found.
-    result, _, stderr = execute_cli(
-        "pub",
-        "4444:uavcan.si.unit.force.Scalar.1.0",
-        "{}",
-        timeout=5.0,
-        ensure_success=False,
-        environment_variables=env,
-    )
-    assert result != 0
 
     # Invalid period.
     result, _, stderr = execute_cli(

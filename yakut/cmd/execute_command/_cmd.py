@@ -62,7 +62,8 @@ def _parse_status_set(inp: str) -> set[int] | None:
     return set(ins) if not isinstance(ins, (int, float)) else {ins}
 
 
-@yakut.subcommand(aliases="cmd", help=_HELP)
+# Click has this inexplicable "feature" where it removes the "_command" suffix from the command name. Oh my god.
+@yakut.subcommand(aliases=["execute-command", "cmd"], help=_HELP)
 @click.argument("node_ids", type=parse_int_set)
 @click.argument("command")
 @click.argument("parameter", default="")

@@ -1,91 +1,74 @@
-name: 'Test and release Yakut'
+name: 'Test & Release'
 on: [ push, pull_request ]
 
-# Ensures that only one workflow is running at a time
-concurrency:
-  group: ${{ github.workflow_sha }}
-  cancel-in-progress: true
-
 jobs:
-  yakut-test:
-    name: Test Yakut
+  test:
+    name: Test
     # https://docs.github.com/en/webhooks/webhook-events-and-payloads?actionType=edited#pull_request
     if: (github.event_name == 'push') || github.event.pull_request.head.repo.fork
     strategy:
       fail-fast: false
       matrix:
-        # The Windows NPcap runner is an ordinary Windows machine with the NPcap driver installed manually.
-        # We chose to do it this way because NPcap driver installation requires a reboot, which is difficult to
-        # automate. The NPcap driver is required for the Cyphal/UDP transport tests to work.
-        os: [ubuntu-22.04, windows-2019-npcap]
-        python: ['3.8', '3.9', '3.10', '3.11']
-        exclude:  # We don't test Windows with old Python versions because it takes too much effort.
-          - os: windows-2019-npcap
-            python: 3.8
-          - os: windows-2019-npcap
-            python: 3.9
+        os: [ ubuntu-latest ]
+        py: [ '3.10', '3.11', '3.12', '3.13' ]
+        # On Windows, we select the configurations we test manually because we only have a few runners,
+        # and because the infrastructure is hard to maintain using limited resources.
+        include:
+          - { os: win-pcap, py: '3.12' }
     runs-on: ${{ matrix.os }}
+    env:
+      FORCE_COLOR: 1
     steps:
-      - name: Check out
-        uses: actions/checkout@v3
-
-      - name: Install Python3
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
         with:
-          python-version: ${{ matrix.python }}
+          submodules: true
 
-      - name: Log Python version
-        run: python --version
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py }}
 
-      - name: Install dependencies
+      - name: Configure GNU/Linux
+        if: ${{ runner.os == 'Linux' }}
         # language=bash
         run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt-get --ignore-missing update || true
-            sudo apt-get install -y linux-*-extra-$(uname -r) ncat
-            sudo apt-get install -y libsdl2-2.0-0   # For PySDL2. On Windows/macOS the binaries are pulled from PyPI.
-            sudo apt-get install -y libasound2-dev  # For RtMidi.
-          fi
-          git submodule update --init --recursive
-          python -m pip install --upgrade pip setuptools nox
-        shell: bash
+          python --version
+          sudo apt-get --ignore-missing update || true
+          sudo apt-get install -y linux-*-extra-$(uname -r) ncat
+          sudo apt-get install -y libsdl2-2.0-0   # For PySDL2. On Windows/macOS the binaries are pulled from PyPI.
+          sudo apt-get install -y libasound2-dev  # For RtMidi.
 
-      - name: Run build and test
-        # language=bash
-        run: |
-          nox --non-interactive --session test --python ${{ matrix.python }}
-          nox --non-interactive --session lint
-        shell: bash
-        env:
-          FORCE_COLOR: 1
+      # Only one statement per step to ensure the error codes are not ignored by PowerShell.
+      - run: python -m pip install --upgrade attrs pip setuptools nox
+      - run: nox --non-interactive --session test --python ${{ matrix.py }}
+      - run: nox --non-interactive --session lint
 
-      - name: Upload diagnostics
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: (success() || failure())
         with:
           # The matrix is shown for convenience but this is fragile because the values may not be string-convertible.
           # Shall it break one day, feel free to remove the matrix from here.
-          # The job status is per matrix item, which is super convenient.
           name: ${{github.job}}-#${{strategy.job-index}}-${{job.status}}-${{join(matrix.*, ',')}}
           path: "**/*.log"
-          retention-days: 7
+          retention-days: 90
+          include-hidden-files: true
 
-  yakut-release:
-    name: Release Yakut
+  release:
+    name: Release
     runs-on: ubuntu-latest
     if: >
       (github.event_name == 'push') &&
       (contains(github.event.head_commit.message, '#release') || contains(github.ref, '/main'))
-    needs: yakut-test
+    needs: test
     steps:
       - name: Check out
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Create distribution wheel
         # language=bash
         run: |
-          git submodule update --init --recursive
-          python -m pip install --upgrade pip setuptools wheel twine
+          python -m pip install --upgrade packaging pip setuptools wheel twine
           python setup.py sdist bdist_wheel
 
       - name: Get release version
@@ -99,7 +82,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN_YAKUT }}
 
       - name: Push version tag
-        uses: mathieudutour/github-tag-action@v6.1
+        uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ env.yakut_version }}

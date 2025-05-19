@@ -183,10 +183,6 @@ class AppDescriptor:
 
 
 def _unittest_app_descriptor_from_node_info() -> None:
-    from tests.dsdl import ensure_compiled_dsdl
-
-    ensure_compiled_dsdl()
-
     from pycyphal.application import NodeInfo
     from uavcan.node import Version_1 as Version
 

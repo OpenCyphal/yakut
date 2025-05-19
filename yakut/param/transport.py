@@ -26,24 +26,18 @@ def transport_factory_option(f: Callable[..., Any]) -> Callable[..., Any]:
         _ = param
         _logger.debug("Transport expression: %r", value)
 
-        def factory() -> Optional[Transport]:
+        def factory() -> Transport | None:
             # Try constructing from the expression if provided:
             if value:
                 try:
-                    result = construct_transport(value)
+                    result: Transport | None = construct_transport(value)
                 except Exception as ex:
                     raise click.BadParameter(f"Could not initialize transport {value!r}: {ex!r}") from ex
                 _logger.info("Transport %r constructed from expression %r", result, value)
                 return result
             # If no expression is given, construct from the registers passed via environment variables:
-            try:
-                from pycyphal.application import make_transport
-            except (ImportError, AttributeError):
-                _logger.info(
-                    "Transport initialization expression is not provided and constructing the transport "
-                    "from registers is not possible because the standard DSDL namespace is not compiled"
-                )
-                return None
+            from pycyphal.application import make_transport
+
             purser = ctx.find_object(Purser)
             assert isinstance(purser, Purser)
             result = make_transport(purser.get_registry())
@@ -63,13 +57,11 @@ and so on.
 The full list of registers that configure the transport is available in the definition of the standard
 RPC-service "uavcan.register.Access", and in the documentation for PyCyphal:
 https://pycyphal.readthedocs.io (see "make_transport()").
-This method requires that the standard DSDL namespace "uavcan" is compiled (see command "yakut compile")!
 
 If this expression is given, the registers are ignored, and the transport instance is constructed by evaluating it.
 Upon evaluation, the expression should yield either a single transport instance or a sequence thereof.
 In the latter case, the multiple transports will be joined under the same redundant transport instance,
 which may be heterogeneous (e.g., UDP+Serial).
-This method does not require any DSDL to be compiled at all.
 To see supported transports and how they should be initialized, refer to https://pycyphal.readthedocs.io.
 
 The expression does not need to explicitly reference the `pycyphal.transport` module
@@ -159,7 +151,7 @@ def _make_evaluation_context() -> Dict[str, Any]:
             context[name] = module
 
     # Pre-import transport classes.
-    for cls in pycyphal.util.iter_descendants(Transport):
+    for cls in pycyphal.util.iter_descendants(Transport):  # type: ignore
         if not cls.__name__.startswith("_") and cls is not Transport:
             name = cls.__name__.rpartition(Transport.__name__)[0]
             assert name

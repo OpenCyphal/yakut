@@ -34,12 +34,7 @@ async def accommodate(purser: yakut.Purser) -> None:
     The listening duration is determined heuristically at run time;
     for most use cases it is unlikely to exceed three seconds.
     """
-    try:
-        import uavcan.node
-    except (ImportError, AttributeError):
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion("uavcan")) from None
+    import uavcan.node
 
     transport = purser.get_transport()
     node_id_set_cardinality = transport.protocol_parameters.max_nodes
@@ -51,8 +46,8 @@ async def accommodate(purser: yakut.Purser) -> None:
         return
 
     candidates = set(range(node_id_set_cardinality))
-    try:
-        candidates.remove(transport.local_node_id)  # Allow non-anonymous transports for consistency.
+    try:  # Allow non-anonymous transports for consistency.
+        candidates.remove(transport.local_node_id)  # type: ignore
     except LookupError:
         pass
 

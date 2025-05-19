@@ -9,7 +9,6 @@ import json
 import concurrent.futures
 import pytest
 import pycyphal
-from tests.dsdl import OUTPUT_DIR
 from tests.transport import TransportFactory
 from tests.subprocess import execute_cli
 from yakut.util import EXIT_CODE_UNSUCCESSFUL
@@ -48,12 +47,8 @@ Runner = Callable[..., Awaitable[Any]]
 
 
 @pytest.fixture
-async def _context(
-    compiled_dsdl: Any,
-    transport_factory: TransportFactory,
-) -> AsyncIterable[tuple[Runner, tuple[Remote, Remote]]]:
+async def _context(transport_factory: TransportFactory) -> AsyncIterable[tuple[Runner, tuple[Remote, Remote]]]:
     asyncio.get_running_loop().slow_callback_duration = 10.0
-    _ = compiled_dsdl
     remote_nodes = (
         Remote(f"remote_10", env=transport_factory(10).environment),
         Remote(f"remote_11", env=transport_factory(11).environment),
@@ -65,10 +60,7 @@ async def _context(
             status, stdout, _stderr = execute_cli(
                 "cmd",
                 *args,
-                environment_variables={
-                    **transport_factory(100).environment,
-                    "YAKUT_PATH": str(OUTPUT_DIR),
-                },
+                environment_variables=transport_factory(100).environment,
                 timeout=10,
                 ensure_success=False,
             )
@@ -94,15 +86,15 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
     assert await run("10-12", "restart", "--timeout=3") == (
         0,
         {
-            "10": {"status": 0},
-            "11": {"status": 0},
+            "10": {"output": "", "status": 0},
+            "11": {"output": "", "status": 0},
         },
     )
     assert await run("10-12", "111", "COMMAND ARGUMENT", "--timeout=3") == (
         0,
         {
-            "10": {"status": 0},
-            "11": {"status": 0},
+            "10": {"output": "", "status": 0},
+            "11": {"output": "", "status": 0},
         },
     )
     assert (
@@ -122,15 +114,15 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
     assert await run("10-12", "restart", "--timeout=3") == (
         EXIT_CODE_UNSUCCESSFUL,
         {
-            "10": {"status": 100},
-            "11": {"status": 200},
+            "10": {"output": "", "status": 100},
+            "11": {"output": "", "status": 200},
         },
     )
     assert await run("10-12", "123", "--expect=100,200", "--timeout=3") == (
         0,
         {
-            "10": {"status": 100},
-            "11": {"status": 200},
+            "10": {"output": "", "status": 100},
+            "11": {"output": "", "status": 200},
         },
     )
     assert remote_10.last_request and remote_10.last_request.command == 123
@@ -143,14 +135,14 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
         EXIT_CODE_UNSUCCESSFUL,
         {
             "10": None,
-            "11": {"status": 0},
+            "11": {"output": "", "status": 0},
         },
     )
     assert await run("10-12", "123", "--expect") == (
         0,
         {
             "10": None,
-            "11": {"status": 0},
+            "11": {"output": "", "status": 0},
         },
     )
 
@@ -158,7 +150,7 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
     remote_11.next_response = ExecuteCommand_1.Response(status=210)
     assert await run("11", "123", "FOO BAR", "--timeout=3") == (
         EXIT_CODE_UNSUCCESSFUL,
-        {"status": 210},
+        {"output": "", "status": 210},
     )
     assert (
         remote_11.last_request
@@ -167,7 +159,7 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
     )
     assert await run("11", "222", "--timeout=3", "--expect=0..256") == (
         0,
-        {"status": 210},
+        {"output": "", "status": 210},
     )
     assert (
         remote_11.last_request

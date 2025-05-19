@@ -30,7 +30,7 @@ def _unittest_example_basic() -> None:
 
     # Premature termination.
     started_at = time.monotonic()
-    proc = Subprocess.cli("-v", f"--path={src.absolute().parent}", "orc", str(src.name))
+    proc = Subprocess.cli("-v", "orc", str(src.name))
     time.sleep(5.0)
     exit_code, stdout, _stderr = proc.wait(timeout=10, interrupt=True)
     assert 5 <= time.monotonic() - started_at <= 9
@@ -46,24 +46,16 @@ def _unittest_example_external() -> None:
     Path("vars.orc.yaml").write_text(EXAMPLE_EXTERNAL_VARS)
     Path("echo.orc.yaml").write_text(EXAMPLE_EXTERNAL_ECHO)
 
-    exit_code, stdout, _ = execute_cli(
-        "-v", f"--path={Path(__file__).parent}", "orc", "ext.orc.yaml", timeout=60.0, ensure_success=False
-    )
+    exit_code, stdout, _ = execute_cli("-v", "orc", "ext.orc.yaml", timeout=60.0, ensure_success=False)
     assert EXAMPLE_EXTERNAL_EXIT_CODE == exit_code
     assert stdout.splitlines() == EXAMPLE_EXTERNAL_STDOUT.splitlines()
 
 
 def _unittest_example_pub_sub() -> None:
-    from yakut.paths import DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI
     from yakut.cmd.orchestrate import EXAMPLE_PUB_SUB, EXAMPLE_PUB_SUB_STDOUT
 
     Path("pub_sub.orc.yaml").write_text(EXAMPLE_PUB_SUB)
 
-    _, stdout, _ = execute_cli(
-        "orc",
-        "pub_sub.orc.yaml",
-        environment_variables={"DSDL_SRC": DEFAULT_PUBLIC_REGULATED_DATA_TYPES_ARCHIVE_URI},
-        timeout=300.0,
-    )
+    _, stdout, _ = execute_cli("orc", "pub_sub.orc.yaml", timeout=300.0)
     # APPLY SORTING TO BATTLE TEMPORAL JITTER AS THE MESSAGE AND THE FIRST HEARTBEAT MAY COME SWAPPED.
     assert sorted(stdout.splitlines()) == sorted(EXAMPLE_PUB_SUB_STDOUT.splitlines())

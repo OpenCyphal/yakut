@@ -113,12 +113,7 @@ async def call(
         yakut call 42 least_squares:sirius_cyber_corp.PerformLinearLeastSquaresFit '[[10, 1], [20, 2]]'
         yakut call 125 435:uavcan.node.ExecuteCommand '{command: 65533, parameter: "firmware.bin"}'
     """
-    try:
-        from pycyphal.application import Node
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
+    from pycyphal.application import Node
 
     _logger.debug(
         "server_node_id=%s, service=%r, request_fields=%r, timeout=%.6f, priority=%s, with_metadata=%s",

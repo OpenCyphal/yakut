@@ -78,18 +78,19 @@ async def _access(
     timeout: float,
 ) -> dict[
     int,
-    Union[
-        _NoService,
-        _Timeout,
-        "Access_1.Response",
-        tuple["Access_1.Response", "pycyphal.application.register.ValueConversionError"],
-    ],
+    _NoService
+    | _Timeout
+    | "Access_1.Response"
+    | tuple["Access_1.Response", "pycyphal.application.register.ValueConversionError"],
 ]:
     from uavcan.register import Access_1
 
     out: dict[
         int,
-        Access_1.Response | _NoService | _Timeout | pycyphal.application.register.ValueConversionError,
+        Access_1.Response
+        | _NoService
+        | _Timeout
+        | tuple["Access_1.Response", "pycyphal.application.register.ValueConversionError"],
     ] = {}
     for nid in node_ids:
         progress(f"{nid: 5}: {reg_name!r}")

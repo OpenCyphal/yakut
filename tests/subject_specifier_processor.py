@@ -14,8 +14,7 @@ from yakut import dtype_loader
 
 
 @pytest.mark.asyncio
-async def _unittest_without_subject_resolver(compiled_dsdl: Any) -> None:
-    _ = compiled_dsdl
+async def _unittest_without_subject_resolver() -> None:
     asyncio.get_running_loop().slow_callback_duration = 5.0
 
     import uavcan.primitive
@@ -53,8 +52,7 @@ async def _unittest_without_subject_resolver(compiled_dsdl: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def _unittest_with_subject_resolver(compiled_dsdl: Any) -> None:
-    _ = compiled_dsdl
+async def _unittest_with_subject_resolver() -> None:
     asyncio.get_running_loop().slow_callback_duration = 5.0
 
     from pycyphal.application import make_node, NodeInfo, register

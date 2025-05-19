@@ -225,6 +225,9 @@ _ENV_COPY_KEYS = {
     "PROGRAMDATA",
     "ALLUSERSPROFILE",
     "PUBLIC",
+    # Specific to us:
+    "CYPHAL_PATH",
+    "PYCYPHAL_PATH",
 }
 
 

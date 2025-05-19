@@ -55,7 +55,7 @@ A more interactive approach is as follows:
 3. Change directory to `.nox/test-3-8/tmp`, here substitute `test-3-8` for the directory you have. 
    This is one of the environments that Nox creates for testing.
 4. Run `source ../bin/activate` to activate the virtualenv.
-5. `export PYTHONPATH=.compiled/`
+5. Optionally: `export PYCYPHAL_PATH=...compiled/`
 6. Run specific commands you need:
    `pytest ../../../yakut/whatever`, `mypy --strict ../../../yakut ../../../tests`, etc.
 
@@ -74,11 +74,10 @@ To look for manual tests in the codebase, please search for `def _main` under `t
 
 We recommend [JetBrains PyCharm](https://www.jetbrains.com/pycharm/) for development.
 
-The test suite stores compiled DSDL into `.compiled/` in the current working directory
-(when using Nox, the current working directory may be under a virtualenv private directory).
+The test suite stores compiled DSDL into whatever is pointed to by `PYCYPHAL_PATH`;
+the Noxfile overrides `PYCYPHAL_PATH` with a directory inside the venv.
 Make sure to mark it as a source directory to enable code completion and type analysis in the IDE
 (for PyCharm: right click -> Mark Directory As -> Sources Root).
-Alternatively, you can just compile DSDL manually directly in the project root.
 
 Configure the IDE to run Black on save.
 See the Black documentation for integration instructions.

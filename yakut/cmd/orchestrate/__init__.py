@@ -83,10 +83,7 @@ EXAMPLE_EXTERNAL_EXIT_CODE = 99
 # language=YAML
 EXAMPLE_PUB_SUB = """
 #!/usr/bin/env -S yakut orchestrate
-# Compile DSDL and launch a pair of pub/sub.
 $=:
-- yakut compile $DSDL_SRC   # "DSDL_SRC" is to be set externally.
--                           # Wait for the compiler to finish.
 - yakut --format json sub -M -N2 33:uavcan.si.unit.angle.Scalar.1.0
 - yakut --format json sub -M -N1 uavcan.diagnostic.Record.1.1
 - $=: >         # Inner composition with a single multi-line command.
@@ -94,11 +91,7 @@ $=:
     33:uavcan.si.unit.angle.Scalar.1.0 'radian: 4.0'
     uavcan.diagnostic.Record.1.1       'text: "four radians"'
   uavcan.node.id: 9  # The publisher is not anonymous unlike others.
-.=:
-- ?=: rm -r $YAKUT_COMPILE_OUTPUT       # Clean up at the exit.
 uavcan.udp.iface: 127.42.0.1  # Configure the transport via registers.
-YAKUT_COMPILE_OUTPUT: pub_sub_compiled_dsdl
-YAKUT_PATH:           pub_sub_compiled_dsdl
 """.strip()
 # language=YAML
 EXAMPLE_PUB_SUB_STDOUT = """
@@ -219,7 +212,7 @@ The exit code of the above composition is {EXAMPLE_BASIC_EXIT_CODE} and the stdo
 The "external=" directive defines an external orc-file to be executed BEFORE the script directives of the current
 composition.
 The path is either absolute or relative; in the latter case, the file will be searched for
-in the current working directory and then through the directories specified in YAKUT_PATH.
+relative to the current working directory.
 The composition defined in the external file (the callee) inherits/overrides the environment variables
 from the caller.
 Upon successful execution, the caller inherits all environment variables back from the callee.
@@ -289,9 +282,7 @@ def orchestrate(purser: yakut.Purser, file: str) -> int:
     if not sys.platform.startswith("win"):
         signal.signal(signal.SIGHUP, on_signal)
 
-    ctx = Context(
-        lookup_paths=(Path.cwd(), *purser.paths),  # Current directory takes precedence.
-    )
+    ctx = Context(lookup_paths=(Path.cwd(),))
     res = exec_file(ctx, file, {}, gate=lambda: sig_num == 0)
 
     return res if res != 0 else -sig_num

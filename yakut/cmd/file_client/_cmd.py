@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 import sys
-from typing import TYPE_CHECKING
 from pathlib import Path, PurePosixPath
 import click
 import pycyphal
@@ -13,16 +12,26 @@ from yakut.int_set_parser import parse_int_set
 from yakut.param.formatter import FormatterHints
 from yakut.ui import ProgressReporter, show_error, show_warning
 from yakut.util import EXIT_CODE_UNSUCCESSFUL
-from ._list_files import list_files
-from ._file_error import FileError
+from ruamel.yaml import YAML
+import dataclasses
 
-if TYPE_CHECKING:
-    from uavcan.file import Path_2_0
-    from uavcan.file import Error_1_0
-    from uavcan.file import Modify_1_1
-    from uavcan.file import Read_1_1
-    from uavcan.file import Write_1_1
-    from uavcan.primitive import Unstructured_1_0
+yaml = YAML()
+
+@yaml.register_class
+@dataclasses.dataclass
+class FileInfo:
+    size: int
+    timestamp: int
+    is_file_not_directory: bool
+    is_link: bool
+    is_readable: bool
+    is_writable: bool
+
+@yaml.register_class
+@dataclasses.dataclass
+class FileResult:
+    name: str
+    info: FileInfo | None
 
 _logger = yakut.get_logger(__name__)
 
@@ -53,7 +62,7 @@ def file_client(purser: yakut.Purser, cmd: str):
 Ignore nodes that fail to respond to the first RPC-service request instead of reporting an error
 assuming that the register service is not supported.
 If a node responded at least once it is assumed to support the service and any future timeout
-will be always treated as an error.
+will be treated as an error.
 """,
 )
 @click.option(
@@ -72,31 +81,68 @@ async def ls(
     optional_service: bool,
     get_info: bool,
 ) -> None:
+    """
+    List files on a remote node using the standard Cyphal file service.
+    """
+    try:
+        from pycyphal.application.file import FileClient2
+        from uavcan.file import Path_2_0
+    except ImportError as ex:
+        from yakut.cmd.compile import make_usage_suggestion
+        raise click.ClickException(make_usage_suggestion(ex.name))
+
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
     assert isinstance(node_ids_list, list) and all(isinstance(x, int) for x in node_ids_list)
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    files_per_node: dict[int, list[str]] = {}
+
     formatter = purser.make_formatter(FormatterHints(single_document=True))
+
     with purser.get_node("file_client_ls", allow_anonymous=False) as node:
-        with ProgressReporter() as prog:
-            result = await list_files(
-                node,
-                prog,
-                node_ids_list,
-                path,
-                optional_service=optional_service,
-                get_info=get_info,
-                timeout=timeout,
-            )
-    # The node is no longer needed.
-    for msg in result.errors:
+        prog = ProgressReporter()
+        for nid in node_ids_list:
+            files = []
+            try:
+                fc = FileClient2(node, nid, response_timeout=timeout)
+                async for entry in fc.list(str(path)):
+                    prog(f"List {nid: 5}: {len(files): 5}")
+                    info = None
+                    if get_info:
+                        try:
+                            filepath = chr(Path_2_0.SEPARATOR).join([path, entry])
+                            resp = await fc.get_info(filepath)
+                            info = FileInfo(
+                                size = resp.size,
+                                timestamp=resp.unix_timestamp_of_last_modification,
+                                is_file_not_directory=resp.is_file_not_directory,
+                                is_link=resp.is_link,
+                                is_readable=resp.is_readable,
+                                is_writable=resp.is_writeable
+                            )
+                        except Exception as e:
+                            warnings.append(f"Could not get info for {path}/{entry} from node {nid}: {e}")
+
+                    files.append(dataclasses.asdict(FileResult(name=entry, info=info)))
+
+                files_per_node[nid] = files
+
+            except Exception as e:
+                if not (optional_service and "not supported" in str(e).lower()):
+                    errors.append(f"Error listing {path} from node {nid}: {e}")
+
+    for msg in errors:
         show_error(msg)
-    for msg in result.warnings:
+    for msg in warnings:
         show_warning(msg)
-    final = result.files_per_node if not isinstance(node_ids, int) else result.files_per_node[node_ids]
+
+    final = files_per_node if not isinstance(node_ids, int) else files_per_node[node_ids]
     sys.stdout.write(formatter(final))
     sys.stdout.flush()
 
-    return EXIT_CODE_UNSUCCESSFUL if result.errors else 0
+    return yakut.util.EXIT_CODE_UNSUCCESSFUL if errors else 0
 
 @file_client.command()
 @click.argument("node_ids", type=parse_int_set)
@@ -118,14 +164,14 @@ async def rm(
     path: Path,
     timeout: float,
 ) -> None:
+    """
+    Remove a file or directory on remote node(s) using the standard Cyphal file service.
+    """
     try:
-        from uavcan.file import Path_2_0
-        from uavcan.file import Error_1_0
-        from uavcan.file import Modify_1_1
+        from pycyphal.application.file import FileClient2
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name)) from None
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
@@ -133,27 +179,24 @@ async def rm(
 
     error = False
     with purser.get_node("file_client_rm", allow_anonymous=False) as node:
+        prog = ProgressReporter()
         for nid in node_ids_list:
-            cln = node.make_client(Modify_1_1, nid)
             try:
-                cln.response_timeout = timeout
-                resp = await cln(Modify_1_1.Request(source=Path_2_0(path=path)))
-                if resp is None:
-                    show_error(f"Request to node {nid} has timed out")
-                    error = True
-                    break
-                assert isinstance(resp, Modify_1_1.Response)
-                assert isinstance(resp.error, Error_1_0)
-                if resp.error.value == Error_1_0.OK:
+                fc = FileClient2(node, nid, response_timeout=timeout)
+                prog(f"Remove from node {nid}")
+                
+                try:
+                    await fc.remove(str(path))
                     _logger.info("Removed path %r on node %r", path, nid)
-                elif resp.error.value == Error_1_0.NOT_FOUND:
+                except FileNotFoundError:
                     show_warning(f"Path {path} not found on node {nid}")
-                else:
-                    show_error(f"Error {FileError(resp.error.value)} while removing {path} on node {nid}")
+                except Exception as e:
+                    show_error(f"Error removing {path} on node {nid}: {e}")
                     error = True
-                    
-            finally:
-                cln.close()
+
+            except Exception as e:
+                show_error(f"Error setting up file client for node {nid}: {e}")
+                error = True
 
     return EXIT_CODE_UNSUCCESSFUL if error else 0
 
@@ -181,53 +224,39 @@ async def read(
     dst: str | None,
     timeout: float,
 ) -> None:
+    """
+    Read a file from a remote node using the standard Cyphal file service.
+    """
     try:
-        from uavcan.file import Path_2_0
-        from uavcan.file import Error_1_0
-        from uavcan.file import Read_1_1
+        from pycyphal.application.file import FileClient2
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name)) from None
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
     src = PurePosixPath(src)
     dst = Path(dst) if dst else Path(src.name)
-    out = None
-    total_read = 0
     error = False
+
     with purser.get_node("file_client_read", allow_anonymous=False) as node:
         prog = ProgressReporter()
-        cln = node.make_client(Read_1_1, node_id)
-        cln.response_timeout = timeout
+        def read_progress_cb(bytes_read: int, bytes_total: int | None) -> None:
+            prog(f"Read {bytes_read} bytes")
+
         try:
-            while True:
-                resp = await cln(Read_1_1.Request(path=Path_2_0(path=str(src)), offset=total_read))
-                if resp is None:
-                    show_error(f"Request to node {node_id} has timed out")
-                    error = True
-                    break
-                assert isinstance(resp, Read_1_1.Response)
-                assert isinstance(resp.error, Error_1_0)
-                if resp.error.value != Error_1_0.OK:
-                    show_error(f"Error {FileError(resp.error.value)} while reading {src} on node {node_id}")
-                    error = True
-                    break
-
-                bytes_read = len(resp.data.value)
-                total_read += bytes_read
-                prog(f"read {total_read} bytes")
-                if out is None:
-                    out = open(dst, "wb")
+            fc = FileClient2(node, node_id, response_timeout=timeout)
+            
+            with open(dst, "wb") as out:
+                res = await fc.read(str(src), progress=read_progress_cb)
+                out.write(res)
                 
-                out.write(resp.data.value)
+            _logger.info("Read %d bytes from %r on node %r to %r", len(res), src, node_id, dst)
 
-                if bytes_read < UNSTRUCTURED_MAX_SIZE:
-                    break
-        finally:
-            cln.close()
-    
-    if out is not None:
-        out.close()
+        except FileNotFoundError:
+            show_error(f"File {src} not found on node {node_id}")
+            error = True
+        except Exception as e:
+            show_error(f"Error reading {src} from node {node_id}: {e}")
+            error = True
 
     return EXIT_CODE_UNSUCCESSFUL if error else 0
 
@@ -253,55 +282,35 @@ async def write(
     dst: str | None,
     timeout: float,
 ) -> None:
+    """
+    Write a file to a remote node using the standard Cyphal file service.
+    """
     try:
-        from uavcan.file import Path_2_0
-        from uavcan.file import Error_1_0
-        from uavcan.file import Write_1_1
-        from uavcan.primitive import Unstructured_1_0
+        from pycyphal.application.file import FileClient2
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name)) from None
+        raise click.ClickException(make_usage_suggestion(ex.name))
 
     src = Path(src)
     dst = PurePosixPath(dst) if dst else PurePosixPath(src.name)
-    file = open(src, "rb")
-
-    total_written = 0
     error = False
+
     with purser.get_node("file_client_write", allow_anonymous=False) as node:
         prog = ProgressReporter()
-        cln = node.make_client(Write_1_1, node_id)
-        cln.response_timeout = timeout
+        def write_progress_cb(bytes_written: int, bytes_total: int | None) -> None:
+            prog(f"Written {bytes_written}/{bytes_total} bytes")
+
         try:
-            while True:
-                chunk = file.read(UNSTRUCTURED_MAX_SIZE)
-                req = Write_1_1.Request(
-                    path=Path_2_0(path=str(dst)),
-                    offset=total_written,
-                    data=Unstructured_1_0(value=chunk)
-                )
-                resp = await cln(req)
-                if resp is None:
-                    show_error(f"Request to node {node_id} has timed out")
-                    error = True
-                    break
-                assert isinstance(resp, Write_1_1.Response)
-                assert isinstance(resp.error, Error_1_0)
-                if resp.error.value != Error_1_0.OK:
-                    show_error(f"Error {FileError(resp.error.value)} while writing {dst} on node {node_id}")
-                    error = True
-                    break
+            fc = FileClient2(node, node_id, response_timeout=timeout)
+            
+            with open(src, "rb") as file:
+                data = file.read()
+                await fc.write(str(dst), data, progress=write_progress_cb)
+                
+            _logger.info("Written %d bytes from %r to %r on node %r", len(data), src, dst, node_id)
 
-                bytes_written = len(chunk)
-                total_written += bytes_written
-                prog(f"written {total_written} bytes")
-
-                if bytes_written < UNSTRUCTURED_MAX_SIZE:
-                    break
-        finally:
-            cln.close()
-    
-    file.close()
+        except Exception as e:
+            show_error(f"Error writing {src} to node {node_id}: {e}")
+            error = True
 
     return EXIT_CODE_UNSUCCESSFUL if error else 0

@@ -12,12 +12,8 @@ from yakut.int_set_parser import parse_int_set
 from yakut.param.formatter import FormatterHints
 from yakut.ui import ProgressReporter, show_error, show_warning
 from yakut.util import EXIT_CODE_UNSUCCESSFUL
-from ruamel.yaml import YAML
 import dataclasses
 
-yaml = YAML()
-
-@yaml.register_class
 @dataclasses.dataclass
 class FileInfo:
     size: int
@@ -27,13 +23,15 @@ class FileInfo:
     is_readable: bool
     is_writable: bool
 
-@yaml.register_class
+
 @dataclasses.dataclass
 class FileResult:
     name: str
     info: FileInfo | None
 
+
 _logger = yakut.get_logger(__name__)
+
 
 @yakut.commandgroup(aliases="fcli")
 @click.pass_context
@@ -41,6 +39,7 @@ _logger = yakut.get_logger(__name__)
 def file_client(purser: yakut.Purser, cmd: str):
     """File client commands."""
     pass
+
 
 @file_client.command()
 @click.argument("node_ids", type=parse_int_set)
@@ -89,6 +88,7 @@ async def ls(
         from uavcan.file import Path_2_0
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
+
         raise click.ClickException(make_usage_suggestion(ex.name))
 
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
@@ -115,12 +115,12 @@ async def ls(
                             filepath = chr(Path_2_0.SEPARATOR).join([path, entry])
                             resp = await fc.get_info(filepath)
                             info = FileInfo(
-                                size = resp.size,
+                                size=resp.size,
                                 timestamp=resp.unix_timestamp_of_last_modification,
                                 is_file_not_directory=resp.is_file_not_directory,
                                 is_link=resp.is_link,
                                 is_readable=resp.is_readable,
-                                is_writable=resp.is_writeable
+                                is_writable=resp.is_writeable,
                             )
                         except Exception as e:
                             warnings.append(f"Could not get info for {path}/{entry} from node {nid}: {e}")
@@ -143,6 +143,7 @@ async def ls(
     sys.stdout.flush()
 
     return yakut.util.EXIT_CODE_UNSUCCESSFUL if errors else 0
+
 
 @file_client.command()
 @click.argument("node_ids", type=parse_int_set)
@@ -171,6 +172,7 @@ async def rm(
         from pycyphal.application.file import FileClient2
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
+
         raise click.ClickException(make_usage_suggestion(ex.name))
 
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
@@ -184,7 +186,7 @@ async def rm(
             try:
                 fc = FileClient2(node, nid, response_timeout=timeout)
                 prog(f"Remove from node {nid}")
-                
+
                 try:
                     await fc.remove(str(path))
                     _logger.info("Removed path %r on node %r", path, nid)
@@ -200,7 +202,9 @@ async def rm(
 
     return EXIT_CODE_UNSUCCESSFUL if error else 0
 
+
 UNSTRUCTURED_MAX_SIZE = 256
+
 
 @file_client.command()
 @click.argument("node_id", type=int)
@@ -231,6 +235,7 @@ async def read(
         from pycyphal.application.file import FileClient2
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
+
         raise click.ClickException(make_usage_suggestion(ex.name))
 
     src = PurePosixPath(src)
@@ -239,16 +244,17 @@ async def read(
 
     with purser.get_node("file_client_read", allow_anonymous=False) as node:
         prog = ProgressReporter()
+
         def read_progress_cb(bytes_read: int, bytes_total: int | None) -> None:
             prog(f"Read {bytes_read} bytes")
 
         try:
             fc = FileClient2(node, node_id, response_timeout=timeout)
-            
+
             with open(dst, "wb") as out:
                 res = await fc.read(str(src), progress=read_progress_cb)
                 out.write(res)
-                
+
             _logger.info("Read %d bytes from %r on node %r to %r", len(res), src, node_id, dst)
 
         except FileNotFoundError:
@@ -259,6 +265,7 @@ async def read(
             error = True
 
     return EXIT_CODE_UNSUCCESSFUL if error else 0
+
 
 @file_client.command()
 @click.argument("node_id", type=int)
@@ -289,6 +296,7 @@ async def write(
         from pycyphal.application.file import FileClient2
     except ImportError as ex:
         from yakut.cmd.compile import make_usage_suggestion
+
         raise click.ClickException(make_usage_suggestion(ex.name))
 
     src = Path(src)
@@ -297,16 +305,17 @@ async def write(
 
     with purser.get_node("file_client_write", allow_anonymous=False) as node:
         prog = ProgressReporter()
+
         def write_progress_cb(bytes_written: int, bytes_total: int | None) -> None:
             prog(f"Written {bytes_written}/{bytes_total} bytes")
 
         try:
             fc = FileClient2(node, node_id, response_timeout=timeout)
-            
+
             with open(src, "rb") as file:
                 data = file.read()
                 await fc.write(str(dst), data, progress=write_progress_cb)
-                
+
             _logger.info("Written %d bytes from %r to %r on node %r", len(data), src, dst, node_id)
 
         except Exception as e:

@@ -12,6 +12,7 @@ from yakut.int_set_parser import parse_int_set
 from yakut.param.formatter import FormatterHints
 from yakut.ui import ProgressReporter, show_error, show_warning
 from yakut.util import EXIT_CODE_UNSUCCESSFUL
+from pycyphal.application.file import FileClient2
 import dataclasses
 
 @dataclasses.dataclass
@@ -83,13 +84,6 @@ async def ls(
     """
     List files on a remote node using the standard Cyphal file service.
     """
-    try:
-        from pycyphal.application.file import FileClient2
-        from uavcan.file import Path_2_0
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
 
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
@@ -147,6 +141,149 @@ async def ls(
 
 @file_client.command()
 @click.argument("node_ids", type=parse_int_set)
+@click.argument("src")
+@click.argument("dst")
+@click.option(
+    "--timeout",
+    "-T",
+    type=float,
+    default=pycyphal.presentation.DEFAULT_SERVICE_REQUEST_TIMEOUT,
+    show_default=True,
+    metavar="SECONDS",
+    help="Service response timeout.",
+)
+@yakut.pass_purser
+@yakut.asynchronous(interrupted_ok=True)
+async def mv(
+    purser: yakut.Purser,
+    node_ids: set[int] | int,
+    src: str,
+    dst: str,
+    timeout: float,
+) -> None:
+    """
+    Move/rename a file or directory on remote node(s) using the standard Cyphal file service.
+    """
+
+    _logger.debug("node_ids=%r, src=%r, dst=%r, timeout=%r", node_ids, src, dst, timeout)
+    node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
+    assert isinstance(node_ids_list, list) and all(isinstance(x, int) for x in node_ids_list)
+
+    error = False
+    with purser.get_node("file_client_mv", allow_anonymous=False) as node:
+        prog = ProgressReporter()
+        for nid in node_ids_list:
+            fc = FileClient2(node, nid, response_timeout=timeout)
+            prog(f"Moving on node {nid}")
+
+            try:
+                await fc.move(str(src), str(dst))
+                _logger.info("Moved %r to %r on node %r", src, dst, nid)
+            except FileNotFoundError:
+                show_warning(f"Source path {src} not found on node {nid}")
+            except Exception as e:
+                show_error(f"Error moving {src} to {dst} on node {nid}: {e}")
+                error = True
+
+    return EXIT_CODE_UNSUCCESSFUL if error else 0
+
+
+@file_client.command()
+@click.argument("node_ids", type=parse_int_set)
+@click.argument("src")
+@click.argument("dst")
+@click.option(
+    "--timeout",
+    "-T",
+    type=float,
+    default=pycyphal.presentation.DEFAULT_SERVICE_REQUEST_TIMEOUT,
+    show_default=True,
+    metavar="SECONDS",
+    help="Service response timeout.",
+)
+@yakut.pass_purser
+@yakut.asynchronous(interrupted_ok=True)
+async def cp(
+    purser: yakut.Purser,
+    node_ids: set[int] | int,
+    src: str,
+    dst: str,
+    timeout: float,
+) -> None:
+    """
+    Copy a file on remote node(s) using the standard Cyphal file service.
+    """
+
+    _logger.debug("node_ids=%r, src=%r, dst=%r, timeout=%r", node_ids, src, dst, timeout)
+    node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
+    assert isinstance(node_ids_list, list) and all(isinstance(x, int) for x in node_ids_list)
+
+    error = False
+    with purser.get_node("file_client_cp", allow_anonymous=False) as node:
+        prog = ProgressReporter()
+        for nid in node_ids_list:
+            fc = FileClient2(node, nid, response_timeout=timeout)
+            prog(f"Copying on node {nid}")
+
+            try:
+                await fc.copy(str(src), str(dst))
+                _logger.info("Copied %r to %r on node %r", src, dst, nid)
+            except FileNotFoundError:
+                show_warning(f"Source path {src} not found on node {nid}")
+            except Exception as e:
+                show_error(f"Error copying {src} to {dst} on node {nid}: {e}")
+                error = True
+
+    return EXIT_CODE_UNSUCCESSFUL if error else 0
+
+
+@file_client.command()
+@click.argument("node_ids", type=parse_int_set)
+@click.argument("path")
+@click.option(
+    "--timeout",
+    "-T",
+    type=float,
+    default=pycyphal.presentation.DEFAULT_SERVICE_REQUEST_TIMEOUT,
+    show_default=True,
+    metavar="SECONDS",
+    help="Service response timeout.",
+)
+@yakut.pass_purser
+@yakut.asynchronous(interrupted_ok=True)
+async def touch(
+    purser: yakut.Purser,
+    node_ids: set[int] | int,
+    path: str,
+    timeout: float,
+) -> None:
+    """
+    Create an empty file or update timestamp on remote node(s) using the standard Cyphal file service.
+    """
+
+    _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
+    node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
+    assert isinstance(node_ids_list, list) and all(isinstance(x, int) for x in node_ids_list)
+
+    error = False
+    with purser.get_node("file_client_touch", allow_anonymous=False) as node:
+        prog = ProgressReporter()
+        for nid in node_ids_list:
+            fc = FileClient2(node, nid, response_timeout=timeout)
+            prog(f"Touching on node {nid}")
+
+            try:
+                await fc.touch(str(path))
+                _logger.info("Touched %r on node %r", path, nid)
+            except Exception as e:
+                show_error(f"Error touching {path} on node {nid}: {e}")
+                error = True
+
+    return EXIT_CODE_UNSUCCESSFUL if error else 0
+
+
+@file_client.command()
+@click.argument("node_ids", type=parse_int_set)
 @click.argument("path", default="")
 @click.option(
     "--timeout",
@@ -168,12 +305,6 @@ async def rm(
     """
     Remove a file or directory on remote node(s) using the standard Cyphal file service.
     """
-    try:
-        from pycyphal.application.file import FileClient2
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
 
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
@@ -183,27 +314,19 @@ async def rm(
     with purser.get_node("file_client_rm", allow_anonymous=False) as node:
         prog = ProgressReporter()
         for nid in node_ids_list:
+            fc = FileClient2(node, nid, response_timeout=timeout)
+            prog(f"Remove from node {nid}")
+
             try:
-                fc = FileClient2(node, nid, response_timeout=timeout)
-                prog(f"Remove from node {nid}")
-
-                try:
-                    await fc.remove(str(path))
-                    _logger.info("Removed path %r on node %r", path, nid)
-                except FileNotFoundError:
-                    show_warning(f"Path {path} not found on node {nid}")
-                except Exception as e:
-                    show_error(f"Error removing {path} on node {nid}: {e}")
-                    error = True
-
+                await fc.remove(str(path))
+                _logger.info("Removed path %r on node %r", path, nid)
+            except FileNotFoundError:
+                show_warning(f"Path {path} not found on node {nid}")
             except Exception as e:
-                show_error(f"Error setting up file client for node {nid}: {e}")
+                show_error(f"Error removing {path} on node {nid}: {e}")
                 error = True
 
     return EXIT_CODE_UNSUCCESSFUL if error else 0
-
-
-UNSTRUCTURED_MAX_SIZE = 256
 
 
 @file_client.command()
@@ -231,12 +354,6 @@ async def read(
     """
     Read a file from a remote node using the standard Cyphal file service.
     """
-    try:
-        from pycyphal.application.file import FileClient2
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
 
     src = PurePosixPath(src)
     dst = Path(dst) if dst else Path(src.name)
@@ -292,12 +409,6 @@ async def write(
     """
     Write a file to a remote node using the standard Cyphal file service.
     """
-    try:
-        from pycyphal.application.file import FileClient2
-    except ImportError as ex:
-        from yakut.cmd.compile import make_usage_suggestion
-
-        raise click.ClickException(make_usage_suggestion(ex.name))
 
     src = Path(src)
     dst = PurePosixPath(dst) if dst else PurePosixPath(src.name)

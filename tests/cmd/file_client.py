@@ -135,7 +135,9 @@ async def _unittest_file_client_error_cases() -> None:
     server_root, client_root, srv_proc = await _setup_test_env()
     try:
         # Try to read non-existent file
-        exitcode, _, stderr = await _run_client_command("read", "42", "/nonexistent.txt", str(Path(client_root) / "local.txt"))
+        exitcode, _, stderr = await _run_client_command(
+            "read", "42", "/nonexistent.txt", str(Path(client_root) / "local.txt")
+        )
         assert exitcode == EXIT_CODE_UNSUCCESSFUL
         assert "not found" in stderr.lower()
 
@@ -157,7 +159,9 @@ async def _unittest_file_client_error_cases() -> None:
         assert exitcode == EXIT_CODE_UNSUCCESSFUL
 
         # Try to write with invalid node ID
-        exitcode, _, stderr = await _run_client_command("write", "999", "/test.txt", str(Path(client_root) / "local.txt"))
+        exitcode, _, stderr = await _run_client_command(
+            "write", "999", "/test.txt", str(Path(client_root) / "local.txt")
+        )
         assert exitcode == EXIT_CODE_UNSUCCESSFUL
 
     finally:

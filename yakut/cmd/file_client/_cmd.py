@@ -15,6 +15,7 @@ from yakut.util import EXIT_CODE_UNSUCCESSFUL
 from pycyphal.application.file import FileClient2
 import dataclasses
 
+
 @dataclasses.dataclass
 class FileInfo:
     size: int

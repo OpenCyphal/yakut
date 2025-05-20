@@ -12,7 +12,6 @@ from yakut.int_set_parser import parse_int_set
 from yakut.param.formatter import FormatterHints
 from yakut.ui import ProgressReporter, show_error, show_warning
 from yakut.util import EXIT_CODE_UNSUCCESSFUL
-from pycyphal.application.file import FileClient2
 import dataclasses
 
 
@@ -85,6 +84,7 @@ async def ls(
     """
     List files on a remote node using the standard Cyphal file service.
     """
+    from pycyphal.application.file import FileClient2
 
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
@@ -165,6 +165,7 @@ async def mv(
     """
     Move/rename a file or directory on remote node(s) using the standard Cyphal file service.
     """
+    from pycyphal.application.file import FileClient2
 
     _logger.debug("node_ids=%r, src=%r, dst=%r, timeout=%r", node_ids, src, dst, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
@@ -214,6 +215,7 @@ async def cp(
     """
     Copy a file on remote node(s) using the standard Cyphal file service.
     """
+    from pycyphal.application.file import FileClient2
 
     _logger.debug("node_ids=%r, src=%r, dst=%r, timeout=%r", node_ids, src, dst, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
@@ -261,6 +263,7 @@ async def touch(
     """
     Create an empty file or update timestamp on remote node(s) using the standard Cyphal file service.
     """
+    from pycyphal.application.file import FileClient2
 
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
@@ -306,6 +309,7 @@ async def rm(
     """
     Remove a file or directory on remote node(s) using the standard Cyphal file service.
     """
+    from pycyphal.application.file import FileClient2
 
     _logger.debug("node_ids=%r, path=%r, timeout=%r", node_ids, path, timeout)
     node_ids_list = list(sorted(node_ids)) if isinstance(node_ids, set) else [node_ids]
@@ -355,6 +359,7 @@ async def read(
     """
     Read a file from a remote node using the standard Cyphal file service.
     """
+    from pycyphal.application.file import FileClient2
 
     src = PurePosixPath(src)
     dst = Path(dst) if dst else Path(src.name)
@@ -410,6 +415,7 @@ async def write(
     """
     Write a file to a remote node using the standard Cyphal file service.
     """
+    from pycyphal.application.file import FileClient2
 
     src = Path(src)
     dst = PurePosixPath(dst) if dst else PurePosixPath(src.name)

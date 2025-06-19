@@ -41,7 +41,7 @@ async def process_subject_specifier(
         sp_sbj_id, sp_dty = specifier.split(":")
         _logger.info("Subject specifier interpreted as explicit: %r", (sp_sbj_id, sp_dty))
         subject_id = _parse_subject_id(sp_sbj_id)
-        if not subject_id:
+        if subject_id is None:
             raise BadSpecifierError(f"{subject_id} is not a valid subject-ID")
         return subject_id, dtype_loader.load_dtype(sp_dty)
 

@@ -16,11 +16,15 @@ jobs:
         include:
           - { os: win-pcap, py: '3.12' }
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: repo
     env:
       FORCE_COLOR: 1
     steps:
       - uses: actions/checkout@v4
         with:
+          path: repo
           submodules: true
           clean: ${{ runner.os != 'Windows' }}
 
@@ -49,7 +53,7 @@ jobs:
           # The matrix is shown for convenience but this is fragile because the values may not be string-convertible.
           # Shall it break one day, feel free to remove the matrix from here.
           name: ${{github.job}}-#${{strategy.job-index}}-${{job.status}}-${{join(matrix.*, ',')}}
-          path: "**/*.log"
+          path: "repo/**/*.log"
           retention-days: 90
           include-hidden-files: ${{ runner.os != 'Windows' }}
 

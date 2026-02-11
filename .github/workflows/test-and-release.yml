@@ -5,7 +5,9 @@ jobs:
   test:
     name: Test
     # https://docs.github.com/en/webhooks/webhook-events-and-payloads?actionType=edited#pull_request
-    if: (github.event_name == 'push') || github.event.pull_request.head.repo.fork
+    if: >
+      ((github.event_name == 'push') || github.event.pull_request.head.repo.fork) &&
+      ((matrix.os != 'win-pcap') || (github.event_name == 'push'))
     strategy:
       fail-fast: false
       matrix:

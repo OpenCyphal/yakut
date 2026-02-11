@@ -314,9 +314,9 @@ class View:
         byte_rates_by_node = byte_rates.sum(axis=1)
         for ii, node_id in enumerate(online_states):
             x = node_id if node_id is not None else N_NODES
-            sty = get_matrix_cell_style(None, None, int(xfer_delta_by_node[x]) > 0)
-            tbl[row_total + 1, ii + 1] = render_xfer_rate(float(xfer_rates_by_node[x])), sty
-            tbl[row_total + 2, ii + 1] = render_xfer_rate(float(byte_rates_by_node[x])), sty
+            sty = get_matrix_cell_style(None, None, int(xfer_delta_by_node[x, 0]) > 0)
+            tbl[row_total + 1, ii + 1] = render_xfer_rate(float(xfer_rates_by_node[x, 0])), sty
+            tbl[row_total + 2, ii + 1] = render_xfer_rate(float(byte_rates_by_node[x, 0])), sty
 
         # Sum the DS-wise vectors because they are usually faster due to being smaller.
         sty = get_matrix_cell_style(None, None, int(xfer_delta_by_ds.sum()) > 0)

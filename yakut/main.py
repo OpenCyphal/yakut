@@ -226,7 +226,11 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
     status: Any = 1
     # noinspection PyBroadException
     try:
-        status = _click_main.main(prog_name="yakut", standalone_mode=False)
+        status = _click_main.main(
+            args=_normalize_click_args(sys.argv[1:]),
+            prog_name="yakut",
+            standalone_mode=False,
+        )
 
     except SystemExit as ex:
         status = ex.code
@@ -254,6 +258,33 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
 
     _logger.debug("EXIT %r", status)
     sys.exit(status)
+
+
+def _normalize_click_args(args: list[str]) -> list[str]:
+    """
+    Click 8.3 stopped accepting bare options with flag_value when a typed value is configured.
+    Preserve the documented behavior of ``yakut cmd --expect`` by rewriting it into an explicit empty value.
+    """
+    if "--" in args:
+        effective_len = args.index("--")
+    else:
+        effective_len = len(args)
+
+    cmd_index = next(
+        (idx for idx, tok in enumerate(args[:effective_len]) if tok in {"cmd", "execute-command"}),
+        None,
+    )
+    if cmd_index is None:
+        return args
+
+    out = list(args)
+    for idx in range(cmd_index + 1, effective_len):
+        if out[idx] not in {"--expect", "-e"}:
+            continue
+        next_arg = out[idx + 1] if idx + 1 < effective_len else None
+        if next_arg is None or next_arg.startswith("-"):
+            out[idx] = "--expect="
+    return out
 
 
 subcommand: Callable[..., Callable[..., Any]] = _click_main.command  # type: ignore

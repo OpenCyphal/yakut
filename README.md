@@ -7,6 +7,8 @@
 
 Yakút is a simple cross-platform command-line interface (CLI) tool for diagnostics and debugging of [Cyphal](https://opencyphal.org) networks. By virtue of being based on [PyCyphal](https://github.com/OpenCyphal/pycyphal), Yakut supports all Cyphal transports (UDP, serial, CAN, ...) and is compatible with all major features of the protocol. It is designed to be usable with GNU/Linux, Windows, and macOS.
 
+**For the newer Cyphal v1.1, the recommended tool is [Cynic](https://github.com/OpenCyphal-Garage/cynic).** Yakut will not receive support for Cyphal v1.1.
+
 <img src="docs/monitor.png" alt="yakut monitor">
 
 Ask questions and get assistance at [forum.opencyphal.org](https://forum.opencyphal.org/).
